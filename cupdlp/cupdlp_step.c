@@ -62,7 +62,7 @@ void PDTEST_x_bar_step(CUPDLPwork *work, cupdlp_int theta)
 
 void PDTEST_primalGradientStep(CUPDLPwork *work, cupdlp_float dPrimalStepSize)
 {
-  CUPDLPiterates *iterates = work->iterates;
+  PDTESTiterates *iterates = work->PDTESTiterates;
   CUPDLPproblem *problem = work->problem;
 
 #if !(CUPDLP_CPU) & USE_KERNELS

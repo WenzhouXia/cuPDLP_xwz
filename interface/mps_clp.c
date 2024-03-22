@@ -212,7 +212,8 @@ cupdlp_retcode main(int argc, char **argv)
 
   w->problem = prob;
   w->scaling = scaling;
-  PDHG_Alloc(w);
+  // PDHG_Alloc(w);
+  PDTEST_Alloc(w);
   w->timers->dScalingTime = scaling_time;
   w->timers->dPresolveTime = presolve_time;
   CUPDLP_COPY_VEC(w->rowScale, scaling->rowScale, cupdlp_float, nRows);
@@ -235,9 +236,8 @@ cupdlp_retcode main(int argc, char **argv)
   CUPDLP_INIT(x_origin, nCols_origin);
   CUPDLP_INIT(y_origin, nRows);
 
-  CUPDLP_CALL(LP_SolvePDHG(w, ifChangeIntParam, intParam, ifChangeFloatParam,
-                           floatParam, fout, x_origin, nCols_origin, y_origin,
-                           ifSaveSol, constraint_new_idx));
+  // CUPDLP_CALL(LP_SolvePDHG(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
+  CUPDLP_CALL(LP_SolvePDTEST(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
 
   // print result
   // TODO: implement after adding IO

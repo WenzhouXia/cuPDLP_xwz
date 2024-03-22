@@ -1044,6 +1044,80 @@ exit_cleanup:
   return retcode;
 }
 
+cupdlp_retcode PDTESTiterates_Alloc(PDTESTiterates *iterates, cupdlp_int ncols,
+                                    cupdlp_int nrows)
+{
+  cupdlp_retcode retcode = RETCODE_OK;
+
+  iterates->nCols = ncols;
+  iterates->nRows = nrows;
+
+  CUPDLP_INIT_ZERO_VEC(iterates->xSum, ncols);
+  CUPDLP_INIT_ZERO_VEC(iterates->ySum, nrows);
+  CUPDLP_INIT_ZERO_VEC(iterates->xLastRestart, ncols);
+  CUPDLP_INIT_ZERO_VEC(iterates->yLastRestart, nrows);
+
+  CUPDLP_INIT(iterates->x, 1);
+  CUPDLP_INIT(iterates->xUpdate, 1);
+  CUPDLP_INIT(iterates->xAverage, 1);
+  CUPDLP_INIT(iterates->y, 1);
+  CUPDLP_INIT(iterates->yUpdate, 1);
+  CUPDLP_INIT(iterates->yAverage, 1);
+  CUPDLP_INIT(iterates->ax, 1);
+  CUPDLP_INIT(iterates->axUpdate, 1);
+  CUPDLP_INIT(iterates->axAverage, 1);
+  CUPDLP_INIT(iterates->aty, 1);
+  CUPDLP_INIT(iterates->atyUpdate, 1);
+  CUPDLP_INIT(iterates->atyAverage, 1);
+  /////////////////////////////////////////////////////
+  CUPDLP_INIT(iterates->x_ag, 1);
+  CUPDLP_INIT(iterates->y_ag, 1);
+  CUPDLP_INIT(iterates->x_bar, 1);
+  CUPDLP_INIT(iterates->y_bar, 1);
+  CUPDLP_INIT(iterates->x_md, 1);
+  CUPDLP_INIT(iterates->ax_bar, 1);
+  CUPDLP_INIT(iterates->ax_ag, 1);
+  CUPDLP_INIT(iterates->aty_ag, 1);
+  CUPDLP_INIT(iterates->x_agUpdate, 1);
+  CUPDLP_INIT(iterates->y_agUpdate, 1);
+  CUPDLP_INIT(iterates->x_barUpdate, 1);
+  /////////////////////////////////////////////////////
+
+  CUPDLP_CALL(vec_Alloc(iterates->x, ncols));
+  CUPDLP_CALL(vec_Alloc(iterates->xUpdate, ncols));
+  CUPDLP_CALL(vec_Alloc(iterates->xAverage, ncols));
+  CUPDLP_CALL(vec_Alloc(iterates->y, nrows));
+  CUPDLP_CALL(vec_Alloc(iterates->yUpdate, nrows));
+  CUPDLP_CALL(vec_Alloc(iterates->yAverage, nrows));
+  CUPDLP_CALL(vec_Alloc(iterates->ax, nrows));
+  CUPDLP_CALL(vec_Alloc(iterates->axUpdate, nrows));
+  CUPDLP_CALL(vec_Alloc(iterates->axAverage, nrows));
+  CUPDLP_CALL(vec_Alloc(iterates->aty, ncols));
+  CUPDLP_CALL(vec_Alloc(iterates->atyUpdate, ncols));
+  CUPDLP_CALL(vec_Alloc(iterates->atyAverage, ncols));
+  /////////////////////////////////////////////////////
+  CUPDLP_CALL(vec_Alloc(iterates->x_ag, ncols));
+  CUPDLP_CALL(vec_Alloc(iterates->x_bar, ncols));
+  CUPDLP_CALL(vec_Alloc(iterates->x_md, ncols));
+  CUPDLP_CALL(vec_Alloc(iterates->x_agUpdate, ncols));
+  CUPDLP_CALL(vec_Alloc(iterates->x_barUpdate, ncols));
+  CUPDLP_CALL(vec_Alloc(iterates->aty_ag, ncols));
+  CUPDLP_CALL(vec_Alloc(iterates->y_ag, nrows));
+  CUPDLP_CALL(vec_Alloc(iterates->y_bar, nrows));
+  CUPDLP_CALL(vec_Alloc(iterates->y_agUpdate, nrows));
+  CUPDLP_CALL(vec_Alloc(iterates->ax_bar, nrows));
+  CUPDLP_CALL(vec_Alloc(iterates->ax_ag, nrows));
+  /////////////////////////////////////////////////////
+
+  // initialization
+  iterates->iLastRestartIter = 0;
+  iterates->dLastRestartDualityGap = 0.0;
+  iterates->dLastRestartBeta = 0.0;
+
+exit_cleanup:
+  return retcode;
+}
+
 cupdlp_retcode stepsize_Alloc(CUPDLPstepsize *stepsize)
 {
   cupdlp_retcode retcode = RETCODE_OK;
@@ -1173,6 +1247,61 @@ cupdlp_retcode PDHG_Alloc(CUPDLPwork *w)
       w->iterates->x->cuda_vec, w->iterates->ax->cuda_vec,
       w->problem->data->csr_matrix->cuda_csr, w->iterates->y->cuda_vec,
       w->iterates->aty->cuda_vec, &w->dBuffer);
+  w->timers->AllocMem_CopyMatToDeviceTime += getTimeStamp() - begin;
+#endif
+
+exit_cleanup:
+  return retcode;
+}
+
+cupdlp_retcode PDTEST_Alloc(CUPDLPwork *w)
+{
+  cupdlp_retcode retcode = RETCODE_OK;
+
+  CUPDLP_INIT(w->settings, 1);
+  CUPDLP_INIT(w->resobj, 1);
+  /////////////////////////////////////////////
+  // PDTESTiterates or iterates
+  // CUPDLP_INIT(w->iterates, 1);
+  CUPDLP_INIT(w->PDTESTiterates, 1);
+
+  CUPDLP_INIT(w->stepsize, 1);
+
+  CUPDLP_INIT(w->timers, 1);
+  CUPDLP_CALL(timers_Alloc(w->timers));
+
+  cupdlp_float begin = getTimeStamp();
+  // buffer
+  CUPDLP_INIT(w->buffer, 1);
+  CUPDLP_CALL(vec_Alloc(w->buffer, w->problem->data->nRows));
+  CUPDLP_INIT_ZERO_VEC(w->buffer2,
+                       MAX(w->problem->data->nCols, w->problem->data->nRows));
+  CUPDLP_INIT_ZERO_VEC(w->buffer3,
+                       MAX(w->problem->data->nCols, w->problem->data->nRows));
+
+  // for scaling
+  CUPDLP_INIT_ZERO_VEC(w->colScale, w->problem->data->nCols);
+  CUPDLP_INIT_ZERO_VEC(w->rowScale, w->problem->data->nRows);
+
+  CUPDLP_CALL(settings_Alloc(w->settings));
+  CUPDLP_CALL(resobj_Alloc(w->resobj, w->problem, w->problem->data->nCols,
+                           w->problem->data->nRows));
+  /////////////////////////////////////////////
+  // PDTESTiterates or iterates
+  // CUPDLP_CALL(iterates_Alloc(w->iterates, w->problem->data->nCols, w->problem->data->nRows));
+  CUPDLP_CALL(PDTESTiterates_Alloc(w->PDTESTiterates, w->problem->data->nCols, w->problem->data->nRows));
+
+  CUPDLP_CALL(stepsize_Alloc(w->stepsize));
+
+#if !(CUPDLP_CPU)
+  //   CHECK_CUSPARSE(cusparseCreate(&w->cusparsehandle));
+  //   CHECK_CUBLAS(cublasCreate(&w->cublashandle));
+  cuda_alloc_MVbuffer(
+      //   w->problem->data->matrix_format,
+      w->cusparsehandle, w->problem->data->csc_matrix->cuda_csc,
+      w->PDTESTiterates->x->cuda_vec, w->PDTESTiterates->ax->cuda_vec,
+      w->problem->data->csr_matrix->cuda_csr, w->PDTESTiterates->y->cuda_vec,
+      w->PDTESTiterates->aty->cuda_vec, &w->dBuffer);
   w->timers->AllocMem_CopyMatToDeviceTime += getTimeStamp() - begin;
 #endif
 
@@ -1638,6 +1767,34 @@ void PDHG_Dump_Stats(CUPDLPwork *w)
   cupdlp_int nCols = w->iterates->nCols;
   cupdlp_int nRows = w->iterates->nRows;
   CUPDLPiterates *iterates = w->iterates;
+  CUPDLPstepsize *stepsize = w->stepsize;
+
+  cupdlp_printf("------------------------------------------------\n");
+  cupdlp_printf("Iteration % 3d\n", w->timers->nIter);
+#if CUPDLP_DUMP_ITERATES
+  vecPrint("x", iterates->x->data, nCols);
+  vecPrint("y", iterates->y->data, nRows);
+  vecPrint("xSum", iterates->xSum, nCols);
+  vecPrint("ySum", iterates->ySum, nRows);
+  vecPrint("Ax ", iterates->ax->data, nRows);
+  vecPrint("A'y", iterates->aty->data, nCols);
+  vecPrint("xLastRestart", iterates->xLastRestart, nCols);
+  vecPrint("yLastRestart", iterates->yLastRestart, nRows);
+#endif
+  cupdlp_printf(
+      "PrimalStep: %e, SumPrimalStep: %e, DualStep: %e, SumDualStep: %e\n",
+      stepsize->dPrimalStep, stepsize->dSumPrimalStep, stepsize->dDualStep,
+      stepsize->dSumDualStep);
+  cupdlp_printf("Stepsize: %e, Primal weight: %e Ratio: %e\n",
+                sqrt(stepsize->dPrimalStep * stepsize->dDualStep),
+                sqrt(stepsize->dBeta), stepsize->dTheta);
+}
+
+void PDTEST_Dump_Stats(CUPDLPwork *w)
+{
+  cupdlp_int nCols = w->PDTESTiterates->nCols;
+  cupdlp_int nRows = w->PDTESTiterates->nRows;
+  PDTESTiterates *iterates = w->PDTESTiterates;
   CUPDLPstepsize *stepsize = w->stepsize;
 
   cupdlp_printf("------------------------------------------------\n");

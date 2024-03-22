@@ -734,7 +734,7 @@ cupdlp_retcode PDTEST_Solve(CUPDLPwork *pdhg)
   {
     PDHG_Compute_SolvingTime(pdhg);
 #if CUPDLP_DUMP_ITERATES_STATS & CUPDLP_DEBUG
-    PDHG_Dump_Stats(pdhg);
+    PDTEST_Dump_Stats(pdhg);
 #endif
     int bool_checking = (timers->nIter < 10) ||
                         (timers->nIter == (settings->nIterLim - 1)) ||

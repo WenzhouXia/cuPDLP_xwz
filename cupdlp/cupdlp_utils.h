@@ -99,6 +99,8 @@ extern "C"
 
     cupdlp_retcode iterates_Alloc(CUPDLPiterates *iterates, cupdlp_int ncols,
                                   cupdlp_int nrows);
+    cupdlp_retcode PDTESTiterates_Alloc(PDTESTiterates *iterates, cupdlp_int ncols,
+                                        cupdlp_int nrows);
 
     cupdlp_retcode stepsize_Alloc(CUPDLPstepsize *stepsize);
 
@@ -110,6 +112,7 @@ extern "C"
     void PDHG_Init_Data(CUPDLPwork *w);
 
     cupdlp_retcode PDHG_Alloc(CUPDLPwork *w);
+    cupdlp_retcode PDTEST_Alloc(CUPDLPwork *w);
 
     cupdlp_retcode PDHG_Create(CUPDLPwork **ww, CUPDLPproblem *lp,
                                CUPDLPscaling *scaling);
@@ -121,6 +124,7 @@ extern "C"
     void vecIntPrint(const char *s, const cupdlp_int *a, cupdlp_int n);
 
     void PDHG_Dump_Stats(CUPDLPwork *w);
+    void PDTEST_Dump_Stats(CUPDLPwork *w);
 
     /* TODO: Add compatibility for Windows platform */
     double my_clock(void);
