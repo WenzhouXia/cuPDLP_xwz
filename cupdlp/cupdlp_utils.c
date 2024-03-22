@@ -568,6 +568,12 @@ void PDHG_PrintUserParamHelper()
   cupdlp_printf("                default: true\n");
   cupdlp_printf("                range:   true or false\n");
   cupdlp_printf("\n");
+
+  cupdlp_printf("    -ifPDTEST: whether to use PDTEST\n");
+  cupdlp_printf("                type:    int\n");
+  cupdlp_printf("                default: 0, use PDHG\n");
+  cupdlp_printf("                range:   1 or 0\n");
+  cupdlp_printf("\n");
 }
 
 cupdlp_retcode getUserParam(int argc, char **argv,
@@ -678,6 +684,12 @@ cupdlp_retcode getUserParam(int argc, char **argv,
     {
       ifChangeIntParam[IF_PRESOLVE] = true;
       intParam[IF_PRESOLVE] = atoi(argv[i + 1]);
+    }
+    else if (strcmp(argv[i], "-ifPDTEST") == 0)
+    {
+      ifChangeIntParam[IF_PDTEST] = true;
+      intParam[IF_PDTEST] = atoi(argv[i + 1]);
+      cupdlp_printf("提取的ifPDTEST: %d\n", intParam[IF_PDTEST]);
     }
   }
 

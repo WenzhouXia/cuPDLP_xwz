@@ -22,7 +22,7 @@ cupdlp_retcode main(int argc, char **argv)
   int nCols_origin;
   cupdlp_bool ifSaveSol = false;
   cupdlp_bool ifPresolve = false;
-
+  cupdlp_bool ifPDTEST = false;
   int nnz = 0;
   double *rhs = NULL;
   double *cost = NULL;
@@ -79,6 +79,10 @@ cupdlp_retcode main(int argc, char **argv)
     else if (strcmp(argv[i], "-ifPre") == 0)
     {
       ifPresolve = atoi(argv[i + 1]);
+    }
+    else if (strcmp(argv[i], "-ifPDTEST") == 0)
+    {
+      ifPDTEST = atoi(argv[i + 1]);
     }
   }
   if (strcmp(argv[argc - 1], "-h") == 0)
@@ -202,27 +206,50 @@ cupdlp_retcode main(int argc, char **argv)
 
   cupdlp_float alloc_matrix_time = 0.0;
   cupdlp_float copy_vec_time = 0.0;
-  /////////////////////////////////////////////////////////////////////
-  cupdlp_float sum = 0.0;
-  for (cupdlp_int i = 0; i < csc_cpu->nMatElem; ++i)
+
+  if (ifChangeIntParam[IF_PDTEST])
   {
-    cupdlp_float value = csc_cpu->colMatElem[i]; // 获取矩阵非零元素的值
-    sum += value * value;                        // 将元素的平方累加到总和中
+    ifPDTEST = intParam[IF_PDTEST]; // 默认用PDHG不用PDTEST，ifPDTEST默认值为0
+    printf("ifPDTEST = %d\n", ifPDTEST);
   }
-  cupdlp_float matrix_2norm = sqrt(sum);
-  cupdlp_printf("matrix_2norm = %f\n", matrix_2norm);
-  /////////////////////////////////////////////////////////////////////
-  CUPDLP_CALL(PDTEST_problem_alloc(prob, nRows, nCols, nEqs, cost, offset, sign_origin,
-                                   csc_cpu, src_matrix_format, dst_matrix_format, rhs,
-                                   lower, upper, &alloc_matrix_time, &copy_vec_time, matrix_2norm));
+  if (!ifPDTEST)
+  {
+    CUPDLP_CALL(problem_alloc(prob, nRows, nCols, nEqs, cost, offset, sign_origin,
+                              csc_cpu, src_matrix_format, dst_matrix_format, rhs,
+                              lower, upper, &alloc_matrix_time, &copy_vec_time));
+  }
+  else
+  {
+    /////////////////////////////////////////////////////////////////////
+    cupdlp_float sum = 0.0;
+    for (cupdlp_int i = 0; i < csc_cpu->nMatElem; ++i)
+    {
+      cupdlp_float value = csc_cpu->colMatElem[i]; // 获取矩阵非零元素的值
+      sum += value * value;                        // 将元素的平方累加到总和中
+    }
+    cupdlp_float matrix_2norm = sqrt(sum);
+    cupdlp_printf("matrix_2norm = %f\n", matrix_2norm);
+    /////////////////////////////////////////////////////////////////////
+    CUPDLP_CALL(PDTEST_problem_alloc(prob, nRows, nCols, nEqs, cost, offset, sign_origin,
+                                     csc_cpu, src_matrix_format, dst_matrix_format, rhs,
+                                     lower, upper, &alloc_matrix_time, &copy_vec_time, matrix_2norm));
+  }
 
   // solve
   // cupdlp_printf("Enter main solve loop\n");
 
   w->problem = prob;
   w->scaling = scaling;
-  // PDHG_Alloc(w);
-  PDTEST_Alloc(w);
+  if (!ifPDTEST)
+  {
+    PDHG_Alloc(w);
+  }
+  else
+  {
+    PDTEST_Alloc(w);
+  }
+  // // PDHG_Alloc(w);
+  // PDTEST_Alloc(w);
   w->timers->dScalingTime = scaling_time;
   w->timers->dPresolveTime = presolve_time;
   CUPDLP_COPY_VEC(w->rowScale, scaling->rowScale, cupdlp_float, nRows);
@@ -244,9 +271,15 @@ cupdlp_retcode main(int argc, char **argv)
 
   CUPDLP_INIT(x_origin, nCols_origin);
   CUPDLP_INIT(y_origin, nRows);
-
-  // CUPDLP_CALL(LP_SolvePDHG(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
-  CUPDLP_CALL(LP_SolvePDTEST(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
+  if (!ifPDTEST)
+  {
+    CUPDLP_CALL(LP_SolvePDHG(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
+  }
+  else
+  {
+    CUPDLP_CALL(LP_SolvePDTEST(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
+  }
+  //
 
   // print result
   // TODO: implement after adding IO

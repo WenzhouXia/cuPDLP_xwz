@@ -106,6 +106,7 @@ extern "C"
     IF_PC_SCALING,
     N_LOG_INTERVAL,
     IF_PRESOLVE,
+    IF_PDTEST,
   } CUPDLP_INT_USER_PARAM_INDEX;
 #define N_INT_USER_PARAM 10
   typedef enum
