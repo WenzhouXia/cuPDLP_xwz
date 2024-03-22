@@ -14,6 +14,9 @@ void PDHG_Project_Row_Duals(CUPDLPwork *work, double *r);
 
 void PDHG_Restart_Iterate(CUPDLPwork *pdhg);
 
-void PDHG_Restart_Iterate_GPU(CUPDLPwork *pdhg);
+void PDTEST_Restart_Iterate(CUPDLPwork *pdhg);
 
-#endif  // CUPDLP_CUPDLP_PROJ_H
+void PDHG_Restart_Iterate_GPU(CUPDLPwork *pdhg);
+void PDTEST_Restart_Iterate_GPU(CUPDLPwork *pdhg);
+
+#endif // CUPDLP_CUPDLP_PROJ_H

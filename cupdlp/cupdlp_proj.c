@@ -14,7 +14,8 @@
 #include "glbopts.h"
 
 // primal projection: project x to [lower, upper]
-void PDHG_Project_Bounds(CUPDLPwork *work, cupdlp_float *r) {
+void PDHG_Project_Bounds(CUPDLPwork *work, cupdlp_float *r)
+{
   CUPDLPproblem *problem = work->problem;
 
   // cupdlp_projUpperBound(r, r, problem->upper, problem->nCols);
@@ -24,7 +25,8 @@ void PDHG_Project_Bounds(CUPDLPwork *work, cupdlp_float *r) {
   cupdlp_projlb(r, problem->lower, problem->nCols);
 }
 
-void PDHG_Project_Row_Duals(CUPDLPwork *work, cupdlp_float *r) {
+void PDHG_Project_Row_Duals(CUPDLPwork *work, cupdlp_float *r)
+{
   CUPDLPproblem *problem = work->problem;
 
   // cupdlp_projPositive(r + problem->nEqs, r + problem->nEqs, problem->nRows -
@@ -72,20 +74,40 @@ void PDHG_Project_Row_Duals(CUPDLPwork *work, cupdlp_float *r) {
 //     stepsize->dBeta, sqrt(stepsize->dBeta));
 // }
 
-void PDHG_Restart_Iterate(CUPDLPwork *pdhg) {
-  switch (pdhg->settings->eRestartMethod) {
-    case PDHG_WITHOUT_RESTART:
-      break;
-    case PDHG_GPU_RESTART:
-      PDHG_Restart_Iterate_GPU(pdhg);
-      break;
-    case PDHG_CPU_RESTART:
-      // TODO: implement PDHG_Restart_Iterate_CPU(pdhg);
-      break;
+void PDHG_Restart_Iterate(CUPDLPwork *pdhg)
+{
+  switch (pdhg->settings->eRestartMethod)
+  {
+  case PDHG_WITHOUT_RESTART:
+    break;
+  case PDHG_GPU_RESTART:
+    PDHG_Restart_Iterate_GPU(pdhg);
+    break;
+  case PDHG_CPU_RESTART:
+    // TODO: implement PDHG_Restart_Iterate_CPU(pdhg);
+    break;
   }
 }
 
-void PDHG_Restart_Iterate_GPU(CUPDLPwork *pdhg) {
+void PDTEST_Restart_Iterate(CUPDLPwork *pdhg)
+{
+  switch (pdhg->settings->eRestartMethod)
+  {
+  case PDHG_WITHOUT_RESTART:
+    // cupdlp_printf("PDHG_WITHOUT_RESTART\n");
+    break;
+  case PDHG_GPU_RESTART:
+    // cupdlp_printf("PDHG_GPU_RESTART\n");
+    PDTEST_Restart_Iterate_GPU(pdhg);
+    break;
+    // case PDHG_CPU_RESTART:
+    //   // TODO: implement PDHG_Restart_Iterate_CPU(pdhg);
+    //   break;
+  }
+}
+
+void PDHG_Restart_Iterate_GPU(CUPDLPwork *pdhg)
+{
   CUPDLPproblem *problem = pdhg->problem;
   CUPDLPiterates *iterates = pdhg->iterates;
   CUPDLPstepsize *stepsize = pdhg->stepsize;
@@ -95,14 +117,16 @@ void PDHG_Restart_Iterate_GPU(CUPDLPwork *pdhg) {
   // PDHG_Compute_Average_Iterate(pdhg);
   PDHG_restart_choice restart_choice = PDHG_Check_Restart_GPU(pdhg);
 
-  if (restart_choice == PDHG_NO_RESTART) return;
+  if (restart_choice == PDHG_NO_RESTART)
+    return;
 
   stepsize->dSumPrimalStep = 0.0;
   stepsize->dSumDualStep = 0.0;
   CUPDLP_ZERO_VEC(iterates->xSum, cupdlp_float, problem->nCols);
   CUPDLP_ZERO_VEC(iterates->ySum, cupdlp_float, problem->nRows);
 
-  if (restart_choice == PDHG_RESTART_TO_AVERAGE) {
+  if (restart_choice == PDHG_RESTART_TO_AVERAGE)
+  {
     resobj->dPrimalFeasLastRestart = resobj->dPrimalFeasAverage;
     resobj->dDualFeasLastRestart = resobj->dDualFeasAverage;
     resobj->dDualityGapLastRestart = resobj->dDualityGapAverage;
@@ -122,7 +146,9 @@ void PDHG_Restart_Iterate_GPU(CUPDLPwork *pdhg) {
                     problem->nRows);
     CUPDLP_COPY_VEC(iterates->aty->data, iterates->atyAverage->data,
                     cupdlp_float, problem->nCols);
-  } else {
+  }
+  else
+  {
     resobj->dPrimalFeasLastRestart = resobj->dPrimalFeas;
     resobj->dDualFeasLastRestart = resobj->dDualFeas;
     resobj->dDualityGapLastRestart = resobj->dDualityGap;
@@ -141,6 +167,43 @@ void PDHG_Restart_Iterate_GPU(CUPDLPwork *pdhg) {
   iterates->iLastRestartIter = timers->nIter;
 
   PDHG_Compute_Residuals(pdhg);
+  // cupdlp_printf("Recomputed stepsize ratio: %e,  sqrt(ratio)=%e",
+  // stepsize->dBeta, sqrt(stepsize->dBeta));
+}
+
+void PDTEST_Restart_Iterate_GPU(CUPDLPwork *pdhg)
+{
+  CUPDLPproblem *problem = pdhg->problem;
+  PDTESTiterates *iterates = pdhg->PDTESTiterates;
+  CUPDLPstepsize *stepsize = pdhg->stepsize;
+  CUPDLPresobj *resobj = pdhg->resobj;
+  CUPDLPtimers *timers = pdhg->timers;
+
+  // PDHG_Compute_Average_Iterate(pdhg);
+  PDHG_restart_choice restart_choice = PDTEST_Check_Restart_GPU(pdhg);
+
+  if (restart_choice == PDHG_NO_RESTART)
+    return;
+
+  stepsize->dSumPrimalStep = 0.0;
+  stepsize->dSumDualStep = 0.0;
+  CUPDLP_ZERO_VEC(iterates->xSum, cupdlp_float, problem->nCols);
+  CUPDLP_ZERO_VEC(iterates->ySum, cupdlp_float, problem->nRows);
+
+  resobj->dPrimalFeasLastRestart = resobj->dPrimalFeas;
+  resobj->dDualFeasLastRestart = resobj->dDualFeas;
+  resobj->dDualityGapLastRestart = resobj->dDualityGap;
+
+  PDTEST_Compute_Step_Size_Ratio(pdhg);
+
+  CUPDLP_COPY_VEC(iterates->xLastRestart, iterates->x_ag->data, cupdlp_float,
+                  problem->nCols);
+  CUPDLP_COPY_VEC(iterates->yLastRestart, iterates->y_ag->data, cupdlp_float,
+                  problem->nRows);
+
+  iterates->iLastRestartIter = timers->nIter;
+
+  PDTEST_Compute_Residuals(pdhg);
   // cupdlp_printf("Recomputed stepsize ratio: %e,  sqrt(ratio)=%e",
   // stepsize->dBeta, sqrt(stepsize->dBeta));
 }

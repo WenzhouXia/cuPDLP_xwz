@@ -33,8 +33,10 @@ extern "C"
                                      double *dDualObj, double *dComplementarity);
 
   void PDHG_Compute_Residuals(CUPDLPwork *work);
+  void PDTEST_Compute_Residuals(CUPDLPwork *work);
 
   void PDHG_Init_Variables(CUPDLPwork *work);
+  void PDTEST_Init_Variables(CUPDLPwork *work);
 
   void PDHG_Check_Data(CUPDLPwork *work);
 

@@ -201,6 +201,43 @@ extern "C" void cupdlp_dgrad_cuda(cupdlp_float *yUpdate, const cupdlp_float *y, 
       dual_grad_step_kernal<<<cuda_gridsize(len), CUPDLP_BLOCK_SIZE>>>(
           yUpdate, y, b, Ax, AxUpdate, dDualStep, len);
 }
+extern "C" void pdtest_x_md_update_cuda(cupdlp_float *x_md, const cupdlp_float *x_ag, const cupdlp_float *x, const cupdlp_float beta, const cupdlp_int len) {
+      pdtest_x_update_with_beta_kernal<<<cuda_gridsize(len), CUPDLP_BLOCK_SIZE>>>(
+          x_md, x_ag, x, 1 / beta, len);
+}
+
+
+extern "C" void pdtest_x_ag_update_cuda(cupdlp_float *x_agUpdate, const cupdlp_float *x_ag, const cupdlp_float *xUpdate, const cupdlp_float beta, const cupdlp_int len) {
+      pdtest_x_update_with_beta_kernal<<<cuda_gridsize(len), CUPDLP_BLOCK_SIZE>>>(
+          x_agUpdate, x_ag, xUpdate, 1 / beta, len);
+}
+
+extern "C" void pdtest_y_ag_update_cuda(cupdlp_float *y_agUpdate, const cupdlp_float *y_ag, const cupdlp_float *yUpdate, const cupdlp_float beta, const cupdlp_int len) {
+      pdtest_y_update_with_beta_kernal<<<cuda_gridsize(len), CUPDLP_BLOCK_SIZE>>>(
+          y_agUpdate, y_ag, yUpdate, 1 / beta, len);
+}
+
+extern "C" void pdtest_x_bar_update_cuda(cupdlp_float *x_barUpdate, const cupdlp_float *xUpdate, const cupdlp_float *x, const cupdlp_float theta, const cupdlp_int len) {
+      pdtest_x_update_with_theta_kernal<<<cuda_gridsize(len), CUPDLP_BLOCK_SIZE>>>(
+          x_barUpdate, xUpdate, x, theta, len);
+}
+
+extern "C" void pdtest_pgrad_cuda(cupdlp_float *xUpdate,
+                                        const cupdlp_float *x,
+                                        const cupdlp_float *cost,
+                                        const cupdlp_float *ATy,
+                                        const cupdlp_float dPrimalStep,
+                                        const cupdlp_int len) {
+    pdtest_primal_grad_step_kernal<<<cuda_gridsize(len), CUPDLP_BLOCK_SIZE>>>(
+        xUpdate, x, cost, ATy, dPrimalStep, len);
+}
+
+extern "C" void pdtest_dgrad_cuda(cupdlp_float *yUpdate, const cupdlp_float *y, const cupdlp_float *b,
+    const cupdlp_float *Ax_bar,
+    const cupdlp_float dDualStep, const cupdlp_int len) {
+      pdtest_dual_grad_step_kernal<<<cuda_gridsize(len), CUPDLP_BLOCK_SIZE>>>(
+          yUpdate, y, b, Ax_bar, dDualStep, len);
+}
 
 extern "C" void cupdlp_sub_cuda(cupdlp_float *z, const cupdlp_float *x,
                                   const cupdlp_float *y, const cupdlp_int len)

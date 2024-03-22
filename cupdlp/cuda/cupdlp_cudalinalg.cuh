@@ -1,18 +1,19 @@
 #ifndef CUPDLP_CUDA_LINALG_H
 #define CUPDLP_CUDA_LINALG_H
 
-#include <cublas_v2.h>         // cublas
-#include <cuda_runtime_api.h>  // cudaMalloc, cudaMemcpy, etc.
-#include <cusparse.h>          // cusparseSpMV
+#include <cublas_v2.h>        // cublas
+#include <cuda_runtime_api.h> // cudaMalloc, cudaMemcpy, etc.
+#include <cusparse.h>         // cusparseSpMV
 
 #include "cupdlp_cuda_kernels.cuh"
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-#include <stdio.h>   // printf
-#include <stdlib.h>  // EXIT_FAILURE
+#include <stdio.h>  // printf
+#include <stdlib.h> // EXIT_FAILURE
 
 // #include "../cupdlp_defs.h"
 // #include "../glbopts.h"
@@ -91,6 +92,24 @@ extern "C" void cupdlp_dgrad_cuda(cupdlp_float *yUpdate, const cupdlp_float *y,
                                   const cupdlp_float *AxUpdate,
                                   const cupdlp_float dDualStep,
                                   const cupdlp_int len);
+
+extern "C" void pdtest_x_md_update_cuda(cupdlp_float *x_agUpdate, const cupdlp_float *x_ag, const cupdlp_float *xUpdate, const cupdlp_float beta, const cupdlp_int len);
+
+extern "C" void pdtest_x_ag_update_cuda(cupdlp_float *x_agUpdate, const cupdlp_float *x_ag, const cupdlp_float *xUpdate, const cupdlp_float beta, const cupdlp_int len);
+
+extern "C" void pdtest_y_ag_update_cuda(cupdlp_float *y_agUpdate, const cupdlp_float *y_ag, const cupdlp_float *yUpdate, const cupdlp_float beta, const cupdlp_int len);
+
+extern "C" void pdtest_x_bar_update_cuda(cupdlp_float *x_barUpdate, const cupdlp_float *xUpdate, const cupdlp_float *x, const cupdlp_float theta, const cupdlp_int len);
+
+extern "C" void pdtest_pgrad_cuda(cupdlp_float *xUpdate, const cupdlp_float *x,
+                                  const cupdlp_float *cost,
+                                  const cupdlp_float *ATy,
+                                  const cupdlp_float dPrimalStep,
+                                  const cupdlp_int len);
+
+extern "C" void pdtest_dgrad_cuda(cupdlp_float *yUpdate, const cupdlp_float *y, const cupdlp_float *b,
+                                  const cupdlp_float *Ax_bar,
+                                  const cupdlp_float dDualStep, const cupdlp_int len);
 
 extern "C" void cupdlp_sub_cuda(cupdlp_float *z, const cupdlp_float *x,
                                 const cupdlp_float *y, const cupdlp_int len);

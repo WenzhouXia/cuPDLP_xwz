@@ -13,7 +13,8 @@
 #include "cupdlp_utils.h"
 #include "glbopts.h"
 
-typedef enum {
+typedef enum
+{
   PDHG_NO_RESTART = 0,
   PDHG_RESTART_TO_CURRENT,
   PDHG_RESTART_TO_AVERAGE
@@ -23,9 +24,11 @@ cupdlp_bool PDHG_Check_Restart_Merit_Function(CUPDLPwork *work);
 
 PDHG_restart_choice PDHG_Check_Restart_GPU(CUPDLPwork *work);
 
+PDHG_restart_choice PDTEST_Check_Restart_GPU(CUPDLPwork *work);
+
 cupdlp_float PDHG_Restart_Score_GPU(cupdlp_float weightSquared,
                                     cupdlp_float dPrimalFeas,
                                     cupdlp_float dDualFeas,
                                     cupdlp_float dDualityGap);
 
-#endif  // CUPDLP_CUPDLP_RESTART_H
+#endif // CUPDLP_CUPDLP_RESTART_H
