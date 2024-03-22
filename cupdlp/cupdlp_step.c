@@ -222,6 +222,23 @@ exit_cleanup:
   return retcode;
 }
 
+cupdlp_float PDTEST_K_norm(CUPDLPwork *work)
+{
+  CUPDLPproblem *problem = work->problem;
+  CUPDLPdata *data = problem->data;
+  CUPDLP_MATRIX_FORMAT matrix_format = data->matrix_format;
+  CUPDLPcsr *csr_matrix = data->csr_matrix;
+  cupdlp_printf("matirx_format: %d\n", matrix_format);
+  cupdlp_printf("matrix device: %d\n", data->device);
+  cupdlp_float sum = 0.0;
+  // for (cupdlp_int i = 0; i < csr_matrix->nMatElem; ++i)
+  // {
+  //   cupdlp_float value = csr_matrix->rowMatElem[i]; // 获取矩阵非零元素的值
+  //   sum += value * value;                           // 将元素的平方累加到总和中
+  // }
+  cupdlp_float K_norm = sqrt(sum);
+  return K_norm; // 返回平方和的平方根，即Frobenius范数
+}
 void PDHG_Compute_Step_Size_Ratio(CUPDLPwork *pdhg)
 {
   CUPDLPproblem *problem = pdhg->problem;
@@ -564,9 +581,16 @@ cupdlp_retcode PDTEST_Init_Step_Sizes(CUPDLPwork *pdhg)
   cupdlp_retcode retcode = RETCODE_OK;
 
   CUPDLPproblem *problem = pdhg->problem;
+  //////////////////////////////////////////////////////
+  // CUPDLPdata *data = problem->data;
+  // CUPDLP_MATRIX_FORMAT matrix_format = data->matrix_format;
+  // cupdlp_printf("matrix_format: %d\n", matrix_format);
+  cupdlp_float K_norm = PDTEST_K_norm(pdhg);
+  cupdlp_printf("矩阵范数是: %f\n", K_norm);
+  //////////////////////////////////////////////////////
+
   PDTESTiterates *iterates = pdhg->PDTESTiterates;
   CUPDLPstepsize *stepsize = pdhg->stepsize;
-
   if (stepsize->eLineSearchMethod == PDHG_FIXED_LINESEARCH)
   {
     CUPDLP_CALL(PDHG_Power_Method(pdhg, &stepsize->dPrimalStep));

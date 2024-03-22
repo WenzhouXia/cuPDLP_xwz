@@ -176,6 +176,7 @@ extern "C"
     CUPDLPcsr *csr_matrix;
     CUPDLPcsc *csc_matrix;
     CUPDLP_DEVICE device;
+    cupdlp_float matrix_2norm;
   };
 
   struct CUPDLP_SETTINGS
@@ -346,7 +347,7 @@ extern "C"
     cupdlp_float *yLastRestart;
 
     CUPDLPvec *x, *xUpdate, *xAverage, *y, *yUpdate, *yAverage, *ax, *axUpdate,
-        *axAverage, *aty, *atyUpdate, *atyAverage, *x_ag, *y_ag, *x_bar, *y_bar, *x_md, *ax_bar, *ax_ag, *aty_ag, *x_agUpdate, *y_agUpdate, *x_barUpdate;
+        *axAverage, *aty, *atyUpdate, *atyAverage, *x_ag, *y_ag, *x_bar, *x_md, *ax_bar, *ax_ag, *aty_ag, *x_agUpdate, *y_agUpdate, *x_barUpdate;
   };
 
   struct CUPDLP_STEPSIZE

@@ -49,8 +49,8 @@ cupdlp_retcode main(int argc, char **argv)
 
   // claim solvers variables
   // prepare pointers
-  CUPDLP_MATRIX_FORMAT src_matrix_format = CSC;
-  CUPDLP_MATRIX_FORMAT dst_matrix_format = CSR_CSC;
+  CUPDLP_MATRIX_FORMAT src_matrix_format = CSC;     // 原矩阵格式
+  CUPDLP_MATRIX_FORMAT dst_matrix_format = CSR_CSC; // 目标矩阵格式
   CUPDLPcsc *csc_cpu = cupdlp_NULL;
   CUPDLPproblem *prob = cupdlp_NULL;
 
@@ -202,10 +202,19 @@ cupdlp_retcode main(int argc, char **argv)
 
   cupdlp_float alloc_matrix_time = 0.0;
   cupdlp_float copy_vec_time = 0.0;
-
-  CUPDLP_CALL(problem_alloc(prob, nRows, nCols, nEqs, cost, offset, sign_origin,
-                            csc_cpu, src_matrix_format, dst_matrix_format, rhs,
-                            lower, upper, &alloc_matrix_time, &copy_vec_time));
+  /////////////////////////////////////////////////////////////////////
+  cupdlp_float sum = 0.0;
+  for (cupdlp_int i = 0; i < csc_cpu->nMatElem; ++i)
+  {
+    cupdlp_float value = csc_cpu->colMatElem[i]; // 获取矩阵非零元素的值
+    sum += value * value;                        // 将元素的平方累加到总和中
+  }
+  cupdlp_float matrix_2norm = sqrt(sum);
+  cupdlp_printf("matrix_2norm = %f\n", matrix_2norm);
+  /////////////////////////////////////////////////////////////////////
+  CUPDLP_CALL(PDTEST_problem_alloc(prob, nRows, nCols, nEqs, cost, offset, sign_origin,
+                                   csc_cpu, src_matrix_format, dst_matrix_format, rhs,
+                                   lower, upper, &alloc_matrix_time, &copy_vec_time, matrix_2norm));
 
   // solve
   // cupdlp_printf("Enter main solve loop\n");

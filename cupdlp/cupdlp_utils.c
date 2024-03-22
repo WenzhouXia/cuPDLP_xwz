@@ -1073,7 +1073,7 @@ cupdlp_retcode PDTESTiterates_Alloc(PDTESTiterates *iterates, cupdlp_int ncols,
   CUPDLP_INIT(iterates->x_ag, 1);
   CUPDLP_INIT(iterates->y_ag, 1);
   CUPDLP_INIT(iterates->x_bar, 1);
-  CUPDLP_INIT(iterates->y_bar, 1);
+  // CUPDLP_INIT(iterates->y_bar, 1);
   CUPDLP_INIT(iterates->x_md, 1);
   CUPDLP_INIT(iterates->ax_bar, 1);
   CUPDLP_INIT(iterates->ax_ag, 1);
@@ -1103,7 +1103,7 @@ cupdlp_retcode PDTESTiterates_Alloc(PDTESTiterates *iterates, cupdlp_int ncols,
   CUPDLP_CALL(vec_Alloc(iterates->x_barUpdate, ncols));
   CUPDLP_CALL(vec_Alloc(iterates->aty_ag, ncols));
   CUPDLP_CALL(vec_Alloc(iterates->y_ag, nrows));
-  CUPDLP_CALL(vec_Alloc(iterates->y_bar, nrows));
+  // CUPDLP_CALL(vec_Alloc(iterates->y_bar, nrows));
   CUPDLP_CALL(vec_Alloc(iterates->y_agUpdate, nrows));
   CUPDLP_CALL(vec_Alloc(iterates->ax_bar, nrows));
   CUPDLP_CALL(vec_Alloc(iterates->ax_ag, nrows));

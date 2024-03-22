@@ -18,6 +18,8 @@ void PDTEST_dualGradientStep(CUPDLPwork *work, cupdlp_float dDualStepSize);
 
 cupdlp_retcode PDHG_Power_Method(CUPDLPwork *work, double *lambda);
 
+cupdlp_float PDTEST_K_norm(CUPDLPwork *work);
+
 void PDHG_Compute_Step_Size_Ratio(CUPDLPwork *pdhg);
 void PDTEST_Compute_Step_Size_Ratio(CUPDLPwork *pdhg);
 

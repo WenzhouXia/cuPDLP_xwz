@@ -726,7 +726,7 @@ cupdlp_retcode PDTEST_Solve(CUPDLPwork *pdhg)
 
   PDTEST_Init_Variables(pdhg);
 
-  // todo: translate check_data into cuda or do it on cpu
+    // todo: translate check_data into cuda or do it on cpu
   // PDHG_Check_Data(pdhg);
 
   // PDHG_Print_Header(pdhg);
@@ -800,7 +800,7 @@ cupdlp_retcode PDTEST_Solve(CUPDLPwork *pdhg)
         break;
       }
 
-      PDTEST_Restart_Iterate(pdhg); // restart策略
+      // PDTEST_Restart_Iterate(pdhg); // restart策略
     }
     CUPDLP_CALL(PDTEST_Update_Iterate(pdhg)); // 迭代更新
   }

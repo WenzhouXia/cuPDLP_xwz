@@ -187,8 +187,8 @@ void PDTEST_Restart_Iterate_GPU(CUPDLPwork *pdhg)
 
   stepsize->dSumPrimalStep = 0.0;
   stepsize->dSumDualStep = 0.0;
-  CUPDLP_ZERO_VEC(iterates->xSum, cupdlp_float, problem->nCols);
-  CUPDLP_ZERO_VEC(iterates->ySum, cupdlp_float, problem->nRows);
+  // CUPDLP_ZERO_VEC(iterates->xSum, cupdlp_float, problem->nCols);
+  // CUPDLP_ZERO_VEC(iterates->ySum, cupdlp_float, problem->nRows);
 
   resobj->dPrimalFeasLastRestart = resobj->dPrimalFeas;
   resobj->dDualFeasLastRestart = resobj->dDualFeas;
