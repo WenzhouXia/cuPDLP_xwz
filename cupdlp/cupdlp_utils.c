@@ -462,6 +462,7 @@ void PDHG_PrintPDHGParam(CUPDLPwork *w)
   cupdlp_printf("    dGapTol:           %.4e\n", settings->dGapTol);
   cupdlp_printf("    dFeasTol:          %.4e\n", resobj->dFeasTol);
   cupdlp_printf("    eRestartMethod:    %d\n", settings->eRestartMethod);
+  cupdlp_printf("    ifPDTEST:          %d\n", settings->ifPDTEST);
   cupdlp_printf("\n");
   cupdlp_printf("--------------------------------------------------\n");
   cupdlp_printf("\n");
@@ -761,6 +762,10 @@ cupdlp_retcode settings_SetUserParam(CUPDLPsettings *settings,
   if (ifChangeIntParam[E_RESTART_METHOD])
   {
     settings->eRestartMethod = intParam[E_RESTART_METHOD];
+  }
+  if (ifChangeIntParam[IF_PDTEST])
+  {
+    settings->ifPDTEST = intParam[IF_PDTEST];
   }
 
 exit_cleanup:

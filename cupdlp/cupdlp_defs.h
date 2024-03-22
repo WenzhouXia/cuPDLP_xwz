@@ -199,6 +199,7 @@ extern "C"
 
     // restart
     pdhg_restart eRestartMethod;
+    cupdlp_int ifPDTEST;
   };
 
   // some elements are duplicated from CUPDLP_DATA
