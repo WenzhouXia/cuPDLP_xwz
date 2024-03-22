@@ -9,7 +9,8 @@
          colUbIdx: index of columns with upper bound (not all columns have upper
    bound)
 */
-cupdlp_retcode main(int argc, char **argv) {
+cupdlp_retcode main(int argc, char **argv)
+{
   cupdlp_retcode retcode = RETCODE_OK;
 
   char *fname = "./example/afiro.mps.gz";
@@ -33,8 +34,8 @@ cupdlp_retcode main(int argc, char **argv) {
   int *csc_beg = NULL, *csc_idx = NULL;
   double *csc_val = NULL;
   double offset =
-      0.0;  // true objVal = sig * c'x - offset, sig = 1 (min) or -1 (max)
-  double sign_origin = 1;  // 1 (min) or -1 (max)
+      0.0;                // true objVal = sig * c'x - offset, sig = 1 (min) or -1 (max)
+  double sign_origin = 1; // 1 (min) or -1 (max)
   int *constraint_new_idx = NULL;
   cupdlp_float *x_origin = cupdlp_NULL;
   cupdlp_float *y_origin = cupdlp_NULL;
@@ -54,23 +55,34 @@ cupdlp_retcode main(int argc, char **argv) {
   CUPDLPproblem *prob = cupdlp_NULL;
 
   // load parameters
-  for (cupdlp_int i = 0; i < argc - 1; i++) {
+  for (cupdlp_int i = 0; i < argc - 1; i++)
+  {
     // if (strcmp(argv[i], "-niter") == 0) {
     //   niters = atof(argv[i + 1]);
     // } else
-    if (strcmp(argv[i], "-fname") == 0) {
+    if (strcmp(argv[i], "-fname") == 0)
+    {
       fname = argv[i + 1];
-    } else if (strcmp(argv[i], "-out") == 0) {
+    }
+    else if (strcmp(argv[i], "-out") == 0)
+    {
       fout = argv[i + 1];
-    } else if (strcmp(argv[i], "-h") == 0) {
+    }
+    else if (strcmp(argv[i], "-h") == 0)
+    {
       print_script_usage();
-    } else if (strcmp(argv[i], "-savesol") == 0) {
+    }
+    else if (strcmp(argv[i], "-savesol") == 0)
+    {
       ifSaveSol = atoi(argv[i + 1]);
-    } else if (strcmp(argv[i], "-ifPre") == 0) {
+    }
+    else if (strcmp(argv[i], "-ifPre") == 0)
+    {
       ifPresolve = atoi(argv[i + 1]);
     }
   }
-  if (strcmp(argv[argc - 1], "-h") == 0) {
+  if (strcmp(argv[argc - 1], "-h") == 0)
+  {
     print_script_usage();
   }
 
@@ -87,12 +99,14 @@ cupdlp_retcode main(int argc, char **argv) {
 
   void *model2solve = model;
 
-  if (ifChangeIntParam[IF_PRESOLVE]) {
+  if (ifChangeIntParam[IF_PRESOLVE])
+  {
     ifPresolve = intParam[IF_PRESOLVE];
   }
 
   cupdlp_float presolve_time = getTimeStamp();
-  if (ifPresolve) {
+  if (ifPresolve)
+  {
     presolveinfo = createPresolve();
     presolvedmodel = presolvedModel(presolveinfo, model);
     model2solve = presolvedmodel;
@@ -123,7 +137,8 @@ cupdlp_retcode main(int argc, char **argv) {
      upper bound)
   */
 
-  if (retcode != RETCODE_OK) {
+  if (retcode != RETCODE_OK)
+  {
     cupdlp_printf("Error reading MPS file\n");
     retcode = RETCODE_FAILED;
     goto exit_cleanup;
@@ -132,19 +147,23 @@ cupdlp_retcode main(int argc, char **argv) {
   CUPDLP_CALL(Init_Scaling(scaling, nCols, nRows, cost, rhs));
   cupdlp_int ifScaling = 1;
 
-  if (ifChangeIntParam[IF_SCALING]) {
+  if (ifChangeIntParam[IF_SCALING])
+  {
     ifScaling = intParam[IF_SCALING];
   }
 
-  if (ifChangeIntParam[IF_RUIZ_SCALING]) {
+  if (ifChangeIntParam[IF_RUIZ_SCALING])
+  {
     scaling->ifRuizScaling = intParam[IF_RUIZ_SCALING];
   }
 
-  if (ifChangeIntParam[IF_L2_SCALING]) {
+  if (ifChangeIntParam[IF_L2_SCALING])
+  {
     scaling->ifL2Scaling = intParam[IF_L2_SCALING];
   }
 
-  if (ifChangeIntParam[IF_PC_SCALING]) {
+  if (ifChangeIntParam[IF_PC_SCALING])
+  {
     scaling->ifPcScaling = intParam[IF_PC_SCALING];
   }
 
@@ -225,24 +244,36 @@ cupdlp_retcode main(int argc, char **argv) {
 
 exit_cleanup:
   deleteModel(model);
-  if (ifPresolve) {
+  if (ifPresolve)
+  {
     deletePresolve(presolveinfo);
     deleteModel(presolvedmodel);
   }
 
-  if (scaling) {
+  if (scaling)
+  {
     scaling_clear(scaling);
   }
-  if (cost != NULL) cupdlp_free(cost);
-  if (csc_beg != NULL) cupdlp_free(csc_beg);
-  if (csc_idx != NULL) cupdlp_free(csc_idx);
-  if (csc_val != NULL) cupdlp_free(csc_val);
-  if (rhs != NULL) cupdlp_free(rhs);
-  if (lower != NULL) cupdlp_free(lower);
-  if (upper != NULL) cupdlp_free(upper);
-  if (constraint_new_idx != NULL) cupdlp_free(constraint_new_idx);
-  if (x_origin != NULL) cupdlp_free(x_origin);
-  if (y_origin != NULL) cupdlp_free(y_origin);
+  if (cost != NULL)
+    cupdlp_free(cost);
+  if (csc_beg != NULL)
+    cupdlp_free(csc_beg);
+  if (csc_idx != NULL)
+    cupdlp_free(csc_idx);
+  if (csc_val != NULL)
+    cupdlp_free(csc_val);
+  if (rhs != NULL)
+    cupdlp_free(rhs);
+  if (lower != NULL)
+    cupdlp_free(lower);
+  if (upper != NULL)
+    cupdlp_free(upper);
+  if (constraint_new_idx != NULL)
+    cupdlp_free(constraint_new_idx);
+  if (x_origin != NULL)
+    cupdlp_free(x_origin);
+  if (y_origin != NULL)
+    cupdlp_free(y_origin);
   // free memory
   csc_clear(csc_cpu);
   problem_clear(prob);

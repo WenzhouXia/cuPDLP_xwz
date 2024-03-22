@@ -16,29 +16,38 @@
 
 #endif
 
-void dense_clear(CUPDLPdense *dense) {
-  if (dense) {
-    if (dense->data) {
+void dense_clear(CUPDLPdense *dense)
+{
+  if (dense)
+  {
+    if (dense->data)
+    {
       cupdlp_free(dense->data);
     }
     cupdlp_free(dense);
   }
 }
 
-cupdlp_int csc_clear(CUPDLPcsc *csc) {
-  if (csc) {
+cupdlp_int csc_clear(CUPDLPcsc *csc)
+{
+  if (csc)
+  {
 #if !(CUPDLP_CPU)
-    if (csc->cuda_csc != NULL) {
+    if (csc->cuda_csc != NULL)
+    {
       CHECK_CUSPARSE(cusparseDestroySpMat(csc->cuda_csc))
     }
 #endif
-    if (csc->colMatBeg) {
+    if (csc->colMatBeg)
+    {
       CUPDLP_FREE_VEC(csc->colMatBeg);
     }
-    if (csc->colMatIdx) {
+    if (csc->colMatIdx)
+    {
       CUPDLP_FREE_VEC(csc->colMatIdx);
     }
-    if (csc->colMatElem) {
+    if (csc->colMatElem)
+    {
       CUPDLP_FREE_VEC(csc->colMatElem);
     }
     CUPDLP_FREE_VEC(csc);
@@ -46,20 +55,26 @@ cupdlp_int csc_clear(CUPDLPcsc *csc) {
   return 0;
 }
 
-cupdlp_int csr_clear(CUPDLPcsr *csr) {
-  if (csr) {
+cupdlp_int csr_clear(CUPDLPcsr *csr)
+{
+  if (csr)
+  {
 #if !(CUPDLP_CPU)
-    if (csr->cuda_csr != NULL) {
+    if (csr->cuda_csr != NULL)
+    {
       CHECK_CUSPARSE(cusparseDestroySpMat(csr->cuda_csr))
     }
 #endif
-    if (csr->rowMatBeg) {
+    if (csr->rowMatBeg)
+    {
       CUPDLP_FREE_VEC(csr->rowMatBeg);
     }
-    if (csr->rowMatIdx) {
+    if (csr->rowMatIdx)
+    {
       CUPDLP_FREE_VEC(csr->rowMatIdx);
     }
-    if (csr->rowMatElem) {
+    if (csr->rowMatElem)
+    {
       CUPDLP_FREE_VEC(csr->rowMatElem);
     }
     CUPDLP_FREE_VEC(csr);
@@ -67,30 +82,36 @@ cupdlp_int csr_clear(CUPDLPcsr *csr) {
   return 0;
 }
 
-void data_clear(CUPDLPdata *data) {
-  if (data) {
-    switch (data->matrix_format) {
-      case DENSE:
-        dense_clear(data->dense_matrix);
-        break;
-      case CSR:
-        csr_clear(data->csr_matrix);
-        break;
-      case CSC:
-        csc_clear(data->csc_matrix);
-        break;
-      case CSR_CSC:
-        csr_clear(data->csr_matrix);
-        csc_clear(data->csc_matrix);
-        break;
+void data_clear(CUPDLPdata *data)
+{
+  if (data)
+  {
+    switch (data->matrix_format)
+    {
+    case DENSE:
+      dense_clear(data->dense_matrix);
+      break;
+    case CSR:
+      csr_clear(data->csr_matrix);
+      break;
+    case CSC:
+      csc_clear(data->csc_matrix);
+      break;
+    case CSR_CSC:
+      csr_clear(data->csr_matrix);
+      csc_clear(data->csc_matrix);
+      break;
     }
     cupdlp_free(data);
   }
 }
 
-void problem_clear(CUPDLPproblem *problem) {
-  if (problem) {
-    if (problem->data) {
+void problem_clear(CUPDLPproblem *problem)
+{
+  if (problem)
+  {
+    if (problem->data)
+    {
       data_clear(problem->data);
     }
     //        if (problem->colMatBeg) {
@@ -111,37 +132,48 @@ void problem_clear(CUPDLPproblem *problem) {
     //        if (problem->rowMatElem) {
     //            cupdlp_free(problem->rowMatElem);
     //        }
-    if (problem->lower) {
+    if (problem->lower)
+    {
       CUPDLP_FREE_VEC(problem->lower);
     }
-    if (problem->upper) {
+    if (problem->upper)
+    {
       CUPDLP_FREE_VEC(problem->upper);
     }
-    if (problem->cost) {
+    if (problem->cost)
+    {
       CUPDLP_FREE_VEC(problem->cost);
     }
-    if (problem->rhs) {
+    if (problem->rhs)
+    {
       CUPDLP_FREE_VEC(problem->rhs);
     }
-    if (problem->hasLower) {
+    if (problem->hasLower)
+    {
       CUPDLP_FREE_VEC(problem->hasLower);
     }
-    if (problem->hasUpper) {
+    if (problem->hasUpper)
+    {
       CUPDLP_FREE_VEC(problem->hasUpper);
     }
     CUPDLP_FREE_VEC(problem);
   }
 }
 
-void settings_clear(CUPDLPsettings *settings) {
-  if (settings) {
+void settings_clear(CUPDLPsettings *settings)
+{
+  if (settings)
+  {
     cupdlp_free(settings);
   }
 }
 
-cupdlp_int vec_clear(CUPDLPvec *vec) {
-  if (vec) {
-    if (vec->data) {
+cupdlp_int vec_clear(CUPDLPvec *vec)
+{
+  if (vec)
+  {
+    if (vec->data)
+    {
       CUPDLP_FREE_VEC(vec->data);
     }
 #if !(CUPDLP_CPU)
@@ -153,65 +185,83 @@ cupdlp_int vec_clear(CUPDLPvec *vec) {
   return 0;
 }
 
-void iterates_clear(CUPDLPiterates *iterates) {
-  if (iterates) {
-    if (iterates->x) {
+void iterates_clear(CUPDLPiterates *iterates)
+{
+  if (iterates)
+  {
+    if (iterates->x)
+    {
       // CUPDLP_FREE_VEC(iterates->x);
       vec_clear(iterates->x);
     }
-    if (iterates->y) {
+    if (iterates->y)
+    {
       // CUPDLP_FREE_VEC(iterates->y);
       vec_clear(iterates->y);
     }
-    if (iterates->xUpdate) {
+    if (iterates->xUpdate)
+    {
       // CUPDLP_FREE_VEC(iterates->xUpdate);
       vec_clear(iterates->xUpdate);
     }
-    if (iterates->yUpdate) {
+    if (iterates->yUpdate)
+    {
       // CUPDLP_FREE_VEC(iterates->yUpdate);
       vec_clear(iterates->yUpdate);
     }
-    if (iterates->xSum) {
+    if (iterates->xSum)
+    {
       CUPDLP_FREE_VEC(iterates->xSum);
     }
-    if (iterates->ySum) {
+    if (iterates->ySum)
+    {
       CUPDLP_FREE_VEC(iterates->ySum);
     }
-    if (iterates->xAverage) {
+    if (iterates->xAverage)
+    {
       // CUPDLP_FREE_VEC(iterates->xAverage);
       vec_clear(iterates->xAverage);
     }
-    if (iterates->yAverage) {
+    if (iterates->yAverage)
+    {
       // CUPDLP_FREE_VEC(iterates->yAverage);
       vec_clear(iterates->yAverage);
     }
-    if (iterates->xLastRestart) {
+    if (iterates->xLastRestart)
+    {
       CUPDLP_FREE_VEC(iterates->xLastRestart);
     }
-    if (iterates->yLastRestart) {
+    if (iterates->yLastRestart)
+    {
       CUPDLP_FREE_VEC(iterates->yLastRestart);
     }
-    if (iterates->ax) {
+    if (iterates->ax)
+    {
       // CUPDLP_FREE_VEC(iterates->ax);
       vec_clear(iterates->ax);
     }
-    if (iterates->axUpdate) {
+    if (iterates->axUpdate)
+    {
       // CUPDLP_FREE_VEC(iterates->axUpdate);
       vec_clear(iterates->axUpdate);
     }
-    if (iterates->axAverage) {
+    if (iterates->axAverage)
+    {
       // CUPDLP_FREE_VEC(iterates->axAverage);
       vec_clear(iterates->axAverage);
     }
-    if (iterates->aty) {
+    if (iterates->aty)
+    {
       // CUPDLP_FREE_VEC(iterates->aty);
       vec_clear(iterates->aty);
     }
-    if (iterates->atyUpdate) {
+    if (iterates->atyUpdate)
+    {
       // CUPDLP_FREE_VEC(iterates->atyUpdate);
       vec_clear(iterates->atyUpdate);
     }
-    if (iterates->atyAverage) {
+    if (iterates->atyAverage)
+    {
       // CUPDLP_FREE_VEC(iterates->atyAverage);
       vec_clear(iterates->atyAverage);
     }
@@ -219,67 +269,86 @@ void iterates_clear(CUPDLPiterates *iterates) {
   }
 }
 
-void resobj_clear(CUPDLPresobj *resobj) {
-  if (resobj) {
-    if (resobj->primalResidual) {
+void resobj_clear(CUPDLPresobj *resobj)
+{
+  if (resobj)
+  {
+    if (resobj->primalResidual)
+    {
       CUPDLP_FREE_VEC(resobj->primalResidual);
     }
-    if (resobj->dualResidual) {
+    if (resobj->dualResidual)
+    {
       CUPDLP_FREE_VEC(resobj->dualResidual);
     }
-    if (resobj->primalResidualAverage) {
+    if (resobj->primalResidualAverage)
+    {
       CUPDLP_FREE_VEC(resobj->primalResidualAverage);
     }
-    if (resobj->dualResidualAverage) {
+    if (resobj->dualResidualAverage)
+    {
       CUPDLP_FREE_VEC(resobj->dualResidualAverage);
     }
-    if (resobj->dSlackPos) {
+    if (resobj->dSlackPos)
+    {
       CUPDLP_FREE_VEC(resobj->dSlackPos);
     }
-    if (resobj->dSlackNeg) {
+    if (resobj->dSlackNeg)
+    {
       CUPDLP_FREE_VEC(resobj->dSlackNeg);
     }
-    if (resobj->dLowerFiltered) {
+    if (resobj->dLowerFiltered)
+    {
       CUPDLP_FREE_VEC(resobj->dLowerFiltered);
     }
-    if (resobj->dUpperFiltered) {
+    if (resobj->dUpperFiltered)
+    {
       CUPDLP_FREE_VEC(resobj->dUpperFiltered);
     }
     CUPDLP_FREE_VEC(resobj);
   }
 }
 
-void stepsize_clear(CUPDLPstepsize *stepsize) {
-  if (stepsize) {
+void stepsize_clear(CUPDLPstepsize *stepsize)
+{
+  if (stepsize)
+  {
     cupdlp_free(stepsize);
   }
 }
 
-void timers_clear(CUPDLPtimers *timers) {
+void timers_clear(CUPDLPtimers *timers)
+{
 #if !(CUPDLP_CPU)
   cupdlp_printf("%20s %e\n", "Free Device memory", timers->FreeDeviceMemTime);
 #endif
 
-  if (timers) {
+  if (timers)
+  {
     cupdlp_free(timers);
   }
 }
 
-void scaling_clear(CUPDLPscaling *scaling) {
-  if (scaling) {
-    if (scaling->colScale) {
+void scaling_clear(CUPDLPscaling *scaling)
+{
+  if (scaling)
+  {
+    if (scaling->colScale)
+    {
       // cupdlp_free(scaling->colScale);
-      CUPDLP_FREE_VEC(scaling->colScale);  // now on gpu
+      CUPDLP_FREE_VEC(scaling->colScale); // now on gpu
     }
-    if (scaling->rowScale) {
+    if (scaling->rowScale)
+    {
       // cupdlp_free(scaling->rowScale);
-      CUPDLP_FREE_VEC(scaling->rowScale);  // now on gpu
+      CUPDLP_FREE_VEC(scaling->rowScale); // now on gpu
     }
     cupdlp_free(scaling);
   }
 }
 
-cupdlp_int PDHG_Clear(CUPDLPwork *w) {
+cupdlp_int PDHG_Clear(CUPDLPwork *w)
+{
   CUPDLPproblem *problem = w->problem;
   CUPDLPsettings *settings = w->settings;
   CUPDLPiterates *iterates = w->iterates;
@@ -288,7 +357,8 @@ cupdlp_int PDHG_Clear(CUPDLPwork *w) {
   CUPDLPtimers *timers = w->timers;
   CUPDLPscaling *scaling = w->scaling;
 
-  if (w) {
+  if (w)
+  {
     cupdlp_float begin = getTimeStamp();
 #if !(CUPDLP_CPU)
 
@@ -302,27 +372,35 @@ cupdlp_int PDHG_Clear(CUPDLPwork *w) {
     CHECK_CUBLAS(cublasDestroy(w->cublashandle))
     CHECK_CUSPARSE(cusparseDestroy(w->cusparsehandle))
     CHECK_CUDA(cudaFree(w->dBuffer))
-    if (w->buffer2) CUPDLP_FREE_VEC(w->buffer2);
-    if (w->buffer3) CUPDLP_FREE_VEC(w->buffer3);
+    if (w->buffer2)
+      CUPDLP_FREE_VEC(w->buffer2);
+    if (w->buffer3)
+      CUPDLP_FREE_VEC(w->buffer3);
 #endif
-    if (w->colScale) CUPDLP_FREE_VEC(w->colScale);
-    if (w->rowScale) CUPDLP_FREE_VEC(w->rowScale);
+    if (w->colScale)
+      CUPDLP_FREE_VEC(w->colScale);
+    if (w->rowScale)
+      CUPDLP_FREE_VEC(w->rowScale);
 
-    if (w->buffer) {
+    if (w->buffer)
+    {
       // CUPDLP_FREE_VEC(w->buffer);
       vec_clear(w->buffer);
     }
 
-    if (problem) {
+    if (problem)
+    {
       // problem_clear(problem);
       problem = cupdlp_NULL;
     }
 
-    if (iterates) {
+    if (iterates)
+    {
       iterates_clear(iterates);
     }
 
-    if (resobj) {
+    if (resobj)
+    {
       resobj_clear(resobj);
     }
 
@@ -330,16 +408,20 @@ cupdlp_int PDHG_Clear(CUPDLPwork *w) {
     timers->FreeDeviceMemTime += getTimeStamp() - begin;
 #endif
 
-    if (settings) {
+    if (settings)
+    {
       settings_clear(settings);
     }
-    if (stepsize) {
+    if (stepsize)
+    {
       stepsize_clear(stepsize);
     }
-    if (timers) {
+    if (timers)
+    {
       timers_clear(timers);
     }
-    if (scaling) {
+    if (scaling)
+    {
       // scaling_clear(scaling);
       scaling = cupdlp_NULL;
     }
@@ -349,7 +431,8 @@ cupdlp_int PDHG_Clear(CUPDLPwork *w) {
   return 0;
 }
 
-void PDHG_PrintPDHGParam(CUPDLPwork *w) {
+void PDHG_PrintPDHGParam(CUPDLPwork *w)
+{
   CUPDLPsettings *settings = w->settings;
   CUPDLPstepsize *stepsize = w->stepsize;
   CUPDLPresobj *resobj = w->resobj;
@@ -384,7 +467,8 @@ void PDHG_PrintPDHGParam(CUPDLPwork *w) {
   cupdlp_printf("\n");
 }
 
-void PDHG_PrintHugeCUPDHG() {
+void PDHG_PrintHugeCUPDHG()
+{
   cupdlp_printf("\n");
   cupdlp_printf("  ____ _   _ ____  ____  _     ____\n");
   cupdlp_printf(" / ___| | | |  _ \\|  _ \\| |   |  _ \\\n");
@@ -394,7 +478,8 @@ void PDHG_PrintHugeCUPDHG() {
   cupdlp_printf("\n");
 }
 
-void PDHG_PrintUserParamHelper() {
+void PDHG_PrintUserParamHelper()
+{
   PDHG_PrintHugeCUPDHG();
 
   cupdlp_printf("CUPDHG User Parameters:\n");
@@ -488,79 +573,116 @@ void PDHG_PrintUserParamHelper() {
 cupdlp_retcode getUserParam(int argc, char **argv,
                             cupdlp_bool *ifChangeIntParam, cupdlp_int *intParam,
                             cupdlp_bool *ifChangeFloatParam,
-                            cupdlp_float *floatParam) {
+                            cupdlp_float *floatParam)
+{
   cupdlp_retcode retcode = RETCODE_OK;
 
   // set ifChangeIntParam and ifChangeFloatParam to false
-  for (cupdlp_int i = 0; i < N_INT_USER_PARAM; ++i) {
+  for (cupdlp_int i = 0; i < N_INT_USER_PARAM; ++i)
+  {
     ifChangeIntParam[i] = false;
   }
 
-  for (cupdlp_int i = 0; i < N_FLOAT_USER_PARAM; ++i) {
+  for (cupdlp_int i = 0; i < N_FLOAT_USER_PARAM; ++i)
+  {
     ifChangeFloatParam[i] = false;
   }
 
   // parse command line arguments
-  for (cupdlp_int i = 0; i < argc - 1; ++i) {
-    if (strcmp(argv[i], "-h") == 0) {
+  for (cupdlp_int i = 0; i < argc - 1; ++i)
+  {
+    if (strcmp(argv[i], "-h") == 0)
+    {
       PDHG_PrintUserParamHelper();
 
       retcode = RETCODE_FAILED;
       goto exit_cleanup;
     }
 
-    if (strcmp(argv[i], "-nIterLim") == 0) {
+    if (strcmp(argv[i], "-nIterLim") == 0)
+    {
       ifChangeIntParam[N_ITER_LIM] = true;
       intParam[N_ITER_LIM] = atoi(argv[i + 1]);
-    } else if (strcmp(argv[i], "-ifScaling") == 0) {
+    }
+    else if (strcmp(argv[i], "-ifScaling") == 0)
+    {
       ifChangeIntParam[IF_SCALING] = true;
       intParam[IF_SCALING] = atoi(argv[i + 1]);
-    } else if (strcmp(argv[i], "-iScalingMethod") == 0) {
+    }
+    else if (strcmp(argv[i], "-iScalingMethod") == 0)
+    {
       ifChangeIntParam[I_SCALING_METHOD] = true;
       intParam[I_SCALING_METHOD] = atoi(argv[i + 1]);
-    } else if (strcmp(argv[i], "-eLineSearchMethod") == 0) {
+    }
+    else if (strcmp(argv[i], "-eLineSearchMethod") == 0)
+    {
       ifChangeIntParam[E_LINE_SEARCH_METHOD] = true;
       intParam[E_LINE_SEARCH_METHOD] = atoi(argv[i + 1]);
-    } else if (strcmp(argv[i], "-dScalingLimit") == 0) {
+    }
+    else if (strcmp(argv[i], "-dScalingLimit") == 0)
+    {
       ifChangeFloatParam[D_SCALING_LIMIT] = true;
       floatParam[D_SCALING_LIMIT] = atof(argv[i + 1]);
-    } else if (strcmp(argv[i], "-dPrimalTol") == 0) {
+    }
+    else if (strcmp(argv[i], "-dPrimalTol") == 0)
+    {
       ifChangeFloatParam[D_PRIMAL_TOL] = true;
       floatParam[D_PRIMAL_TOL] = atof(argv[i + 1]);
-    } else if (strcmp(argv[i], "-dDualTol") == 0) {
+    }
+    else if (strcmp(argv[i], "-dDualTol") == 0)
+    {
       ifChangeFloatParam[D_DUAL_TOL] = true;
       floatParam[D_DUAL_TOL] = atof(argv[i + 1]);
-    } else if (strcmp(argv[i], "-dGapTol") == 0) {
+    }
+    else if (strcmp(argv[i], "-dGapTol") == 0)
+    {
       ifChangeFloatParam[D_GAP_TOL] = true;
       floatParam[D_GAP_TOL] = atof(argv[i + 1]);
-    } else if (strcmp(argv[i], "-dFeasTol") == 0) {
+    }
+    else if (strcmp(argv[i], "-dFeasTol") == 0)
+    {
       ifChangeFloatParam[D_FEAS_TOL] = true;
       floatParam[D_FEAS_TOL] = atof(argv[i + 1]);
-    } else if (strcmp(argv[i], "-dTimeLim") == 0) {
+    }
+    else if (strcmp(argv[i], "-dTimeLim") == 0)
+    {
       ifChangeFloatParam[D_TIME_LIM] = true;
       floatParam[D_TIME_LIM] = atof(argv[i + 1]);
-    } else if (strcmp(argv[i], "-eRestartMethod") == 0) {
+    }
+    else if (strcmp(argv[i], "-eRestartMethod") == 0)
+    {
       ifChangeIntParam[E_RESTART_METHOD] = true;
       intParam[E_RESTART_METHOD] = atoi(argv[i + 1]);
-    } else if (strcmp(argv[i], "-ifRuizScaling") == 0) {
+    }
+    else if (strcmp(argv[i], "-ifRuizScaling") == 0)
+    {
       ifChangeIntParam[IF_RUIZ_SCALING] = true;
       intParam[IF_RUIZ_SCALING] = atoi(argv[i + 1]);
-    } else if (strcmp(argv[i], "-ifL2Scaling") == 0) {
+    }
+    else if (strcmp(argv[i], "-ifL2Scaling") == 0)
+    {
       ifChangeIntParam[IF_L2_SCALING] = true;
       intParam[IF_L2_SCALING] = atoi(argv[i + 1]);
-    } else if (strcmp(argv[i], "-ifPcScaling") == 0) {
+    }
+    else if (strcmp(argv[i], "-ifPcScaling") == 0)
+    {
       ifChangeIntParam[IF_PC_SCALING] = true;
       intParam[IF_PC_SCALING] = atoi(argv[i + 1]);
-    } else if (strcmp(argv[i], "-nLogInt") == 0) {
+    }
+    else if (strcmp(argv[i], "-nLogInt") == 0)
+    {
       ifChangeIntParam[N_LOG_INTERVAL] = true;
       intParam[N_LOG_INTERVAL] = atoi(argv[i + 1]);
-    } else if (strcmp(argv[i], "-ifPresolve") == 0) {
+    }
+    else if (strcmp(argv[i], "-ifPresolve") == 0)
+    {
       ifChangeIntParam[IF_PRESOLVE] = true;
       intParam[IF_PRESOLVE] = atoi(argv[i + 1]);
     }
   }
 
-  if (strcmp(argv[argc - 1], "-h") == 0) {
+  if (strcmp(argv[argc - 1], "-h") == 0)
+  {
     PDHG_PrintUserParamHelper();
 
     retcode = RETCODE_FAILED;
@@ -575,46 +697,57 @@ cupdlp_retcode settings_SetUserParam(CUPDLPsettings *settings,
                                      cupdlp_bool *ifChangeIntParam,
                                      cupdlp_int *intParam,
                                      cupdlp_bool *ifChangeFloatParam,
-                                     cupdlp_float *floatParam) {
+                                     cupdlp_float *floatParam)
+{
   cupdlp_retcode retcode = RETCODE_OK;
 
-  if (ifChangeIntParam[N_ITER_LIM]) {
+  if (ifChangeIntParam[N_ITER_LIM])
+  {
     settings->nIterLim = intParam[N_ITER_LIM];
   }
 
-  if (ifChangeIntParam[N_LOG_INTERVAL]) {
+  if (ifChangeIntParam[N_LOG_INTERVAL])
+  {
     settings->nLogInterval = intParam[N_LOG_INTERVAL];
   }
 
-  if (ifChangeIntParam[IF_SCALING]) {
+  if (ifChangeIntParam[IF_SCALING])
+  {
     settings->ifScaling = intParam[IF_SCALING];
   }
 
-  if (ifChangeIntParam[I_SCALING_METHOD]) {
+  if (ifChangeIntParam[I_SCALING_METHOD])
+  {
     settings->iScalingMethod = intParam[I_SCALING_METHOD];
   }
 
-  if (ifChangeFloatParam[D_SCALING_LIMIT]) {
+  if (ifChangeFloatParam[D_SCALING_LIMIT])
+  {
     settings->dScalingLimit = floatParam[D_SCALING_LIMIT];
   }
 
-  if (ifChangeFloatParam[D_PRIMAL_TOL]) {
+  if (ifChangeFloatParam[D_PRIMAL_TOL])
+  {
     settings->dPrimalTol = floatParam[D_PRIMAL_TOL];
   }
 
-  if (ifChangeFloatParam[D_DUAL_TOL]) {
+  if (ifChangeFloatParam[D_DUAL_TOL])
+  {
     settings->dDualTol = floatParam[D_DUAL_TOL];
   }
 
-  if (ifChangeFloatParam[D_GAP_TOL]) {
+  if (ifChangeFloatParam[D_GAP_TOL])
+  {
     settings->dGapTol = floatParam[D_GAP_TOL];
   }
 
-  if (ifChangeFloatParam[D_TIME_LIM]) {
+  if (ifChangeFloatParam[D_TIME_LIM])
+  {
     settings->dTimeLim = floatParam[D_TIME_LIM];
   }
 
-  if (ifChangeIntParam[E_RESTART_METHOD]) {
+  if (ifChangeIntParam[E_RESTART_METHOD])
+  {
     settings->eRestartMethod = intParam[E_RESTART_METHOD];
   }
 
@@ -626,10 +759,12 @@ cupdlp_retcode resobj_SetUserParam(CUPDLPresobj *resobj,
                                    cupdlp_bool *ifChangeIntParam,
                                    cupdlp_int *intParam,
                                    cupdlp_bool *ifChangeFloatParam,
-                                   cupdlp_float *floatParam) {
+                                   cupdlp_float *floatParam)
+{
   cupdlp_retcode retcode = RETCODE_OK;
 
-  if (ifChangeFloatParam[D_FEAS_TOL]) {
+  if (ifChangeFloatParam[D_FEAS_TOL])
+  {
     resobj->dFeasTol = floatParam[D_FEAS_TOL];
   }
 
@@ -641,21 +776,35 @@ cupdlp_retcode iterates_SetUserParam(CUPDLPiterates *iterates,
                                      cupdlp_bool *ifChangeIntParam,
                                      cupdlp_int *intParam,
                                      cupdlp_bool *ifChangeFloatParam,
-                                     cupdlp_float *floatParam) {
+                                     cupdlp_float *floatParam)
+{
   cupdlp_retcode retcode = RETCODE_OK;
 
 exit_cleanup:
   return retcode;
 }
 
+cupdlp_retcode iterates_SetUserParam_PDTEST(PDTESTiterates *iterates,
+                                            cupdlp_bool *ifChangeIntParam,
+                                            cupdlp_int *intParam,
+                                            cupdlp_bool *ifChangeFloatParam,
+                                            cupdlp_float *floatParam)
+{
+  cupdlp_retcode retcode = RETCODE_OK;
+
+exit_cleanup:
+  return retcode;
+}
 cupdlp_retcode stepsize_SetUserParam(CUPDLPstepsize *stepsize,
                                      cupdlp_bool *ifChangeIntParam,
                                      cupdlp_int *intParam,
                                      cupdlp_bool *ifChangeFloatParam,
-                                     cupdlp_float *floatParam) {
+                                     cupdlp_float *floatParam)
+{
   cupdlp_retcode retcode = RETCODE_OK;
 
-  if (ifChangeIntParam[E_LINE_SEARCH_METHOD]) {
+  if (ifChangeIntParam[E_LINE_SEARCH_METHOD])
+  {
     stepsize->eLineSearchMethod = intParam[E_LINE_SEARCH_METHOD];
   }
 
@@ -667,18 +816,22 @@ cupdlp_retcode scaling_SetUserParam(CUPDLPscaling *scaling,
                                     cupdlp_bool *ifChangeIntParam,
                                     cupdlp_int *intParam,
                                     cupdlp_bool *ifChangeFloatParam,
-                                    cupdlp_float *floatParam) {
+                                    cupdlp_float *floatParam)
+{
   cupdlp_retcode retcode = RETCODE_OK;
 
-  if (ifChangeIntParam[IF_RUIZ_SCALING]) {
+  if (ifChangeIntParam[IF_RUIZ_SCALING])
+  {
     scaling->ifRuizScaling = intParam[IF_RUIZ_SCALING];
   }
 
-  if (ifChangeIntParam[IF_L2_SCALING]) {
+  if (ifChangeIntParam[IF_L2_SCALING])
+  {
     scaling->ifL2Scaling = intParam[IF_L2_SCALING];
   }
 
-  if (ifChangeIntParam[IF_PC_SCALING]) {
+  if (ifChangeIntParam[IF_PC_SCALING])
+  {
     scaling->ifPcScaling = intParam[IF_PC_SCALING];
   }
 
@@ -690,7 +843,8 @@ cupdlp_retcode timers_SetUserParam(CUPDLPtimers *timers,
                                    cupdlp_bool *ifChangeIntParam,
                                    cupdlp_int *intParam,
                                    cupdlp_bool *ifChangeFloatParam,
-                                   cupdlp_float *floatParam) {
+                                   cupdlp_float *floatParam)
+{
   cupdlp_retcode retcode = RETCODE_OK;
 
 exit_cleanup:
@@ -700,7 +854,8 @@ exit_cleanup:
 cupdlp_retcode PDHG_SetUserParam(CUPDLPwork *w, cupdlp_bool *ifChangeIntParam,
                                  cupdlp_int *intParam,
                                  cupdlp_bool *ifChangeFloatParam,
-                                 cupdlp_float *floatParam) {
+                                 cupdlp_float *floatParam)
+{
   cupdlp_retcode retcode = RETCODE_OK;
 
   CUPDLPsettings *settings = w->settings;
@@ -729,15 +884,49 @@ exit_cleanup:
   return retcode;
 }
 
-cupdlp_retcode settings_Alloc(CUPDLPsettings *settings) {
+cupdlp_retcode PDTEST_SetUserParam(CUPDLPwork *w, cupdlp_bool *ifChangeIntParam,
+                                   cupdlp_int *intParam,
+                                   cupdlp_bool *ifChangeFloatParam,
+                                   cupdlp_float *floatParam)
+{
+  cupdlp_retcode retcode = RETCODE_OK;
+
+  CUPDLPsettings *settings = w->settings;
+  CUPDLPstepsize *stepsize = w->stepsize;
+  CUPDLPresobj *resobj = w->resobj;
+  PDTESTiterates *iterates = w->PDTESTiterates;
+  CUPDLPscaling *scaling = w->scaling;
+  CUPDLPtimers *timers = w->timers;
+
+  CUPDLP_CALL(settings_SetUserParam(settings, ifChangeIntParam, intParam,
+                                    ifChangeFloatParam, floatParam));
+  CUPDLP_CALL(stepsize_SetUserParam(stepsize, ifChangeIntParam, intParam,
+                                    ifChangeFloatParam, floatParam));
+  CUPDLP_CALL(resobj_SetUserParam(resobj, ifChangeIntParam, intParam,
+                                  ifChangeFloatParam, floatParam));
+  CUPDLP_CALL(iterates_SetUserParam_PDTEST(iterates, ifChangeIntParam, intParam,
+                                           ifChangeFloatParam, floatParam));
+  CUPDLP_CALL(scaling_SetUserParam(scaling, ifChangeIntParam, intParam,
+                                   ifChangeFloatParam, floatParam));
+  CUPDLP_CALL(timers_SetUserParam(timers, ifChangeIntParam, intParam,
+                                  ifChangeFloatParam, floatParam));
+
+  PDHG_PrintPDHGParam(w);
+
+exit_cleanup:
+  return retcode;
+}
+
+cupdlp_retcode settings_Alloc(CUPDLPsettings *settings)
+{
   cupdlp_retcode retcode = RETCODE_OK;
   settings->nIterLim = INFINITY;
   settings->nLogInterval = 100;
   // settings->dTimeLim = INFINITY;
   settings->dTimeLim = 3600;
   settings->ifScaling = true;
-  settings->iScalingMethod = 3;  // no use
-  settings->dScalingLimit = 5;   // no use
+  settings->iScalingMethod = 3; // no use
+  settings->dScalingLimit = 5;  // no use
   settings->eRestartMethod = PDHG_GPU_RESTART;
 
   // termination criteria
@@ -749,7 +938,8 @@ cupdlp_retcode settings_Alloc(CUPDLPsettings *settings) {
 }
 
 cupdlp_retcode resobj_Alloc(CUPDLPresobj *resobj, CUPDLPproblem *problem,
-                            cupdlp_int ncols, cupdlp_int nrows) {
+                            cupdlp_int ncols, cupdlp_int nrows)
+{
   cupdlp_retcode retcode = RETCODE_OK;
 
   CUPDLP_INIT_ZERO_VEC(resobj->primalResidual, nrows);
@@ -807,7 +997,8 @@ exit_cleanup:
 }
 
 cupdlp_retcode iterates_Alloc(CUPDLPiterates *iterates, cupdlp_int ncols,
-                              cupdlp_int nrows) {
+                              cupdlp_int nrows)
+{
   cupdlp_retcode retcode = RETCODE_OK;
 
   iterates->nCols = ncols;
@@ -853,7 +1044,8 @@ exit_cleanup:
   return retcode;
 }
 
-cupdlp_retcode stepsize_Alloc(CUPDLPstepsize *stepsize) {
+cupdlp_retcode stepsize_Alloc(CUPDLPstepsize *stepsize)
+{
   cupdlp_retcode retcode = RETCODE_OK;
 
   stepsize->eLineSearchMethod = PDHG_ADAPTIVE_LINESEARCH;
@@ -872,7 +1064,8 @@ exit_cleanup:
 }
 
 cupdlp_retcode scaling_Alloc(CUPDLPscaling *scaling, CUPDLPproblem *problem,
-                             cupdlp_int ncols, cupdlp_int nrows) {
+                             cupdlp_int ncols, cupdlp_int nrows)
+{
   cupdlp_retcode retcode = RETCODE_OK;
   scaling->ifScaled = 0;
 
@@ -890,7 +1083,8 @@ exit_cleanup:
   return retcode;
 }
 
-cupdlp_retcode timers_Alloc(CUPDLPtimers *timers) {
+cupdlp_retcode timers_Alloc(CUPDLPtimers *timers)
+{
   cupdlp_retcode retcode = RETCODE_OK;
 
   timers->nIter = 0;
@@ -923,7 +1117,8 @@ exit_cleanup:
   return retcode;
 }
 
-cupdlp_retcode vec_Alloc(CUPDLPvec *vec, cupdlp_int n) {
+cupdlp_retcode vec_Alloc(CUPDLPvec *vec, cupdlp_int n)
+{
   cupdlp_retcode retcode = RETCODE_OK;
 
   CUPDLP_INIT_ZERO_VEC(vec->data, n);
@@ -937,7 +1132,8 @@ exit_cleanup:
   return retcode;
 }
 
-cupdlp_retcode PDHG_Alloc(CUPDLPwork *w) {
+cupdlp_retcode PDHG_Alloc(CUPDLPwork *w)
+{
   cupdlp_retcode retcode = RETCODE_OK;
 
   CUPDLP_INIT(w->settings, 1);
@@ -985,7 +1181,8 @@ exit_cleanup:
 }
 
 cupdlp_retcode PDHG_Create(CUPDLPwork **ww, CUPDLPproblem *lp,
-                           CUPDLPscaling *scaling) {
+                           CUPDLPscaling *scaling)
+{
   cupdlp_retcode retcode = RETCODE_OK;
   CUPDLP_INIT_ZERO(*ww, 1);
 
@@ -997,8 +1194,10 @@ exit_cleanup:
   return retcode;
 }
 
-void PDHG_Destroy(CUPDLPwork **w) {
-  if (w && *w) {
+void PDHG_Destroy(CUPDLPwork **w)
+{
+  if (w && *w)
+  {
     PDHG_Clear(*w);
 #if !(CUPDLP_CPU)
     cudaDeviceReset();
@@ -1008,7 +1207,8 @@ void PDHG_Destroy(CUPDLPwork **w) {
 
 void PDHG_Init_Data(CUPDLPwork *work) {}
 
-double my_clock(void) {
+double my_clock(void)
+{
   struct timeval t;
   gettimeofday(&t, NULL);
   return (1e-06 * t.tv_usec + t.tv_sec);
@@ -1016,7 +1216,8 @@ double my_clock(void) {
 
 double getTimeStamp(void) { return my_clock(); }
 
-void dense_copy(CUPDLPdense *dst, CUPDLPdense *src) {
+void dense_copy(CUPDLPdense *dst, CUPDLPdense *src)
+{
   dst->nRows = src->nRows;
   dst->nCols = src->nCols;
   cupdlp_copy(dst->data, src->data, cupdlp_float, src->nRows * src->nCols);
@@ -1024,7 +1225,8 @@ void dense_copy(CUPDLPdense *dst, CUPDLPdense *src) {
   return;
 }
 
-void csr_copy(CUPDLPcsr *dst, CUPDLPcsr *src) {
+void csr_copy(CUPDLPcsr *dst, CUPDLPcsr *src)
+{
   dst->nRows = src->nRows;
   dst->nCols = src->nCols;
   dst->nMatElem = src->nMatElem;
@@ -1035,7 +1237,8 @@ void csr_copy(CUPDLPcsr *dst, CUPDLPcsr *src) {
   return;
 }
 
-cupdlp_int csc_copy(CUPDLPcsc *dst, CUPDLPcsc *src) {
+cupdlp_int csc_copy(CUPDLPcsc *dst, CUPDLPcsc *src)
+{
   dst->nRows = src->nRows;
   dst->nCols = src->nCols;
   dst->nMatElem = src->nMatElem;
@@ -1055,7 +1258,8 @@ cupdlp_int csc_copy(CUPDLPcsc *dst, CUPDLPcsc *src) {
   return 0;
 }
 
-void csr2csc(CUPDLPcsc *csc, CUPDLPcsr *csr) {
+void csr2csc(CUPDLPcsc *csc, CUPDLPcsr *csr)
+{
   cupdlp_dcs *cs_csr =
       cupdlp_dcs_spalloc(csr->nCols, csc->nRows, csc->nMatElem, 1, 0);
   cupdlp_copy(cs_csr->p, csr->rowMatBeg, cupdlp_int, csr->nRows + 1);
@@ -1076,7 +1280,8 @@ void csr2csc(CUPDLPcsc *csc, CUPDLPcsr *csr) {
   return;
 }
 
-cupdlp_int csc2csr(CUPDLPcsr *csr, CUPDLPcsc *csc) {
+cupdlp_int csc2csr(CUPDLPcsr *csr, CUPDLPcsc *csc)
+{
   // The transpose may need to be done on the GPU
   // Currently, it is done on the CPU
 
@@ -1108,7 +1313,8 @@ cupdlp_int csc2csr(CUPDLPcsr *csr, CUPDLPcsc *csc) {
   return 0;
 }
 
-void dense2csr(CUPDLPcsr *csr, CUPDLPdense *dense) {
+void dense2csr(CUPDLPcsr *csr, CUPDLPdense *dense)
+{
   csr->nRows = dense->nRows;
   csr->nCols = dense->nCols;
 
@@ -1116,9 +1322,12 @@ void dense2csr(CUPDLPcsr *csr, CUPDLPdense *dense) {
   cupdlp_int iCol = 0;
   cupdlp_int iRow = 0;
   csr->rowMatBeg[0] = 0;
-  for (iRow = 0; iRow < csr->nRows; ++iRow) {
-    for (iCol = 0; iCol < csr->nCols; ++iCol) {
-      if (dense->data[iCol * csr->nRows + iRow] != 0) {
+  for (iRow = 0; iRow < csr->nRows; ++iRow)
+  {
+    for (iCol = 0; iCol < csr->nCols; ++iCol)
+    {
+      if (dense->data[iCol * csr->nRows + iRow] != 0)
+      {
         csr->rowMatIdx[nnz] = iCol;
         csr->rowMatElem[nnz] = dense->data[iCol * csr->nRows + iRow];
         ++nnz;
@@ -1131,7 +1340,8 @@ void dense2csr(CUPDLPcsr *csr, CUPDLPdense *dense) {
   return;
 }
 
-void dense2csc(CUPDLPcsc *csc, CUPDLPdense *dense) {
+void dense2csc(CUPDLPcsc *csc, CUPDLPdense *dense)
+{
   csc->nRows = dense->nRows;
   csc->nCols = dense->nCols;
 
@@ -1139,9 +1349,12 @@ void dense2csc(CUPDLPcsc *csc, CUPDLPdense *dense) {
   cupdlp_int iCol = 0;
   cupdlp_int iRow = 0;
   csc->colMatBeg[0] = 0;
-  for (iCol = 0; iCol < csc->nCols; ++iCol) {
-    for (iRow = 0; iRow < csc->nRows; ++iRow) {
-      if (dense->data[iCol * csc->nRows + iRow] != 0) {
+  for (iCol = 0; iCol < csc->nCols; ++iCol)
+  {
+    for (iRow = 0; iRow < csc->nRows; ++iRow)
+    {
+      if (dense->data[iCol * csc->nRows + iRow] != 0)
+      {
         csc->colMatIdx[nnz] = iRow;
         csc->colMatElem[nnz] = dense->data[iCol * csc->nRows + iRow];
         ++nnz;
@@ -1155,7 +1368,8 @@ void dense2csc(CUPDLPcsc *csc, CUPDLPdense *dense) {
   return;
 }
 
-void csr2dense(CUPDLPdense *dense, CUPDLPcsr *csr) {
+void csr2dense(CUPDLPdense *dense, CUPDLPcsr *csr)
+{
   dense->nRows = csr->nRows;
   dense->nCols = csr->nCols;
 
@@ -1163,11 +1377,15 @@ void csr2dense(CUPDLPdense *dense, CUPDLPcsr *csr) {
   cupdlp_int iCol = 0;
   cupdlp_int iMatElem = 0;
   for (iRow = 0; iRow < dense->nRows; ++iRow)
-    for (iCol = 0; iCol < dense->nCols; ++iCol) {
-      if (iCol == csr->rowMatIdx[iMatElem]) {
+    for (iCol = 0; iCol < dense->nCols; ++iCol)
+    {
+      if (iCol == csr->rowMatIdx[iMatElem])
+      {
         dense->data[iRow * dense->nCols + iCol] = csr->rowMatElem[iMatElem];
         ++iMatElem;
-      } else {
+      }
+      else
+      {
         dense->data[iRow * dense->nCols + iCol] = 0;
       }
     }
@@ -1175,7 +1393,8 @@ void csr2dense(CUPDLPdense *dense, CUPDLPcsr *csr) {
   return;
 }
 
-void csc2dense(CUPDLPdense *dense, CUPDLPcsc *csc) {
+void csc2dense(CUPDLPdense *dense, CUPDLPcsc *csc)
+{
   dense->nRows = csc->nRows;
   dense->nCols = csc->nCols;
 
@@ -1183,11 +1402,15 @@ void csc2dense(CUPDLPdense *dense, CUPDLPcsc *csc) {
   cupdlp_int iCol = 0;
   cupdlp_int iMatElem = 0;
   for (iCol = 0; iCol < dense->nCols; ++iCol)
-    for (iRow = 0; iRow < dense->nRows; ++iRow) {
-      if (iRow == csc->colMatIdx[iMatElem]) {
+    for (iRow = 0; iRow < dense->nRows; ++iRow)
+    {
+      if (iRow == csc->colMatIdx[iMatElem])
+      {
         dense->data[iRow * dense->nCols + iCol] = csc->colMatElem[iMatElem];
         ++iMatElem;
-      } else {
+      }
+      else
+      {
         dense->data[iRow * dense->nCols + iCol] = 0;
       }
     }
@@ -1195,7 +1418,8 @@ void csc2dense(CUPDLPdense *dense, CUPDLPcsc *csc) {
   return;
 }
 
-cupdlp_retcode dense_create(CUPDLPdense **dense) {
+cupdlp_retcode dense_create(CUPDLPdense **dense)
+{
   cupdlp_retcode retcode = RETCODE_OK;
   CUPDLP_INIT(*dense, 1);
 
@@ -1203,7 +1427,8 @@ exit_cleanup:
   return retcode;
 }
 
-cupdlp_retcode csr_create(CUPDLPcsr **csr) {
+cupdlp_retcode csr_create(CUPDLPcsr **csr)
+{
   cupdlp_retcode retcode = RETCODE_OK;
   CUPDLP_INIT(*csr, 1);
 
@@ -1211,7 +1436,8 @@ exit_cleanup:
   return retcode;
 }
 
-cupdlp_retcode csc_create(CUPDLPcsc **csc) {
+cupdlp_retcode csc_create(CUPDLPcsc **csc)
+{
   cupdlp_retcode retcode = RETCODE_OK;
   CUPDLP_INIT(*csc, 1);
 
@@ -1221,22 +1447,24 @@ exit_cleanup:
 
 cupdlp_retcode dense_alloc_matrix(CUPDLPdense *dense, cupdlp_int nRows,
                                   cupdlp_int nCols, void *src,
-                                  CUPDLP_MATRIX_FORMAT src_matrix_format) {
+                                  CUPDLP_MATRIX_FORMAT src_matrix_format)
+{
   cupdlp_retcode retcode = RETCODE_OK;
   CUPDLP_INIT_ZERO_VEC(dense->data, nRows * nCols);
 
-  switch (src_matrix_format) {
-    case DENSE:
-      dense_copy(dense, (CUPDLPdense *)src);
-      break;
-    case CSR:
-      csr2dense(dense, (CUPDLPcsr *)src);
-      break;
-    case CSC:
-      csc2dense(dense, (CUPDLPcsc *)src);
-      break;
-    default:
-      break;
+  switch (src_matrix_format)
+  {
+  case DENSE:
+    dense_copy(dense, (CUPDLPdense *)src);
+    break;
+  case CSR:
+    csr2dense(dense, (CUPDLPcsr *)src);
+    break;
+  case CSC:
+    csc2dense(dense, (CUPDLPcsc *)src);
+    break;
+  default:
+    break;
   }
 exit_cleanup:
   return retcode;
@@ -1244,39 +1472,42 @@ exit_cleanup:
 
 cupdlp_retcode csr_alloc_matrix(CUPDLPcsr *csr, cupdlp_int nRows,
                                 cupdlp_int nCols, void *src,
-                                CUPDLP_MATRIX_FORMAT src_matrix_format) {
+                                CUPDLP_MATRIX_FORMAT src_matrix_format)
+{
   cupdlp_retcode retcode = RETCODE_OK;
   cupdlp_int nnz = 0;
-  switch (src_matrix_format) {
-    case DENSE:
-      nnz = nRows * nCols;
-      break;
-    case CSR:
-      nnz = ((CUPDLPcsr *)src)->nMatElem;
-      break;
-    case CSC:
-      nnz = ((CUPDLPcsc *)src)->nMatElem;
-      break;
-    default:
-      break;
+  switch (src_matrix_format)
+  {
+  case DENSE:
+    nnz = nRows * nCols;
+    break;
+  case CSR:
+    nnz = ((CUPDLPcsr *)src)->nMatElem;
+    break;
+  case CSC:
+    nnz = ((CUPDLPcsc *)src)->nMatElem;
+    break;
+  default:
+    break;
   }
   // todo make sure this is right
   CUPDLP_INIT_ZERO_VEC(csr->rowMatBeg, nRows + 1);
   CUPDLP_INIT_ZERO_VEC(csr->rowMatIdx, nnz);
   CUPDLP_INIT_ZERO_VEC(csr->rowMatElem, nnz);
 
-  switch (src_matrix_format) {
-    case DENSE:
-      dense2csr(csr, (CUPDLPdense *)src);
-      break;
-    case CSR:
-      csr_copy(csr, (CUPDLPcsr *)src);
-      break;
-    case CSC:
-      csc2csr(csr, (CUPDLPcsc *)src);
-      break;
-    default:
-      break;
+  switch (src_matrix_format)
+  {
+  case DENSE:
+    dense2csr(csr, (CUPDLPdense *)src);
+    break;
+  case CSR:
+    csr_copy(csr, (CUPDLPcsr *)src);
+    break;
+  case CSC:
+    csc2csr(csr, (CUPDLPcsc *)src);
+    break;
+  default:
+    break;
   }
 exit_cleanup:
   return retcode;
@@ -1284,45 +1515,49 @@ exit_cleanup:
 
 cupdlp_retcode csc_alloc_matrix(CUPDLPcsc *csc, cupdlp_int nRows,
                                 cupdlp_int nCols, void *src,
-                                CUPDLP_MATRIX_FORMAT src_matrix_format) {
+                                CUPDLP_MATRIX_FORMAT src_matrix_format)
+{
   cupdlp_retcode retcode = RETCODE_OK;
   cupdlp_int nnz = 0;
-  switch (src_matrix_format) {
-    case DENSE:
-      nnz = nRows * nCols;
-      break;
-    case CSR:
-      nnz = ((CUPDLPcsr *)src)->nMatElem;
-      break;
-    case CSC:
-      nnz = ((CUPDLPcsc *)src)->nMatElem;
-      break;
-    default:
-      break;
+  switch (src_matrix_format)
+  {
+  case DENSE:
+    nnz = nRows * nCols;
+    break;
+  case CSR:
+    nnz = ((CUPDLPcsr *)src)->nMatElem;
+    break;
+  case CSC:
+    nnz = ((CUPDLPcsc *)src)->nMatElem;
+    break;
+  default:
+    break;
   }
   CUPDLP_INIT_ZERO_VEC(csc->colMatBeg, nCols + 1);
   CUPDLP_INIT_ZERO_VEC(csc->colMatIdx, nnz);
   CUPDLP_INIT_ZERO_VEC(csc->colMatElem, nnz);
 
-  switch (src_matrix_format) {
-    case DENSE:
-      dense2csc(csc, (CUPDLPdense *)src);
-      break;
-    case CSR:
-      csr2csc(csc, (CUPDLPcsr *)src);
-      break;
-    case CSC:
-      csc_copy(csc, (CUPDLPcsc *)src);
-      break;
-    default:
-      break;
+  switch (src_matrix_format)
+  {
+  case DENSE:
+    dense2csc(csc, (CUPDLPdense *)src);
+    break;
+  case CSR:
+    csr2csc(csc, (CUPDLPcsr *)src);
+    break;
+  case CSC:
+    csc_copy(csc, (CUPDLPcsc *)src);
+    break;
+  default:
+    break;
   }
 exit_cleanup:
   return retcode;
 }
 
 cupdlp_retcode dense_alloc(CUPDLPdense *dense, cupdlp_int nRows,
-                           cupdlp_int nCols, cupdlp_float *val) {
+                           cupdlp_int nCols, cupdlp_float *val)
+{
   cupdlp_retcode retcode = RETCODE_OK;
   dense->nRows = nRows;
   dense->nCols = nCols;
@@ -1336,7 +1571,8 @@ exit_cleanup:
 
 cupdlp_retcode csr_alloc(CUPDLPcsr *csr, cupdlp_int nRows, cupdlp_int nCols,
                          cupdlp_int nnz, cupdlp_int *row_ptr,
-                         cupdlp_int *col_ind, cupdlp_float *val) {
+                         cupdlp_int *col_ind, cupdlp_float *val)
+{
   cupdlp_retcode retcode = RETCODE_OK;
   csr->nRows = nRows;
   csr->nCols = nCols;
@@ -1357,7 +1593,8 @@ exit_cleanup:
 
 cupdlp_retcode csc_alloc(CUPDLPcsc *csc, cupdlp_int nRows, cupdlp_int nCols,
                          cupdlp_int nnz, cupdlp_int *col_ptr,
-                         cupdlp_int *row_ind, cupdlp_float *val) {
+                         cupdlp_int *row_ind, cupdlp_float *val)
+{
   cupdlp_retcode retcode = RETCODE_OK;
   csc->nRows = nRows;
   csc->nCols = nCols;
@@ -1376,23 +1613,28 @@ exit_cleanup:
   return retcode;
 }
 
-void vecPrint(const char *s, const cupdlp_float *a, cupdlp_int n) {
+void vecPrint(const char *s, const cupdlp_float *a, cupdlp_int n)
+{
   cupdlp_printf("%s: ", s);
-  for (cupdlp_int i = 0; i < n; ++i) {
+  for (cupdlp_int i = 0; i < n; ++i)
+  {
     cupdlp_printf("%.3f ", a[i]);
   }
   cupdlp_printf("\n");
 }
 
-void vecIntPrint(const char *s, const cupdlp_int *a, cupdlp_int n) {
+void vecIntPrint(const char *s, const cupdlp_int *a, cupdlp_int n)
+{
   cupdlp_printf("%s: ", s);
-  for (cupdlp_int i = 0; i < n; ++i) {
+  for (cupdlp_int i = 0; i < n; ++i)
+  {
     cupdlp_printf("%d ", a[i]);
   }
   cupdlp_printf("\n");
 }
 
-void PDHG_Dump_Stats(CUPDLPwork *w) {
+void PDHG_Dump_Stats(CUPDLPwork *w)
+{
   cupdlp_int nCols = w->iterates->nCols;
   cupdlp_int nRows = w->iterates->nRows;
   CUPDLPiterates *iterates = w->iterates;
@@ -1419,18 +1661,22 @@ void PDHG_Dump_Stats(CUPDLPwork *w) {
                 sqrt(stepsize->dBeta), stepsize->dTheta);
 }
 
-void csrPrintDense(const char *s, CUPDLPcsr *csr) {
+void csrPrintDense(const char *s, CUPDLPcsr *csr)
+{
   cupdlp_printf("------------------------------------------------\n");
   cupdlp_printf("%s:\n", s);
   cupdlp_int deltaCol = 0;
-  for (cupdlp_int iRow = 0; iRow < csr->nRows; ++iRow) {
+  for (cupdlp_int iRow = 0; iRow < csr->nRows; ++iRow)
+  {
     for (cupdlp_int iElem = csr->rowMatBeg[iRow];
-         iElem < csr->rowMatBeg[iRow + 1]; ++iElem) {
+         iElem < csr->rowMatBeg[iRow + 1]; ++iElem)
+    {
       if (iElem == csr->rowMatBeg[iRow])
         deltaCol = csr->rowMatIdx[iElem];
       else
         deltaCol = csr->rowMatIdx[iElem] - csr->rowMatIdx[iElem - 1] - 1;
-      for (cupdlp_int i = 0; i < deltaCol; ++i) {
+      for (cupdlp_int i = 0; i < deltaCol; ++i)
+      {
         cupdlp_printf("       ");
       }
       cupdlp_printf("%6.3f ", csr->rowMatElem[iElem]);
@@ -1440,18 +1686,22 @@ void csrPrintDense(const char *s, CUPDLPcsr *csr) {
   cupdlp_printf("------------------------------------------------\n");
 }
 
-void cscPrintDense(const char *s, CUPDLPcsc *csc) {
+void cscPrintDense(const char *s, CUPDLPcsc *csc)
+{
   cupdlp_printf("------------------------------------------------\n");
   cupdlp_printf("%s (Trans):\n", s);
   cupdlp_int deltaRow = 0;
-  for (cupdlp_int iCol = 0; iCol < csc->nCols; ++iCol) {
+  for (cupdlp_int iCol = 0; iCol < csc->nCols; ++iCol)
+  {
     for (cupdlp_int iElem = csc->colMatBeg[iCol];
-         iElem < csc->colMatBeg[iCol + 1]; ++iElem) {
+         iElem < csc->colMatBeg[iCol + 1]; ++iElem)
+    {
       if (iElem == csc->colMatBeg[iCol])
         deltaRow = csc->colMatIdx[iElem];
       else
         deltaRow = csc->colMatIdx[iElem] - csc->colMatIdx[iElem - 1] - 1;
-      for (cupdlp_int i = 0; i < deltaRow; ++i) {
+      for (cupdlp_int i = 0; i < deltaRow; ++i)
+      {
         cupdlp_printf("       ");
       }
       cupdlp_printf("%6.3f ", csc->colMatElem[iElem]);
@@ -1477,7 +1727,8 @@ const char *termIterateNames[] = {
 
 void writeJson(const char *fout, CUPDLPwork *work, cupdlp_float *x,
                cupdlp_int nx, cupdlp_float *y, cupdlp_int ny,
-               cupdlp_bool ifSaveSol) {
+               cupdlp_bool ifSaveSol)
+{
   FILE *fptr;
 
   cupdlp_printf("--------------------------------\n");
@@ -1522,13 +1773,16 @@ void writeJson(const char *fout, CUPDLPwork *work, cupdlp_float *x,
 
   //  todo should this be added to postsolve?
   // todo, fix dNormCost and this
-  if (work->resobj->termIterate == AVERAGE_ITERATE) {
+  if (work->resobj->termIterate == AVERAGE_ITERATE)
+  {
     fprintf(fptr, "\"dRelPrimalFeas\":%f,",
             work->resobj->dPrimalFeasAverage / (1.0 + work->scaling->dNormRhs));
     fprintf(fptr, "\"dRelDualFeas\":%f,",
             work->resobj->dDualFeasAverage / (1.0 + work->scaling->dNormCost));
     fprintf(fptr, "\"dRelDualityGap\":%f,", work->resobj->dRelObjGapAverage);
-  } else {
+  }
+  else
+  {
     fprintf(fptr, "\"dRelPrimalFeas\":%f,",
             work->resobj->dPrimalFeas / (1.0 + work->scaling->dNormRhs));
     fprintf(fptr, "\"dRelDualFeas\":%f,",
@@ -1541,11 +1795,14 @@ void writeJson(const char *fout, CUPDLPwork *work, cupdlp_float *x,
           termIterateNames[work->resobj->termIterate]);
 
   // print solutions
-  if (ifSaveSol) {
+  if (ifSaveSol)
+  {
     // primal solution
     fprintf(fptr, ",\"x\":[");
-    if (x && nx > 0) {
-      for (int i = 0; i < nx - 1; ++i) {
+    if (x && nx > 0)
+    {
+      for (int i = 0; i < nx - 1; ++i)
+      {
         fprintf(fptr, "%f,", x[i]);
       }
       fprintf(fptr, "%f", x[nx - 1]);
@@ -1554,8 +1811,10 @@ void writeJson(const char *fout, CUPDLPwork *work, cupdlp_float *x,
 
     // dual solution
     fprintf(fptr, ",\"y\":[");
-    if (y && ny > 0) {
-      for (int i = 0; i < ny - 1; ++i) {
+    if (y && ny > 0)
+    {
+      for (int i = 0; i < ny - 1; ++i)
+      {
         fprintf(fptr, "%f,", y[i]);
       }
       fprintf(fptr, "%f", y[ny - 1]);

@@ -14,7 +14,8 @@
 void PDHG_Compute_Primal_Feasibility(CUPDLPwork *work, double *primalResidual,
                                      const double *ax, const double *x,
                                      double *dPrimalFeasibility,
-                                     double *dPrimalObj) {
+                                     double *dPrimalObj)
+{
   CUPDLPproblem *problem = work->problem;
   CUPDLPdata *lp = problem->data;
   CUPDLPscaling *scaling = work->scaling;
@@ -42,7 +43,8 @@ void PDHG_Compute_Primal_Feasibility(CUPDLPwork *work, double *primalResidual,
 
   cupdlp_projNeg(primalResidual + problem->nEqs, lp->nRows - problem->nEqs);
 
-  if (scaling->ifScaled) {
+  if (scaling->ifScaled)
+  {
     // cupdlp_edot(primalResidual, scaling->rowScale, lp->nRows);
     // cupdlp_edot(primalResidual, scaling->rowScale_gpu, lp->nRows);
 
@@ -58,7 +60,8 @@ void PDHG_Compute_Primal_Feasibility(CUPDLPwork *work, double *primalResidual,
 void PDHG_Compute_Dual_Feasibility(CUPDLPwork *work, double *dualResidual,
                                    const double *aty, const double *x,
                                    const double *y, double *dDualFeasibility,
-                                   double *dDualObj, double *dComplementarity) {
+                                   double *dDualObj, double *dComplementarity)
+{
   CUPDLPproblem *problem = work->problem;
   CUPDLPdata *lp = problem->data;
   CUPDLPresobj *resobj = work->resobj;
@@ -146,7 +149,8 @@ void PDHG_Compute_Dual_Feasibility(CUPDLPwork *work, double *dualResidual,
   alpha = 1.0;
   cupdlp_axpy(work, lp->nCols, &alpha, resobj->dSlackNeg, dualResidual);
 
-  if (scaling->ifScaled) {
+  if (scaling->ifScaled)
+  {
     // cupdlp_edot(dualResidual, scaling->colScale, lp->nCols);
     // cupdlp_edot(dualResidual, scaling->colScale_gpu, lp->nCols);
 
@@ -159,7 +163,8 @@ void PDHG_Compute_Dual_Feasibility(CUPDLPwork *work, double *dualResidual,
   cupdlp_twoNorm(work, lp->nCols, dualResidual, dDualFeasibility);
 }
 
-void PDHG_Compute_Residuals(CUPDLPwork *work) {
+void PDHG_Compute_Residuals(CUPDLPwork *work)
+{
 #if problem_USE_TIMERS
   ++problem->nComputeResidualsCalls;
   double dStartTime = getTimeStamp();
@@ -209,7 +214,8 @@ void PDHG_Compute_Residuals(CUPDLPwork *work) {
 #endif
 }
 
-void PDHG_Init_Variables(CUPDLPwork *work) {
+void PDHG_Init_Variables(CUPDLPwork *work)
+{
   CUPDLPproblem *problem = work->problem;
   CUPDLPdata *lp = problem->data;
   CUPDLPstepsize *stepsize = work->stepsize;
@@ -254,7 +260,8 @@ void PDHG_Init_Variables(CUPDLPwork *work) {
  *       l2 <=  x <= u2
  *       needs rewritten for current formulation
  */
-void PDHG_Check_Data(CUPDLPwork *work) {
+void PDHG_Check_Data(CUPDLPwork *work)
+{
   CUPDLPproblem *problem = work->problem;
   CUPDLPdata *lp = problem->data;
   CUPDLPstepsize *stepsize = work->stepsize;
@@ -270,72 +277,87 @@ void PDHG_Check_Data(CUPDLPwork *work) {
   cupdlp_int nLowerRow = 0;
   cupdlp_int nRangedRow = 0;
 
-  for (cupdlp_int iSeq = 0; iSeq < lp->nCols; ++iSeq) {
+  for (cupdlp_int iSeq = 0; iSeq < lp->nCols; ++iSeq)
+  {
     cupdlp_bool hasLower = problem->lower[iSeq] > -INFINITY;
     cupdlp_bool hasUpper = problem->upper[iSeq] < +INFINITY;
 
-    if (!hasLower && !hasUpper) {
+    if (!hasLower && !hasUpper)
+    {
       ++nFreeCol;
       cupdlp_printf("Warning: variable %d is free.", iSeq);
     }
 
-    if (hasLower && hasUpper) {
-      if (problem->lower[iSeq] == problem->upper[iSeq]) {
+    if (hasLower && hasUpper)
+    {
+      if (problem->lower[iSeq] == problem->upper[iSeq])
+      {
         ++nFixedCol;
         // cupdlp_printf( "Warning: variable %d is fixed.", iSeq);
-      } else
+      }
+      else
         ++nRangedCol;
     }
 
-    if (hasLower) {
+    if (hasLower)
+    {
       // XXX: uncommented for PDLP comparison
       // CUPDLP_ASSERT(iterates->x[iSeq] >= problem->lower[iSeq]);
       nLowerCol += !hasUpper;
     }
 
-    if (hasUpper) {
+    if (hasUpper)
+    {
       // XXX: uncommented for PDLP comparison
       // CUPDLP_ASSERT(iterates->x[iSeq] <= problem->upper[iSeq]);
       nUpperCol += !hasLower;
     }
   }
 
-  for (cupdlp_int iSeq = lp->nCols; iSeq < lp->nCols; ++iSeq) {
+  for (cupdlp_int iSeq = lp->nCols; iSeq < lp->nCols; ++iSeq)
+  {
     cupdlp_bool hasLower = problem->lower[iSeq] > -INFINITY;
     cupdlp_bool hasUpper = problem->upper[iSeq] < +INFINITY;
 
-    if (!hasLower && !hasUpper) {
+    if (!hasLower && !hasUpper)
+    {
       ++nFreeRow;
       cupdlp_printf("Warning: row %d is free.", iSeq - lp->nCols);
     }
 
-    if (hasLower && hasUpper) {
+    if (hasLower && hasUpper)
+    {
       if (problem->lower[iSeq] == problem->upper[iSeq])
         ++nFixedRow;
       else
         ++nRangedRow;
     }
 
-    if (hasLower) {
+    if (hasLower)
+    {
       // CUPDLP_ASSERT(iterates->x[iSeq] >= problem->lower[iSeq]);
       nLowerRow += !hasUpper;
     }
 
-    if (hasUpper) {
+    if (hasUpper)
+    {
       // CUPDLP_ASSERT(iterates->x[iSeq] <= problem->upper[iSeq]);
       nUpperRow += !hasLower;
     }
   }
 
-  for (cupdlp_int iRow = 0; iRow < lp->nRows; ++iRow) {
+  for (cupdlp_int iRow = 0; iRow < lp->nRows; ++iRow)
+  {
     CUPDLP_ASSERT(iterates->y->data[iRow] < +INFINITY);
     CUPDLP_ASSERT(iterates->y->data[iRow] > -INFINITY);
   }
 
-  for (cupdlp_int iRow = 0; iRow < lp->nRows; ++iRow) {
+  for (cupdlp_int iRow = 0; iRow < lp->nRows; ++iRow)
+  {
     if (problem->data->csr_matrix->rowMatBeg[iRow + 1] -
             problem->data->csr_matrix->rowMatBeg[iRow] ==
-        1) {
+        1)
+    {
       cupdlp_printf("Warning: row %d is a singleton row.", iRow);
     }
   }
@@ -356,14 +378,16 @@ void PDHG_Check_Data(CUPDLPwork *work) {
   CUPDLP_ASSERT(nRangedRow == 0);
 }
 
-cupdlp_bool PDHG_Check_Termination(CUPDLPwork *pdhg, int bool_print) {
+cupdlp_bool PDHG_Check_Termination(CUPDLPwork *pdhg, int bool_print)
+{
   CUPDLPproblem *problem = pdhg->problem;
   CUPDLPsettings *settings = pdhg->settings;
   CUPDLPresobj *resobj = pdhg->resobj;
   CUPDLPscaling *scaling = pdhg->scaling;
 #if PDHG_DISPLAY_TERMINATION_CHECK
   // todo, check, is it correct
-  if (bool_print) {
+  if (bool_print)
+  {
     cupdlp_printf(
         "Termination check: %e|%e  %e|%e  %e|%e\n", resobj->dPrimalFeas,
         settings->dPrimalTol * (1.0 + scaling->dNormRhs), resobj->dDualFeas,
@@ -380,13 +404,15 @@ cupdlp_bool PDHG_Check_Termination(CUPDLPwork *pdhg, int bool_print) {
   return bool_pass;
 }
 
-cupdlp_bool PDHG_Check_Termination_Average(CUPDLPwork *pdhg, int bool_print) {
+cupdlp_bool PDHG_Check_Termination_Average(CUPDLPwork *pdhg, int bool_print)
+{
   CUPDLPproblem *problem = pdhg->problem;
   CUPDLPsettings *settings = pdhg->settings;
   CUPDLPresobj *resobj = pdhg->resobj;
   CUPDLPscaling *scaling = pdhg->scaling;
 #if PDHG_DISPLAY_TERMINATION_CHECK
-  if (bool_print) {
+  if (bool_print)
+  {
     cupdlp_printf("Termination check: %e|%e  %e|%e  %e|%e\n",
                   resobj->dPrimalFeasAverage,
                   settings->dPrimalTol * (1.0 + scaling->dNormRhs),
@@ -403,13 +429,15 @@ cupdlp_bool PDHG_Check_Termination_Average(CUPDLPwork *pdhg, int bool_print) {
   return bool_pass;
 }
 
-void PDHG_Print_Header(CUPDLPwork *pdhg) {
+void PDHG_Print_Header(CUPDLPwork *pdhg)
+{
   cupdlp_printf("%5s  %15s  %15s   %8s  %8s  %10s  %8s %7s\n", "Iter",
                 "Primal.Obj", "Dual.Obj", "Gap", "Compl", "Primal.Inf",
                 "Dual.Inf", "Time");
 }
 
-void PDHG_Print_Iter(CUPDLPwork *pdhg) {
+void PDHG_Print_Iter(CUPDLPwork *pdhg)
+{
   /* Format time as xxx.yy for < 1000s and as integer afterwards. */
   CUPDLPresobj *resobj = pdhg->resobj;
   CUPDLPtimers *timers = pdhg->timers;
@@ -425,7 +453,8 @@ void PDHG_Print_Iter(CUPDLPwork *pdhg) {
                 resobj->dPrimalFeas, resobj->dDualFeas, timeString);
 }
 
-void PDHG_Print_Iter_Average(CUPDLPwork *pdhg) {
+void PDHG_Print_Iter_Average(CUPDLPwork *pdhg)
+{
   /* Format time as xxx.yy for < 1000s and as integer afterwards. */
   CUPDLPresobj *resobj = pdhg->resobj;
   CUPDLPtimers *timers = pdhg->timers;
@@ -442,12 +471,14 @@ void PDHG_Print_Iter_Average(CUPDLPwork *pdhg) {
                 resobj->dDualFeasAverage, timeString);
 }
 
-void PDHG_Compute_SolvingTime(CUPDLPwork *pdhg) {
+void PDHG_Compute_SolvingTime(CUPDLPwork *pdhg)
+{
   CUPDLPtimers *timers = pdhg->timers;
   timers->dSolvingTime = getTimeStamp() - timers->dSolvingBeg;
 }
 
-cupdlp_retcode PDHG_Solve(CUPDLPwork *pdhg) {
+cupdlp_retcode PDHG_Solve(CUPDLPwork *pdhg)
+{
   cupdlp_retcode retcode = RETCODE_OK;
 
   CUPDLPproblem *problem = pdhg->problem;
@@ -470,7 +501,8 @@ cupdlp_retcode PDHG_Solve(CUPDLPwork *pdhg) {
 
   // PDHG_Print_Header(pdhg);
 
-  for (timers->nIter = 0; timers->nIter < settings->nIterLim; ++timers->nIter) {
+  for (timers->nIter = 0; timers->nIter < settings->nIterLim; ++timers->nIter)
+  {
     PDHG_Compute_SolvingTime(pdhg);
 #if CUPDLP_DUMP_ITERATES_STATS & CUPDLP_DEBUG
     PDHG_Dump_Stats(pdhg);
@@ -491,23 +523,27 @@ cupdlp_retcode PDHG_Solve(CUPDLPwork *pdhg) {
         (timers->nIter == (settings->nIterLim - 1)) ||
         (timers->dSolvingTime > settings->dTimeLim);
 #endif
-    if (bool_checking) {
+    if (bool_checking)
+    {
       PDHG_Compute_Average_Iterate(pdhg);
       PDHG_Compute_Residuals(pdhg);
-      if (bool_print) {
+      if (bool_print)
+      {
         PDHG_Print_Header(pdhg);
         PDHG_Print_Iter(pdhg);
         PDHG_Print_Iter_Average(pdhg);
       }
 
-      if (PDHG_Check_Termination(pdhg, bool_print)) {
+      if (PDHG_Check_Termination(pdhg, bool_print))
+      {
         cupdlp_printf("Optimal current solution.\n");
         resobj->termIterate = LAST_ITERATE;
         resobj->termCode = OPTIMAL;
         break;
       }
 
-      if (PDHG_Check_Termination_Average(pdhg, bool_print)) {
+      if (PDHG_Check_Termination_Average(pdhg, bool_print))
+      {
         cupdlp_printf("Optimal average solution.\n");
 
         CUPDLP_COPY_VEC(iterates->x->data, iterates->xAverage->data,
@@ -520,13 +556,15 @@ cupdlp_retcode PDHG_Solve(CUPDLPwork *pdhg) {
         break;
       }
 
-      if (timers->dSolvingTime > settings->dTimeLim) {
+      if (timers->dSolvingTime > settings->dTimeLim)
+      {
         cupdlp_printf("Time limit reached.\n");
         resobj->termCode = TIMELIMIT_OR_ITERLIMIT;
         break;
       }
 
-      if (timers->nIter == (settings->nIterLim - 1)) {
+      if (timers->nIter == (settings->nIterLim - 1))
+      {
         cupdlp_printf("Iteration limit reached.\n");
         resobj->termCode = TIMELIMIT_OR_ITERLIMIT;
         break;
@@ -579,15 +617,20 @@ exit_cleanup:
   return retcode;
 }
 
+cupdlp_retcode PDTEST_Solve(CUPDLPwork *pdhg)
+{
+}
 void PDHG_PostSolve(CUPDLPwork *pdhg, cupdlp_int nCols_origin,
                     cupdlp_int *constraint_new_idx, cupdlp_float *x_origin,
-                    cupdlp_float *y_origin) {
+                    cupdlp_float *y_origin)
+{
   CUPDLPproblem *problem = pdhg->problem;
   CUPDLPiterates *iterates = pdhg->iterates;
   CUPDLPscaling *scaling = pdhg->scaling;
 
   // unscale
-  if (scaling->ifScaled) {
+  if (scaling->ifScaled)
+  {
     cupdlp_ediv(iterates->x->data, pdhg->colScale, problem->nCols);
     cupdlp_ediv(iterates->y->data, pdhg->rowScale, problem->nRows);
 
@@ -602,7 +645,8 @@ void PDHG_PostSolve(CUPDLPwork *pdhg, cupdlp_int nCols_origin,
       (cupdlp_float *)cupdlp_malloc(problem->nRows * sizeof(cupdlp_float));
   CUPDLP_COPY_VEC(ytmp, iterates->y->data, cupdlp_float, problem->nRows);
   // un-permute y
-  for (int i = 0; i < problem->nRows; i++) {
+  for (int i = 0; i < problem->nRows; i++)
+  {
     y_origin[i] = ytmp[constraint_new_idx[i]];
   }
   cupdlp_free(ytmp);
@@ -614,7 +658,8 @@ cupdlp_retcode LP_SolvePDHG(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam,
                             cupdlp_float *floatParam, char *fp,
                             cupdlp_float *x_origin, cupdlp_int nCols_origin,
                             cupdlp_float *y_origin, cupdlp_bool ifSaveSol,
-                            cupdlp_int *constraint_new_idx) {
+                            cupdlp_int *constraint_new_idx)
+{
   cupdlp_retcode retcode = RETCODE_OK;
 
   PDHG_PrintHugeCUPDHG();
@@ -624,6 +669,34 @@ cupdlp_retcode LP_SolvePDHG(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam,
 
   CUPDLP_CALL(PDHG_Solve(pdhg));
 
+  PDHG_PostSolve(pdhg, nCols_origin, constraint_new_idx, x_origin, y_origin);
+
+  writeJson(fp, pdhg, x_origin, nCols_origin, y_origin, pdhg->problem->nRows,
+            ifSaveSol);
+
+exit_cleanup:
+  PDHG_Destroy(&pdhg);
+  return retcode;
+}
+
+cupdlp_retcode LP_SolvePDTEST(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam,
+                              cupdlp_int *intParam,
+                              cupdlp_bool *ifChangeFloatParam,
+                              cupdlp_float *floatParam, char *fp,
+                              cupdlp_float *x_origin, cupdlp_int nCols_origin,
+                              cupdlp_float *y_origin, cupdlp_bool ifSaveSol,
+                              cupdlp_int *constraint_new_idx)
+{
+  cupdlp_retcode retcode = RETCODE_OK;
+
+  PDHG_PrintHugeCUPDHG();
+
+  CUPDLP_CALL(PDTEST_SetUserParam(pdhg, ifChangeIntParam, intParam,
+                                  ifChangeFloatParam, floatParam));
+
+  CUPDLP_CALL(PDTEST_Solve(pdhg));
+
+  // 后处理，应该是把原来的scaling之类的变回去
   PDHG_PostSolve(pdhg, nCols_origin, constraint_new_idx, x_origin, y_origin);
 
   writeJson(fp, pdhg, x_origin, nCols_origin, y_origin, pdhg->problem->nRows,
