@@ -362,6 +362,10 @@ void PDTEST_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg)
 
   // x_bar^{t+1} = theta^{t+1}(x^{t+1} - x^{t}) + x^{t+1}
   PDTEST_x_bar_step(pdhg, theta);
+
+  // 更新一下ax_ag和aty_ag
+  Ax(pdhg, iterates->ax_ag, iterates->x_agUpdate);
+  ATy(pdhg, iterates->aty_ag, iterates->y_agUpdate);
 }
 void PDHG_Update_Iterate_Malitsky_Pock(CUPDLPwork *pdhg)
 {
