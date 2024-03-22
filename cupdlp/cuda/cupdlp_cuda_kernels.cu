@@ -139,16 +139,16 @@ __global__ void pdtest_x_update_with_theta_kernal(cupdlp_float *x_barUpdate,
                                       const cupdlp_float theta,
                                       const cupdlp_int len) {
   cupdlp_int i = blockIdx.x * blockDim.x + threadIdx.x; 
-  if (i < len) x_barUpdate[i] = (1 + theta) * xUpdate[i] - theta * x[i];
+  if (i < len) x_barUpdate[i] = theta * (xUpdate[i] - x[i]) + xUpdate[i];
 }
 __global__ void pdtest_primal_grad_step_kernal(cupdlp_float *xUpdate,
                                         const cupdlp_float *x,
                                         const cupdlp_float *cost,
-                                        const cupdlp_float *ATy,
+                                        const cupdlp_float *ATyUpdate,
                                         const cupdlp_float dPrimalStep,
                                         const cupdlp_int len) {
   cupdlp_int i = blockIdx.x * blockDim.x + threadIdx.x;
-  if (i < len) xUpdate[i] = x[i] - dPrimalStep * (cost[i] - ATy[i]);
+  if (i < len) xUpdate[i] = x[i] - dPrimalStep * (cost[i] - ATyUpdate[i]);
 }
 
 //yUpdate = y + dDualStep * (b -2AxUpdate + Ax)

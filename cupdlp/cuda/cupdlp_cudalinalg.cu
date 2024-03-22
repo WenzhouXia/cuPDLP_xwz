@@ -225,11 +225,11 @@ extern "C" void pdtest_x_bar_update_cuda(cupdlp_float *x_barUpdate, const cupdlp
 extern "C" void pdtest_pgrad_cuda(cupdlp_float *xUpdate,
                                         const cupdlp_float *x,
                                         const cupdlp_float *cost,
-                                        const cupdlp_float *ATy,
+                                        const cupdlp_float *ATyUpdate,
                                         const cupdlp_float dPrimalStep,
                                         const cupdlp_int len) {
     pdtest_primal_grad_step_kernal<<<cuda_gridsize(len), CUPDLP_BLOCK_SIZE>>>(
-        xUpdate, x, cost, ATy, dPrimalStep, len);
+        xUpdate, x, cost, ATyUpdate, dPrimalStep, len);
 }
 
 extern "C" void pdtest_dgrad_cuda(cupdlp_float *yUpdate, const cupdlp_float *y, const cupdlp_float *b,

@@ -221,24 +221,6 @@ cupdlp_retcode PDHG_Power_Method(CUPDLPwork *work, cupdlp_float *lambda)
 exit_cleanup:
   return retcode;
 }
-
-cupdlp_float PDTEST_K_norm(CUPDLPwork *work)
-{
-  CUPDLPproblem *problem = work->problem;
-  CUPDLPdata *data = problem->data;
-  CUPDLP_MATRIX_FORMAT matrix_format = data->matrix_format;
-  CUPDLPcsr *csr_matrix = data->csr_matrix;
-  cupdlp_printf("matirx_format: %d\n", matrix_format);
-  cupdlp_printf("matrix device: %d\n", data->device);
-  cupdlp_float sum = 0.0;
-  // for (cupdlp_int i = 0; i < csr_matrix->nMatElem; ++i)
-  // {
-  //   cupdlp_float value = csr_matrix->rowMatElem[i]; // 获取矩阵非零元素的值
-  //   sum += value * value;                           // 将元素的平方累加到总和中
-  // }
-  cupdlp_float K_norm = sqrt(sum);
-  return K_norm; // 返回平方和的平方根，即Frobenius范数
-}
 void PDHG_Compute_Step_Size_Ratio(CUPDLPwork *pdhg)
 {
   CUPDLPproblem *problem = pdhg->problem;
@@ -344,6 +326,7 @@ void PDTEST_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg)
   stepsize->dDualStep = dStepSize;
 
   cupdlp_int t_count = timers->nIter + 1;
+  cupdlp_printf("t_count: %d\n", t_count);
   cupdlp_float beta = (t_count + 1) / 2;
 
   // 没有必要计算x_md, 因为梯度是常数，用不到x_md
@@ -581,71 +564,41 @@ cupdlp_retcode PDTEST_Init_Step_Sizes(CUPDLPwork *pdhg)
   cupdlp_retcode retcode = RETCODE_OK;
 
   CUPDLPproblem *problem = pdhg->problem;
+
+  PDTESTiterates *iterates = pdhg->PDTESTiterates;
+  CUPDLPstepsize *stepsize = pdhg->stepsize;
+
+  // CUPDLP_CALL(PDHG_Power_Method(pdhg, &stepsize->dPrimalStep));
+  // // PDLP Intial primal weight = norm(cost) / norm(rhs) = sqrt(beta)
+  // // cupdlp_float a = twoNormSquared(problem->cost, problem->nCols);
+  // // cupdlp_float b = twoNormSquared(problem->rhs, problem->nRows);
+  // cupdlp_float a = 0.0;
+  // cupdlp_float b = 0.0;
+  // cupdlp_twoNormSquared(pdhg, problem->nCols, problem->cost, &a);
+  // cupdlp_twoNormSquared(pdhg, problem->nRows, problem->rhs, &b);
+
+  // if (fmin(a, b) > 1e-6)
+  // {
+  //   stepsize->dBeta = a / b;
+  // }
+  // else
+  // {
+  //   stepsize->dBeta = 1.0;
+  // }
+
+  // stepsize->dPrimalStep = 0.8 / sqrt(stepsize->dPrimalStep);
+  // stepsize->dDualStep = stepsize->dPrimalStep;
+  // stepsize->dPrimalStep /= sqrt(stepsize->dBeta);
+  // stepsize->dDualStep *= sqrt(stepsize->dBeta);
+
   //////////////////////////////////////////////////////
   // CUPDLPdata *data = problem->data;
   // CUPDLP_MATRIX_FORMAT matrix_format = data->matrix_format;
   // cupdlp_printf("matrix_format: %d\n", matrix_format);
-  cupdlp_float K_norm = PDTEST_K_norm(pdhg);
-  cupdlp_printf("矩阵范数是: %f\n", K_norm);
+  cupdlp_float matrix_2norm = problem->data->matrix_2norm;
+  stepsize->dPrimalStep = 0.9 / matrix_2norm;
+  stepsize->dDualStep = 0.9 / matrix_2norm;
   //////////////////////////////////////////////////////
-
-  PDTESTiterates *iterates = pdhg->PDTESTiterates;
-  CUPDLPstepsize *stepsize = pdhg->stepsize;
-  if (stepsize->eLineSearchMethod == PDHG_FIXED_LINESEARCH)
-  {
-    CUPDLP_CALL(PDHG_Power_Method(pdhg, &stepsize->dPrimalStep));
-    // PDLP Intial primal weight = norm(cost) / norm(rhs) = sqrt(beta)
-    // cupdlp_float a = twoNormSquared(problem->cost, problem->nCols);
-    // cupdlp_float b = twoNormSquared(problem->rhs, problem->nRows);
-    cupdlp_float a = 0.0;
-    cupdlp_float b = 0.0;
-    cupdlp_twoNormSquared(pdhg, problem->nCols, problem->cost, &a);
-    cupdlp_twoNormSquared(pdhg, problem->nRows, problem->rhs, &b);
-
-    if (fmin(a, b) > 1e-6)
-    {
-      stepsize->dBeta = a / b;
-    }
-    else
-    {
-      stepsize->dBeta = 1.0;
-    }
-
-    stepsize->dPrimalStep = 0.8 / sqrt(stepsize->dPrimalStep);
-    stepsize->dDualStep = stepsize->dPrimalStep;
-    stepsize->dPrimalStep /= sqrt(stepsize->dBeta);
-    stepsize->dDualStep *= sqrt(stepsize->dBeta);
-  }
-  else
-  {
-    stepsize->dTheta = 1.0;
-
-    // PDLP Intial primal weight = norm(cost) / norm(rhs) = sqrt(beta)
-    // cupdlp_float a = twoNormSquared(problem->cost, problem->nCols);
-    // cupdlp_float b = twoNormSquared(problem->rhs, problem->nRows);
-    cupdlp_float a = 0.0;
-    cupdlp_float b = 0.0;
-    cupdlp_twoNormSquared(pdhg, problem->nCols, problem->cost, &a);
-    cupdlp_twoNormSquared(pdhg, problem->nRows, problem->rhs, &b);
-
-    if (fmin(a, b) > 1e-6)
-    {
-      stepsize->dBeta = a / b;
-    }
-    else
-    {
-      stepsize->dBeta = 1.0;
-    }
-    // infNorm can be avoid by previously calculated infNorm of csc matrix
-    stepsize->dPrimalStep =
-        // (1.0 / infNorm(problem->data->csc_matrix->colMatElem,
-        // problem->data->csc_matrix->nMatElem)) /
-        (1.0 / problem->data->csc_matrix->MatElemNormInf) /
-        sqrt(stepsize->dBeta);
-    stepsize->dDualStep = stepsize->dPrimalStep * stepsize->dBeta;
-    iterates->dLastRestartBeta = stepsize->dBeta;
-  }
-
   iterates->iLastRestartIter = 0;
   stepsize->dSumPrimalStep = 0;
   stepsize->dSumDualStep = 0;
