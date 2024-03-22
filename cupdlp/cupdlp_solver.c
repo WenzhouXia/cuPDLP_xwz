@@ -323,6 +323,7 @@ void PDTEST_Init_Variables(CUPDLPwork *work)
   CUPDLP_ZERO_VEC(iterates->y->data, cupdlp_float, lp->nRows);
   CUPDLP_ZERO_VEC(iterates->y_ag->data, cupdlp_float, lp->nRows);
 
+  Ax(work, iterates->ax, iterates->x);
   Ax(work, iterates->ax_bar, iterates->x_bar);
   Ax(work, iterates->ax_ag, iterates->x_ag);
 
@@ -760,7 +761,7 @@ cupdlp_retcode PDTEST_Solve(CUPDLPwork *pdhg)
       {
         PDHG_Print_Header(pdhg);
         PDHG_Print_Iter(pdhg);
-        PDHG_Print_Iter_Average(pdhg);
+        // PDHG_Print_Iter_Average(pdhg);
       }
 
       if (PDHG_Check_Termination(pdhg, bool_print))
@@ -806,7 +807,7 @@ cupdlp_retcode PDTEST_Solve(CUPDLPwork *pdhg)
   // print at last
   PDHG_Print_Header(pdhg);
   PDHG_Print_Iter(pdhg);
-  PDHG_Print_Iter_Average(pdhg);
+  // PDHG_Print_Iter_Average(pdhg);
 
 #if PDHG_USE_TIMERS
   cupdlp_printf("Timing information:\n");

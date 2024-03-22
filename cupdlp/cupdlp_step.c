@@ -67,7 +67,7 @@ void PDTEST_primalGradientStep(CUPDLPwork *work, cupdlp_float dPrimalStepSize)
 
 #if !(CUPDLP_CPU) & USE_KERNELS
   pdtest_pgrad_cuda(iterates->xUpdate->data, iterates->x->data, problem->cost,
-                    iterates->aty->data, dPrimalStepSize, problem->nCols);
+                    iterates->atyUpdate->data, dPrimalStepSize, problem->nCols);
 #else
 
   // cupdlp_copy(iterates->xUpdate, iterates->x, cupdlp_float, problem->nCols);
@@ -328,8 +328,12 @@ void PDTEST_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg)
 
   cupdlp_int t_count = timers->nIter + 1;
   cupdlp_float beta = (t_count + 1) / 2;
+
+  // 没有必要计算x_md, 因为梯度是常数，用不到x_md
   // x_md^{t} = (1 - 1 / beta^t)x_ag^{t} + (1 / beta^t)x^{t}
-  PDTEST_x_md_step(pdhg, beta);
+  // PDTEST_x_md_step(pdhg, beta);
+  // 没有必要进行Project，因为都是已经投影过的x进行线性组合
+  // PDHG_Project_Bounds(pdhg, iterates->x_md->data);
 
   // 计算Ax_bar^{t}, 后面计算y^{t+1}有用
   Ax(pdhg, iterates->ax_bar, iterates->x_bar);
@@ -347,6 +351,8 @@ void PDTEST_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg)
 
   // x_ag^{t+1} = (1 - 1 / beta^t)x_ag^{t} + (1 / beta^t)x^{t}
   PDTEST_x_ag_step(pdhg, beta);
+  // 没有必要进行Project，因为都是已经投影过的x进行线性组合
+  // PDHG_Project_Bounds(pdhg, iterates->x_agUpdate->data);
 
   // y_ag^{t+1} = (1 - 1 / beta^t)y_ag^{t} + (1 / beta^t)y^{t}
   PDTEST_y_ag_step(pdhg, beta);
@@ -737,20 +743,6 @@ cupdlp_retcode PDTEST_Update_Iterate(CUPDLPwork *pdhg)
 
   // 选择各种更新，看看效果
   PDTEST_Update_Iterate_Constant_Step_Size(pdhg);
-  // CUPDLP_CALL(PDTest_Update_Iterate_Adaptive_Step_Size(pdhg))
-
-  // switch (stepsize->eLineSearchMethod)
-  // {
-  // case PDHG_FIXED_LINESEARCH:
-  //   PDHG_Update_Iterate_Constant_Step_Size(pdhg);
-  //   break;
-  // case PDHG_MALITSKY_POCK_LINESEARCH:
-  //   PDHG_Update_Iterate_Malitsky_Pock(pdhg);
-  //   break;
-  // case PDHG_ADAPTIVE_LINESEARCH:
-  //   CUPDLP_CALL(PDHG_Update_Iterate_Adaptive_Step_Size(pdhg));
-  //   break;
-  // }
 
   // PDHG_Update_Average(pdhg);
 
