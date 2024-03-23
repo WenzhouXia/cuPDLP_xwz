@@ -19,7 +19,7 @@ extern "C"
         cupdlp_float *lower, cupdlp_float *upper, cupdlp_float *alloc_matrix_time,
         cupdlp_float *copy_vec_time);
 
-    cupdlp_retcode PDTESTproblem_alloc(
+    cupdlp_retcode PDTEST_problem_alloc(
         CUPDLPproblem *prob, cupdlp_int nRows, cupdlp_int nCols, cupdlp_int nEqs,
         cupdlp_float *cost, cupdlp_float offset, cupdlp_float sign_origin,
         void *matrix, CUPDLP_MATRIX_FORMAT src_matrix_format,

@@ -31,6 +31,9 @@ extern "C"
                                      const double *aty, const double *x,
                                      const double *y, double *dDualFeasibility,
                                      double *dDualObj, double *dComplementarity);
+  void PDTEST_printCudaDenseVecGPU(const CUPDLPvec *vec);
+  void PDTEST_printCudaMatGPU(CUPDLPwork *work);
+  void PDTEST_Compute_dDualObj(CUPDLPwork *work);
 
   void PDHG_Compute_Residuals(CUPDLPwork *work);
   void PDTEST_Compute_Residuals(CUPDLPwork *work);
@@ -59,6 +62,10 @@ extern "C"
                       cupdlp_int *constraint_new_idx, cupdlp_float *x_origin,
                       cupdlp_float *y_origin);
 
+  void PDTEST_PostSolve(CUPDLPwork *pdhg, cupdlp_int nCols_origin,
+                        cupdlp_int *constraint_new_idx, cupdlp_float *x_origin,
+                        cupdlp_float *y_origin);
+
   cupdlp_retcode LP_SolvePDHG(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam,
                               cupdlp_int *intParam,
                               cupdlp_bool *ifChangeFloatParam,
@@ -74,6 +81,12 @@ extern "C"
                                 cupdlp_float *x_origin, cupdlp_int nCols_origin,
                                 cupdlp_float *y_origin, cupdlp_bool ifSaveSol,
                                 cupdlp_int *constraint_new_idx);
+
+  cupdlp_retcode LP_SolvePDTEST_min(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam,
+                                    cupdlp_int *intParam,
+                                    cupdlp_bool *ifChangeFloatParam,
+                                    cupdlp_float *floatParam, char *fp,
+                                    cupdlp_float *x_origin, cupdlp_int nCols_origin, cupdlp_float *y_origin, cupdlp_bool ifSaveSol, cupdlp_int *constraint_new_idx);
 
 #ifdef __cplusplus
 }

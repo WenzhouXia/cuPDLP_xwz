@@ -70,7 +70,6 @@ void PDHG_Compute_Dual_Feasibility(CUPDLPwork *work, double *dualResidual,
   //    *dDualObj = Dotprod_Neumaier(problem->rhs, y, lp->nRows);
   cupdlp_dot(work, lp->nRows, y, problem->rhs, dDualObj);
   *dDualObj = *dDualObj * problem->sign_origin - problem->offset;
-
   *dComplementarity = 0.0;
   // @note:
   // original dual residual in pdlp:
@@ -163,6 +162,56 @@ void PDHG_Compute_Dual_Feasibility(CUPDLPwork *work, double *dualResidual,
   cupdlp_twoNorm(work, lp->nCols, dualResidual, dDualFeasibility);
 }
 
+void PDTEST_printCudaDenseVecGPU(const CUPDLPvec *vec)
+{
+  // 分配CPU内存
+  cupdlp_float *hostData = (cupdlp_float *)malloc(vec->len * sizeof(cupdlp_float));
+  // 从GPU到CPU复制数据
+  cudaMemcpy(hostData, vec->data, vec->len * sizeof(cupdlp_float), cudaMemcpyDeviceToHost);
+  cupdlp_printf("Vector length: %d\n", vec->len);
+  cupdlp_printf("Vector elements:\n");
+  for (int i = 0; i < vec->len; ++i)
+  {
+    cupdlp_printf("Element[%d]: %f\n", i, hostData[i]);
+  }
+  // 释放CPU内存
+  free(hostData);
+}
+void PDTEST_printCudaMatGPU(CUPDLPwork *work)
+{
+  CUPDLPproblem *problem = work->problem;
+  CUPDLPcsc *csc_matrix = problem->data->csc_matrix;
+  cupdlp_int nMatElem = csc_matrix->nMatElem;
+  cupdlp_float *hostData = (cupdlp_float *)malloc(problem->data->csc_matrix->nMatElem * sizeof(cupdlp_float));
+  cupdlp_float *matelem = problem->data->csc_matrix->colMatElem;
+  cudaMemcpy(hostData, matelem, problem->data->csc_matrix->nMatElem * sizeof(cupdlp_float), cudaMemcpyDeviceToHost);
+  for (int i = 0; i < problem->data->csc_matrix->nMatElem; ++i)
+  {
+    cupdlp_printf("MatElem[%d]: %f\n", i, hostData[i]);
+  }
+}
+
+void PDTEST_Compute_dDualObj(CUPDLPwork *work)
+{
+  CUPDLPproblem *problem = work->problem;
+  CUPDLPdata *lp = problem->data;
+  PDTESTiterates *iterates = work->PDTESTiterates;
+  CUPDLPresobj *resobj = work->resobj;
+
+  // cupdlp_float *hostData = (cupdlp_float *)malloc(y_ag->len * sizeof(cupdlp_float));
+  // // 从GPU复制到CPU
+  // cudaMemcpy(hostData, y_ag->data, y_ag->len * sizeof(cupdlp_float), cudaMemcpyDeviceToHost);
+  // cupdlp_printf("Vector length: %d\n", y_ag->len);
+  // cupdlp_printf("Vector elements:\n");
+  // for (cupdlp_int i = 0; i < y_ag->len; ++i)
+  // {
+  //   cupdlp_printf("Element[%d]: %f\n", i, hostData[i]);
+  // }
+  // *dDualObj = Dotprod_Neumaier(problem->rhs, y, lp->nRows);
+  cupdlp_dot(work, lp->nRows, iterates->y_ag->data, problem->rhs, &resobj->dDualObj);
+  cupdlp_printf("dDualObj: %f\n", resobj->dDualObj);
+}
+
 void PDHG_Compute_Residuals(CUPDLPwork *work)
 {
 #if problem_USE_TIMERS
@@ -230,10 +279,7 @@ void PDTEST_Compute_Residuals(CUPDLPwork *work)
   PDHG_Compute_Primal_Feasibility(work, resobj->primalResidual,
                                   iterates->ax_ag->data, iterates->x_ag->data,
                                   &resobj->dPrimalFeas, &resobj->dPrimalObj);
-  PDHG_Compute_Dual_Feasibility(work, resobj->dualResidual, iterates->aty_ag->data,
-                                iterates->x_ag->data, iterates->y_ag->data,
-                                &resobj->dDualFeas, &resobj->dDualObj,
-                                &resobj->dComplementarity);
+  PDHG_Compute_Dual_Feasibility(work, resobj->dualResidual, iterates->aty_ag->data, iterates->x_ag->data, iterates->y_ag->data, &resobj->dDualFeas, &resobj->dDualObj, &resobj->dComplementarity);
 
   // PDHG_Compute_Primal_Feasibility(
   //     work, resobj->primalResidualAverage, iterates->axAverage->data,
@@ -878,14 +924,38 @@ void PDHG_PostSolve(CUPDLPwork *pdhg, cupdlp_int nCols_origin,
   }
   cupdlp_free(ytmp);
 }
+void PDTEST_PostSolve(CUPDLPwork *pdhg, cupdlp_int nCols_origin,
+                      cupdlp_int *constraint_new_idx, cupdlp_float *x_origin,
+                      cupdlp_float *y_origin)
+{
+  CUPDLPproblem *problem = pdhg->problem;
+  PDTESTiterates *iterates = pdhg->PDTESTiterates;
+  CUPDLPscaling *scaling = pdhg->scaling;
 
-cupdlp_retcode LP_SolvePDHG(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam,
-                            cupdlp_int *intParam,
-                            cupdlp_bool *ifChangeFloatParam,
-                            cupdlp_float *floatParam, char *fp,
-                            cupdlp_float *x_origin, cupdlp_int nCols_origin,
-                            cupdlp_float *y_origin, cupdlp_bool ifSaveSol,
-                            cupdlp_int *constraint_new_idx)
+  // unscale
+  if (scaling->ifScaled)
+  {
+    cupdlp_ediv(iterates->x_ag->data, pdhg->colScale, problem->nCols);
+    cupdlp_ediv(iterates->y_ag->data, pdhg->rowScale, problem->nRows);
+
+    // cupdlp_ediv(iterates->x->data, scaling->colScale_gpu, problem->nCols);
+    // cupdlp_ediv(iterates->y->data, scaling->rowScale_gpu, problem->nRows);
+  }
+
+  // extract x from (x, z)
+  CUPDLP_COPY_VEC(x_origin, iterates->x_ag->data, cupdlp_float, nCols_origin);
+
+  cupdlp_float *ytmp =
+      (cupdlp_float *)cupdlp_malloc(problem->nRows * sizeof(cupdlp_float));
+  CUPDLP_COPY_VEC(ytmp, iterates->y_ag->data, cupdlp_float, problem->nRows);
+  // un-permute y
+  for (int i = 0; i < problem->nRows; i++)
+  {
+    y_origin[i] = ytmp[constraint_new_idx[i]];
+  }
+  cupdlp_free(ytmp);
+}
+cupdlp_retcode LP_SolvePDHG(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam, cupdlp_int *intParam, cupdlp_bool *ifChangeFloatParam, cupdlp_float *floatParam, char *fp, cupdlp_float *x_origin, cupdlp_int nCols_origin, cupdlp_float *y_origin, cupdlp_bool ifSaveSol, cupdlp_int *constraint_new_idx)
 {
   cupdlp_retcode retcode = RETCODE_OK;
 
@@ -906,13 +976,7 @@ exit_cleanup:
   return retcode;
 }
 
-cupdlp_retcode LP_SolvePDTEST(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam,
-                              cupdlp_int *intParam,
-                              cupdlp_bool *ifChangeFloatParam,
-                              cupdlp_float *floatParam, char *fp,
-                              cupdlp_float *x_origin, cupdlp_int nCols_origin,
-                              cupdlp_float *y_origin, cupdlp_bool ifSaveSol,
-                              cupdlp_int *constraint_new_idx)
+cupdlp_retcode LP_SolvePDTEST(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam, cupdlp_int *intParam, cupdlp_bool *ifChangeFloatParam, cupdlp_float *floatParam, char *fp, cupdlp_float *x_origin, cupdlp_int nCols_origin, cupdlp_float *y_origin, cupdlp_bool ifSaveSol, cupdlp_int *constraint_new_idx)
 {
   cupdlp_retcode retcode = RETCODE_OK;
 
@@ -924,7 +988,95 @@ cupdlp_retcode LP_SolvePDTEST(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam,
   CUPDLP_CALL(PDTEST_Solve(pdhg));
 
   // 后处理，应该是把原来的scaling之类的变回去
-  PDHG_PostSolve(pdhg, nCols_origin, constraint_new_idx, x_origin, y_origin);
+  PDTEST_PostSolve(pdhg, nCols_origin, constraint_new_idx, x_origin, y_origin);
+
+  writeJson(fp, pdhg, x_origin, nCols_origin, y_origin, pdhg->problem->nRows,
+            ifSaveSol);
+
+exit_cleanup:
+  PDHG_Destroy(&pdhg);
+  return retcode;
+}
+
+cupdlp_retcode LP_SolvePDTEST_min(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam, cupdlp_int *intParam, cupdlp_bool *ifChangeFloatParam, cupdlp_float *floatParam, char *fp, cupdlp_float *x_origin, cupdlp_int nCols_origin, cupdlp_float *y_origin, cupdlp_bool ifSaveSol, cupdlp_int *constraint_new_idx)
+{
+  cupdlp_retcode retcode = RETCODE_OK;
+
+  PDHG_PrintHugeCUPDHG();
+
+  CUPDLP_CALL(PDTEST_SetUserParam(pdhg, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam));
+  PDHG_Init_Data(pdhg);
+  CUPDLP_CALL(PDTEST_Init_Step_Sizes(pdhg));
+  PDTEST_Init_Variables(pdhg);
+  cupdlp_printf("--------------------------------------------------\n");
+  // PDTEST_printCudaMatGPU(pdhg);
+
+  cupdlp_printf("--------------------------------------------------\n");
+  CUPDLPtimers *timers = pdhg->timers;             // 各种耗时
+  CUPDLPsettings *settings = pdhg->settings;       // 设置，包括scaling, termination criteria, max iter and time, restart
+  PDTESTiterates *iterates = pdhg->PDTESTiterates; // 迭代变量
+  CUPDLPstepsize *stepsize = pdhg->stepsize;
+  CUPDLPproblem *problem = pdhg->problem;
+
+  for (timers->nIter = 0; timers->nIter < settings->nIterLim; ++timers->nIter)
+  {
+    cupdlp_int t = timers->nIter + 1;
+
+    cupdlp_float beta = (t + 1) / 2.0;
+    cupdlp_float theta = t / (t + 1.0);
+
+    // PDTEST_printCudaDenseVecGPU(iterates->y_ag);
+    // PDTEST_printCudaDenseVecGPU(iterates->x_ag);
+
+    // 计算Ax_bar^{t}, 后面计算y^{t+1}有用
+    Ax(pdhg, iterates->ax_bar, iterates->x_bar);
+    // y^{t+1} = y^t + dDualStep * (b - A * (x_bar^{t})
+    PDTEST_dualGradientStep(pdhg, stepsize->dDualStep);
+    cupdlp_printf("y^{t+1} = y^t + dDualStep * (b - A * (x_bar^{t})\n");
+    PDHG_Project_Row_Duals(pdhg, iterates->yUpdate->data);
+    PDTEST_printCudaDenseVecGPU(iterates->yUpdate);
+
+    // 计算ATy^{t+1}, 后面计算x^{t+1}有用
+    ATy(pdhg, iterates->atyUpdate, iterates->yUpdate);
+    // x^{t+1} = proj_{X}(x^t - dPrimalStep * (c - A'y^{t+1}))
+    PDTEST_primalGradientStep(pdhg, stepsize->dPrimalStep);
+    cupdlp_printf("x^{t+1} = proj_{X}(x^t - dPrimalStep * (c - A'y^{t+1}))\n");
+    PDHG_Project_Bounds(pdhg, iterates->xUpdate->data);
+    PDTEST_printCudaDenseVecGPU(iterates->xUpdate);
+
+    // x_ag^{t+1} = (1 - 1 / beta^t)x_ag^{t} + (1 / beta^t)x^{t+1}
+    cupdlp_printf("beta = %f\n", beta);
+    PDTEST_x_ag_step(pdhg, beta);
+    cupdlp_printf("x_ag^{t+1} = (1 - 1 / beta^t)x_ag^{t} + (1 / beta^t)x^{t+1}\n");
+    PDTEST_printCudaDenseVecGPU(iterates->x_agUpdate);
+    PDTEST_printCudaDenseVecGPU(iterates->x_ag);
+    PDTEST_printCudaDenseVecGPU(iterates->xUpdate);
+    // 没有必要进行Project，因为都是已经投影过的x进行线性组合
+    // PDHG_Project_Bounds(pdhg, iterates->x_agUpdate->data);
+
+    // y_ag^{t+1} = (1 - 1 / beta^t)y_ag^{t} + (1 / beta^t)y^{t}
+    PDTEST_y_ag_step(pdhg, beta);
+
+    // x_bar^{t+1} = theta^{t+1}(x^{t+1} - x^{t}) + x^{t+1}
+    PDTEST_x_bar_step(pdhg, theta);
+    // 更新一下ax_ag和aty_ag
+    Ax(pdhg, iterates->ax_ag, iterates->x_agUpdate);
+    ATy(pdhg, iterates->aty_ag, iterates->y_agUpdate);
+
+    PDTEST_Compute_dDualObj(pdhg);
+    PDTEST_Compute_Residuals(pdhg);
+    PDHG_Print_Header(pdhg);
+    PDHG_Print_Iter(pdhg);
+
+    CUPDLP_COPY_VEC(iterates->x->data, iterates->xUpdate->data, cupdlp_float, problem->nCols);
+    CUPDLP_COPY_VEC(iterates->x_bar->data, iterates->x_barUpdate->data, cupdlp_float, problem->nCols);
+    CUPDLP_COPY_VEC(iterates->x_ag->data, iterates->x_agUpdate->data, cupdlp_float, problem->nCols);
+    CUPDLP_COPY_VEC(iterates->y->data, iterates->yUpdate->data, cupdlp_float, problem->nRows);
+    CUPDLP_COPY_VEC(iterates->y_ag->data, iterates->y_agUpdate->data, cupdlp_float, problem->nRows);
+  }
+
+  // 后处理，应该是把原来的scaling之类的变回去
+  PDTEST_PostSolve(pdhg, nCols_origin, constraint_new_idx, x_origin, y_origin);
 
   writeJson(fp, pdhg, x_origin, nCols_origin, y_origin, pdhg->problem->nRows,
             ifSaveSol);

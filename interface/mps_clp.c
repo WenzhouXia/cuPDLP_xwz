@@ -14,7 +14,7 @@ cupdlp_retcode main(int argc, char **argv)
   cupdlp_retcode retcode = RETCODE_OK;
 
   char *fname = "./example/afiro.mps.gz";
-  char *fout = "./solution.json";
+  char *fout = "./solu·on.json";
 
   int nCols;
   int nRows;
@@ -22,7 +22,7 @@ cupdlp_retcode main(int argc, char **argv)
   int nCols_origin;
   cupdlp_bool ifSaveSol = false;
   cupdlp_bool ifPresolve = false;
-  cupdlp_bool ifPDTEST = false;
+  cupdlp_int ifPDTEST = false;
   int nnz = 0;
   double *rhs = NULL;
   double *cost = NULL;
@@ -210,7 +210,6 @@ cupdlp_retcode main(int argc, char **argv)
   if (ifChangeIntParam[IF_PDTEST])
   {
     ifPDTEST = intParam[IF_PDTEST]; // 默认用PDHG不用PDTEST，ifPDTEST默认值为0
-    printf("ifPDTEST = %d\n", ifPDTEST);
   }
   if (!ifPDTEST)
   {
@@ -221,7 +220,9 @@ cupdlp_retcode main(int argc, char **argv)
   else
   {
     /////////////////////////////////////////////////////////////////////
+    cupdlp_printf("--------------------------------------------------\n");
     cupdlp_float sum = 0.0;
+    cupdlp_printf("csc_cpu->nMatElem = %d\n", csc_cpu->nMatElem);
     for (cupdlp_int i = 0; i < csc_cpu->nMatElem; ++i)
     {
       cupdlp_float value = csc_cpu->colMatElem[i]; // 获取矩阵非零元素的值
@@ -261,9 +262,6 @@ cupdlp_retcode main(int argc, char **argv)
   w->timers->CudaPrepareTime = cuda_prepare_time;
 #endif
 
-  cupdlp_printf("--------------------------------------------------\n");
-  cupdlp_printf("enter main solve loop\n");
-  cupdlp_printf("--------------------------------------------------\n");
   // CUPDLP_CALL(LP_SolvePDHG(prob, cupdlp_NULL, cupdlp_NULL, cupdlp_NULL,
   // cupdlp_NULL));
   //   CUPDLP_CALL(LP_SolvePDHG(prob, ifChangeIntParam, intParam,
@@ -271,13 +269,29 @@ cupdlp_retcode main(int argc, char **argv)
 
   CUPDLP_INIT(x_origin, nCols_origin);
   CUPDLP_INIT(y_origin, nRows);
-  if (!ifPDTEST)
+  switch (ifPDTEST)
   {
+  case 0:
+    cupdlp_printf("--------------------------------------------------\n");
+    cupdlp_printf("enter main solve loop, PDHG\n");
+    cupdlp_printf("--------------------------------------------------\n");
     CUPDLP_CALL(LP_SolvePDHG(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
-  }
-  else
-  {
+    break;
+  case 1:
+    cupdlp_printf("--------------------------------------------------\n");
+    cupdlp_printf("enter main solve loop, PDTEST\n");
+    cupdlp_printf("--------------------------------------------------\n");
     CUPDLP_CALL(LP_SolvePDTEST(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
+    break;
+  case 2:
+    cupdlp_printf("--------------------------------------------------\n");
+    cupdlp_printf("enter main solve loop, PDTESTm_min\n");
+    cupdlp_printf("--------------------------------------------------\n");
+    CUPDLP_CALL(LP_SolvePDTEST_min(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
+    break;
+  default:
+    cupdlp_printf("Error: ifPDTEST = %d\n, 不在取值范围内", ifPDTEST);
+    break;
   }
   //
 
