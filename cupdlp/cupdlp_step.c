@@ -12,7 +12,7 @@
 #include "cupdlp_utils.h"
 #include "glbopts.h"
 
-void PDTEST_x_md_step(CUPDLPwork *work, cupdlp_int beta)
+void PDTEST_x_md_step(CUPDLPwork *work, cupdlp_float beta)
 {
   PDTESTiterates *iterates = work->PDTESTiterates;
   CUPDLPproblem *problem = work->problem;
@@ -24,7 +24,7 @@ void PDTEST_x_md_step(CUPDLPwork *work, cupdlp_int beta)
 #endif
 }
 
-void PDTEST_x_ag_step(CUPDLPwork *work, cupdlp_int beta)
+void PDTEST_x_ag_step(CUPDLPwork *work, cupdlp_float beta)
 {
   PDTESTiterates *iterates = work->PDTESTiterates;
   CUPDLPproblem *problem = work->problem;
@@ -36,7 +36,7 @@ void PDTEST_x_ag_step(CUPDLPwork *work, cupdlp_int beta)
 #endif
 }
 
-void PDTEST_y_ag_step(CUPDLPwork *work, cupdlp_int beta)
+void PDTEST_y_ag_step(CUPDLPwork *work, cupdlp_float beta)
 {
   PDTESTiterates *iterates = work->PDTESTiterates;
   CUPDLPproblem *problem = work->problem;
@@ -48,7 +48,7 @@ void PDTEST_y_ag_step(CUPDLPwork *work, cupdlp_int beta)
 #endif
 }
 
-void PDTEST_x_bar_step(CUPDLPwork *work, cupdlp_int theta)
+void PDTEST_x_bar_step(CUPDLPwork *work, cupdlp_float theta)
 {
   PDTESTiterates *iterates = work->PDTESTiterates;
   CUPDLPproblem *problem = work->problem;
@@ -311,7 +311,7 @@ void PDHG_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg)
   // ATyCPU(pdhg, iterates->atyUpdate, iterates->yUpdate);
   ATy(pdhg, iterates->atyUpdate, iterates->yUpdate);
 }
-void PDTEST_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg)
+void PDTEST_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg, cupdlp_int nIter_restart)
 {
   //            CUPDLP_ASSERT(0);
   CUPDLPproblem *problem = pdhg->problem;
@@ -325,9 +325,9 @@ void PDTEST_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg)
   stepsize->dPrimalStep = dStepSize;
   stepsize->dDualStep = dStepSize;
 
-  cupdlp_int t_count = timers->nIter + 1;
+  cupdlp_int t_count = nIter_restart + 1;
   cupdlp_printf("t_count: %d\n", t_count);
-  cupdlp_float beta = (t_count + 1) / 2;
+  cupdlp_float beta = (t_count + 1) / 2.0;
 
   // 没有必要计算x_md, 因为梯度是常数，用不到x_md
   // x_md^{t} = (1 - 1 / beta^t)x_ag^{t} + (1 / beta^t)x^{t}
@@ -358,7 +358,7 @@ void PDTEST_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg)
   PDTEST_y_ag_step(pdhg, beta);
 
   // theta^{t+1}
-  cupdlp_float theta = t_count / (t_count + 1);
+  cupdlp_float theta = t_count / (t_count + 1.0);
 
   // x_bar^{t+1} = theta^{t+1}(x^{t+1} - x^{t}) + x^{t+1}
   PDTEST_x_bar_step(pdhg, theta);
@@ -600,8 +600,8 @@ cupdlp_retcode PDTEST_Init_Step_Sizes(CUPDLPwork *pdhg)
   // CUPDLP_MATRIX_FORMAT matrix_format = data->matrix_format;
   // cupdlp_printf("matrix_format: %d\n", matrix_format);
   cupdlp_float matrix_2norm = problem->data->matrix_2norm;
-  stepsize->dPrimalStep = 0.9 / matrix_2norm;
-  stepsize->dDualStep = 0.9 / matrix_2norm;
+  stepsize->dPrimalStep = 1 / matrix_2norm;
+  stepsize->dDualStep = 1 / matrix_2norm;
   //////////////////////////////////////////////////////
   iterates->iLastRestartIter = 0;
   stepsize->dSumPrimalStep = 0;
@@ -708,7 +708,7 @@ exit_cleanup:
   return RETCODE_OK;
 }
 
-cupdlp_retcode PDTEST_Update_Iterate(CUPDLPwork *pdhg)
+cupdlp_retcode PDTEST_Update_Iterate(CUPDLPwork *pdhg, cupdlp_int nIterL_restart)
 {
   cupdlp_retcode retcode = RETCODE_OK;
 
@@ -723,7 +723,7 @@ cupdlp_retcode PDTEST_Update_Iterate(CUPDLPwork *pdhg)
   PDTESTiterates *iterates = pdhg->PDTESTiterates;
 
   // 选择各种更新，看看效果
-  PDTEST_Update_Iterate_Constant_Step_Size(pdhg);
+  PDTEST_Update_Iterate_Constant_Step_Size(pdhg, nIterL_restart);
 
   // PDHG_Update_Average(pdhg);
 

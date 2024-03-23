@@ -777,6 +777,7 @@ cupdlp_retcode PDTEST_Solve(CUPDLPwork *pdhg)
 
   // PDHG_Print_Header(pdhg);
   // 主要的迭代！！
+  cupdlp_int nIter_restart = 0;
   for (timers->nIter = 0; timers->nIter < settings->nIterLim; ++timers->nIter)
   {
     PDHG_Compute_SolvingTime(pdhg);
@@ -846,9 +847,10 @@ cupdlp_retcode PDTEST_Solve(CUPDLPwork *pdhg)
         break;
       }
 
-      // PDTEST_Restart_Iterate(pdhg); // restart策略
+      PDTEST_Restart_Iterate(pdhg, nIter_restart); // restart策略
     }
-    CUPDLP_CALL(PDTEST_Update_Iterate(pdhg)); // 迭代更新
+    CUPDLP_CALL(PDTEST_Update_Iterate(pdhg, nIter_restart)); // 迭代更新
+    nIter_restart += 1;
   }
   // print at last
   PDHG_Print_Header(pdhg);

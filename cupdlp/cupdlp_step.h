@@ -9,10 +9,10 @@
 // #include "cupdlp_scaling.h"
 #include "glbopts.h"
 
-void PDTEST_x_md_step(CUPDLPwork *work, cupdlp_int beta);
-void PDTEST_x_ag_step(CUPDLPwork *work, cupdlp_int beta);
-void PDTEST_y_ag_step(CUPDLPwork *work, cupdlp_int beta);
-void PDTEST_x_bar_step(CUPDLPwork *work, cupdlp_int theta);
+void PDTEST_x_md_step(CUPDLPwork *work, cupdlp_float beta);
+void PDTEST_x_ag_step(CUPDLPwork *work, cupdlp_float beta);
+void PDTEST_y_ag_step(CUPDLPwork *work, cupdlp_float beta);
+void PDTEST_x_bar_step(CUPDLPwork *work, cupdlp_float theta);
 void PDTEST_primalGradientStep(CUPDLPwork *work, cupdlp_float dPrimalStepSize);
 void PDTEST_dualGradientStep(CUPDLPwork *work, cupdlp_float dDualStepSize);
 
@@ -22,7 +22,7 @@ void PDHG_Compute_Step_Size_Ratio(CUPDLPwork *pdhg);
 void PDTEST_Compute_Step_Size_Ratio(CUPDLPwork *pdhg);
 
 void PDHG_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg);
-void PDTEST_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg);
+void PDTEST_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg, cupdlp_int nIter_restart);
 
 void PDHG_Update_Iterate_Malitsky_Pock(CUPDLPwork *pdhg);
 
@@ -36,7 +36,7 @@ void PDHG_Compute_Average_Iterate(CUPDLPwork *work);
 void PDHG_Update_Average(CUPDLPwork *work);
 
 cupdlp_retcode PDHG_Update_Iterate(CUPDLPwork *pdhg);
-cupdlp_retcode PDTEST_Update_Iterate(CUPDLPwork *pdhg);
+cupdlp_retcode PDTEST_Update_Iterate(CUPDLPwork *pdhg, cupdlp_int nIterL_restart);
 
 void PDHG_primalGradientStep(CUPDLPwork *work, cupdlp_float dPrimalStepSize);
 void PDHG_dualGradientStep(CUPDLPwork *work, cupdlp_float dDualStepSize);

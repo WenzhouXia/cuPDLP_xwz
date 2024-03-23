@@ -89,7 +89,7 @@ void PDHG_Restart_Iterate(CUPDLPwork *pdhg)
   }
 }
 
-void PDTEST_Restart_Iterate(CUPDLPwork *pdhg)
+void PDTEST_Restart_Iterate(CUPDLPwork *pdhg, cupdlp_int nIter_restart)
 {
   switch (pdhg->settings->eRestartMethod)
   {
@@ -98,7 +98,7 @@ void PDTEST_Restart_Iterate(CUPDLPwork *pdhg)
     break;
   case PDHG_GPU_RESTART:
     // cupdlp_printf("PDHG_GPU_RESTART\n");
-    PDTEST_Restart_Iterate_GPU(pdhg);
+    PDTEST_Restart_Iterate_GPU(pdhg, nIter_restart);
     break;
     // case PDHG_CPU_RESTART:
     //   // TODO: implement PDHG_Restart_Iterate_CPU(pdhg);
@@ -171,7 +171,7 @@ void PDHG_Restart_Iterate_GPU(CUPDLPwork *pdhg)
   // stepsize->dBeta, sqrt(stepsize->dBeta));
 }
 
-void PDTEST_Restart_Iterate_GPU(CUPDLPwork *pdhg)
+void PDTEST_Restart_Iterate_GPU(CUPDLPwork *pdhg, cupdlp_int nIter_restart)
 {
   CUPDLPproblem *problem = pdhg->problem;
   PDTESTiterates *iterates = pdhg->PDTESTiterates;
@@ -184,9 +184,11 @@ void PDTEST_Restart_Iterate_GPU(CUPDLPwork *pdhg)
 
   if (restart_choice == PDHG_NO_RESTART)
     return;
+  // 如果restart了，就把nIter_restart置为0
+  nIter_restart = 0;
 
-  stepsize->dSumPrimalStep = 0.0;
-  stepsize->dSumDualStep = 0.0;
+  // stepsize->dSumPrimalStep = 0.0;
+  // stepsize->dSumDualStep = 0.0;
   // CUPDLP_ZERO_VEC(iterates->xSum, cupdlp_float, problem->nCols);
   // CUPDLP_ZERO_VEC(iterates->ySum, cupdlp_float, problem->nRows);
 
@@ -194,7 +196,7 @@ void PDTEST_Restart_Iterate_GPU(CUPDLPwork *pdhg)
   resobj->dDualFeasLastRestart = resobj->dDualFeas;
   resobj->dDualityGapLastRestart = resobj->dDualityGap;
 
-  PDTEST_Compute_Step_Size_Ratio(pdhg);
+  // PDTEST_Compute_Step_Size_Ratio(pdhg);
 
   CUPDLP_COPY_VEC(iterates->xLastRestart, iterates->x_ag->data, cupdlp_float,
                   problem->nCols);
