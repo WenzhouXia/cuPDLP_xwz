@@ -406,6 +406,9 @@ extern "C"
     cupdlp_int nAxCalls;
     cupdlp_int nComputeResidualsCalls;
     cupdlp_int nUpdateIterateCalls;
+    cupdlp_float dMatVecMultiplyTime;
+    cupdlp_float dVecVecAddTime;
+    cupdlp_float dIterTime;
 #endif
 #if !(CUPDLP_CPU)
     // GPU timers

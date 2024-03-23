@@ -1193,6 +1193,9 @@ cupdlp_retcode timers_Alloc(CUPDLPtimers *timers)
   timers->nAxCalls = 0;
   timers->nComputeResidualsCalls = 0;
   timers->nUpdateIterateCalls = 0;
+  timers->dMatVecMultiplyTime = 0.0;
+  timers->dVecVecAddTime = 0.0;
+  timers->dIterTime = 0.0;
 #endif
 #if !(CUPDLP_CPU)
   // GPU timers

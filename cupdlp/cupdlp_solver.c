@@ -855,6 +855,7 @@ cupdlp_retcode PDTEST_Solve(CUPDLPwork *pdhg)
   // print at last
   PDHG_Print_Header(pdhg);
   PDHG_Print_Iter(pdhg);
+
   // PDHG_Print_Iter_Average(pdhg);
 
 #if PDHG_USE_TIMERS
@@ -879,6 +880,9 @@ cupdlp_retcode PDTEST_Solve(CUPDLPwork *pdhg)
                 timers->dComputeResidualsTime, timers->nComputeResidualsCalls);
   cupdlp_printf("%20s %e in %d calls\n", "UpdateIterates",
                 timers->dUpdateIterateTime, timers->nUpdateIterateCalls);
+  cupdlp_printf("dMatVecMultiplyTime: %e\n", timers->dMatVecMultiplyTime);
+  cupdlp_printf("dVecVecAddTime: %e\n", timers->dVecVecAddTime);
+  cupdlp_printf("dIterTime: %e\n", timers->dIterTime);
 #endif
 
 #if !(CUPDLP_CPU)

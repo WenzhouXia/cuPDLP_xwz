@@ -324,10 +324,12 @@ void PDTEST_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg, cupdlp_int nIter
 
   stepsize->dPrimalStep = dStepSize;
   stepsize->dDualStep = dStepSize;
-
+  cupdlp_float dMultiStartTime;
+  cupdlp_float dAddStartTime;
   cupdlp_int t_count = nIter_restart + 1;
   cupdlp_printf("t_count: %d\n", t_count);
   cupdlp_float beta = (t_count + 1) / 2.0;
+  cupdlp_float dIterTime = getTimeStamp();
 
   // 没有必要计算x_md, 因为梯度是常数，用不到x_md
   // x_md^{t} = (1 - 1 / beta^t)x_ag^{t} + (1 / beta^t)x^{t}
@@ -336,36 +338,55 @@ void PDTEST_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg, cupdlp_int nIter
   // PDHG_Project_Bounds(pdhg, iterates->x_md->data);
 
   // 计算Ax_bar^{t}, 后面计算y^{t+1}有用
+  dMultiStartTime = getTimeStamp();
   Ax(pdhg, iterates->ax_bar, iterates->x_bar);
+  timers->dMatVecMultiplyTime += getTimeStamp() - dMultiStartTime;
 
   // y^{t+1} = y^t + dDualStep * (b - A * (x_bar^{t})
+  dAddStartTime = getTimeStamp();
   PDTEST_dualGradientStep(pdhg, stepsize->dDualStep);
+  timers->dVecVecAddTime += getTimeStamp() - dAddStartTime;
+
   PDHG_Project_Row_Duals(pdhg, iterates->yUpdate->data);
 
   // 计算ATy^{t+1}, 后面计算x^{t+1}有用
+  dMultiStartTime = getTimeStamp();
   ATy(pdhg, iterates->atyUpdate, iterates->yUpdate);
+  timers->dMatVecMultiplyTime += getTimeStamp() - dMultiStartTime;
 
   // x^{t+1} = proj_{X}(x^t - dPrimalStep * (c - A'y^{t+1}))
+  dAddStartTime = getTimeStamp();
   PDTEST_primalGradientStep(pdhg, stepsize->dPrimalStep);
+  timers->dVecVecAddTime += getTimeStamp() - dAddStartTime;
   PDHG_Project_Bounds(pdhg, iterates->xUpdate->data);
 
   // x_ag^{t+1} = (1 - 1 / beta^t)x_ag^{t} + (1 / beta^t)x^{t}
+  dAddStartTime = getTimeStamp();
   PDTEST_x_ag_step(pdhg, beta);
+  timers->dVecVecAddTime += getTimeStamp() - dAddStartTime;
   // 没有必要进行Project，因为都是已经投影过的x进行线性组合
   // PDHG_Project_Bounds(pdhg, iterates->x_agUpdate->data);
 
   // y_ag^{t+1} = (1 - 1 / beta^t)y_ag^{t} + (1 / beta^t)y^{t}
+  dAddStartTime = getTimeStamp();
   PDTEST_y_ag_step(pdhg, beta);
+  timers->dVecVecAddTime += getTimeStamp() - dAddStartTime;
 
   // theta^{t+1}
   cupdlp_float theta = t_count / (t_count + 1.0);
 
   // x_bar^{t+1} = theta^{t+1}(x^{t+1} - x^{t}) + x^{t+1}
+  dAddStartTime = getTimeStamp();
   PDTEST_x_bar_step(pdhg, theta);
+  timers->dVecVecAddTime += getTimeStamp() - dAddStartTime;
 
   // 更新一下ax_ag和aty_ag
+  dMultiStartTime = getTimeStamp();
   Ax(pdhg, iterates->ax_ag, iterates->x_agUpdate);
   ATy(pdhg, iterates->aty_ag, iterates->y_agUpdate);
+  timers->dMatVecMultiplyTime += getTimeStamp() - dMultiStartTime;
+
+  timers->dIterTime += getTimeStamp() - dIterTime;
 }
 void PDHG_Update_Iterate_Malitsky_Pock(CUPDLPwork *pdhg)
 {
