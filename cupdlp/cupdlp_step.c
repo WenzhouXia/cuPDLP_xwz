@@ -262,6 +262,8 @@ cupdlp_retcode PDTEST_Power_Method(CUPDLPwork *work, cupdlp_float *lambda)
 exit_cleanup:
   return retcode;
 }
+
+// Primal Weight Update
 void PDHG_Compute_Step_Size_Ratio(CUPDLPwork *pdhg)
 {
   CUPDLPproblem *problem = pdhg->problem;
@@ -368,7 +370,8 @@ void PDTEST_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg, cupdlp_int nIter
   cupdlp_float dAddStartTime;
   cupdlp_int t_count = nIter_restart + 1;
   cupdlp_printf("t_count: %d\n", t_count);
-  cupdlp_float beta = (t_count + 1) / 2.0;
+  // cupdlp_float beta = (t_count + 1) / 2.0;
+  cupdlp_float beta = t_count / 2.7;
   cupdlp_float dIterTime = getTimeStamp();
 
   // 没有必要计算x_md, 因为梯度是常数，用不到x_md
@@ -413,7 +416,8 @@ void PDTEST_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg, cupdlp_int nIter
   timers->dVecVecAddTime += getTimeStamp() - dAddStartTime;
 
   // theta^{t+1}
-  cupdlp_float theta = t_count / (t_count + 1.0);
+  // cupdlp_float theta = t_count / (t_count + 1.0);
+  cupdlp_float theta = 1.0;
 
   // x_bar^{t+1} = theta^{t+1}(x^{t+1} - x^{t}) + x^{t+1}
   dAddStartTime = getTimeStamp();
@@ -1101,9 +1105,9 @@ void PDTEST_Compute_Average_Iterate(CUPDLPwork *work)
                   lp->nRows);
   cupdlp_scaleVector(work, dPrimalScale, iterates->x_agAverage->data, lp->nCols);
   cupdlp_scaleVector(work, dDualScale, iterates->y_agAverage->data, lp->nRows);
-  cupdlp_printf("dPrimalScale: %f\n", dPrimalScale);
-  cupdlp_printf("x_agAverage:\n");
-  PDTEST_printCudaDenseVecGPU(iterates->x_agAverage);
+  // cupdlp_printf("dPrimalScale: %f\n", dPrimalScale);
+  // cupdlp_printf("x_agAverage:\n");
+  // PDTEST_printCudaDenseVecGPU(iterates->x_agAverage);
   // Ax(work, iterates->axAverage, iterates->xAverage);
   // ATyCPU(work, iterates->atyAverage, iterates->yAverage);
   Ax(work, iterates->ax_agAverage, iterates->x_agAverage);
@@ -1115,7 +1119,7 @@ void PDHG_Update_Average(CUPDLPwork *work)
   CUPDLPproblem *problem = work->problem;
   CUPDLPdata *lp = problem->data;
   CUPDLPstepsize *stepsize = work->stepsize;
-  CUPDLPiterates *iterates = work->iterates;
+  PDTESTiterates *iterates = work->PDTESTiterates;
 
   // PDLP weighs average iterates in this way
   cupdlp_float dMeanStepSize =
@@ -1123,10 +1127,10 @@ void PDHG_Update_Average(CUPDLPwork *work)
   // AddToVector(iterates->xSum, dMeanStepSize, iterates->xUpdate,
   // lp->nCols); AddToVector(iterates->ySum, dMeanStepSize,
   // iterates->yUpdate, lp->nRows);
-  cupdlp_axpy(work, lp->nCols, &dMeanStepSize, iterates->xUpdate->data,
-              iterates->xSum);
-  cupdlp_axpy(work, lp->nRows, &dMeanStepSize, iterates->yUpdate->data,
-              iterates->ySum);
+  cupdlp_axpy(work, lp->nCols, &dMeanStepSize, iterates->x_agUpdate->data,
+              iterates->x_agSum);
+  cupdlp_axpy(work, lp->nRows, &dMeanStepSize, iterates->y_agUpdate->data,
+              iterates->y_agSum);
 
   stepsize->dSumPrimalStep += dMeanStepSize;
   stepsize->dSumDualStep += dMeanStepSize;
@@ -1276,7 +1280,7 @@ cupdlp_retcode PDTEST_Update_Iterate(CUPDLPwork *pdhg, cupdlp_int nIter_restart)
     break;
   }
 
-  // PDHG_Update_Average(pdhg);
+  PDHG_Update_Average(pdhg);
 
   // 使用CUPDLP_COPY_VEC宏复制更新后的原始变量x和对偶变量y，以及它们对应的辅助变量ax和aty到更新变量xUpdate、yUpdate、axUpdate和atyUpdate。这一步确保了算法中使用的变量是最新的迭代结果
   CUPDLP_COPY_VEC(iterates->x->data, iterates->xUpdate->data, cupdlp_float, problem->nCols);

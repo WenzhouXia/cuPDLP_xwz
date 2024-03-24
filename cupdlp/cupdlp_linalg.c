@@ -593,6 +593,7 @@ void ATy(CUPDLPwork *w, CUPDLPvec *aty, const CUPDLPvec *y)
 
 // functions in cublas
 
+// 计算alpha * x + y
 cupdlp_int cupdlp_axpy(CUPDLPwork *w, const cupdlp_int n,
                        const cupdlp_float *alpha, const cupdlp_float *x,
                        cupdlp_float *y)
