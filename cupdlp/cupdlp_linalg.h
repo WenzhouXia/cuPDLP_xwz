@@ -172,4 +172,7 @@ void cupdlp_initvec(cupdlp_float *x, const cupdlp_float val,
 void cupdlp_compute_interaction_and_movement(CUPDLPwork *w,
                                              cupdlp_float *dMovement,
                                              cupdlp_float *dIteraction);
-#endif  // CUPDLP_CUPDLP_LINALG_H
+void PDTEST_compute_interaction_and_movement(CUPDLPwork *w,
+                                             cupdlp_float *dMovement,
+                                             cupdlp_float *dIteraction);
+#endif // CUPDLP_CUPDLP_LINALG_H

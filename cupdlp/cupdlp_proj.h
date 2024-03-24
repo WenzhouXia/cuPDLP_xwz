@@ -13,10 +13,11 @@ void PDHG_Project_Bounds(CUPDLPwork *work, double *r);
 void PDHG_Project_Row_Duals(CUPDLPwork *work, double *r);
 
 void PDHG_Restart_Iterate(CUPDLPwork *pdhg);
-
 void PDTEST_Restart_Iterate(CUPDLPwork *pdhg, cupdlp_int nIter_restart);
+void PDTEST_Average_Restart_Iterate(CUPDLPwork *pdhg, cupdlp_int nIter_restart);
 
 void PDHG_Restart_Iterate_GPU(CUPDLPwork *pdhg);
+void PDTEST_Average_Restart_Iterate_GPU(CUPDLPwork *pdhg, cupdlp_int nIter_restart);
 void PDTEST_Restart_Iterate_GPU(CUPDLPwork *pdhg, cupdlp_int nIter_restart);
 
 #endif // CUPDLP_CUPDLP_PROJ_H

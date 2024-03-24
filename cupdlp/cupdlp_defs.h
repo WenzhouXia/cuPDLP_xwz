@@ -344,12 +344,14 @@ extern "C"
     cupdlp_float dLastRestartBeta;
     cupdlp_float *xSum;
     cupdlp_float *ySum;
+    cupdlp_float *x_agSum;
+    cupdlp_float *y_agSum;
 
     cupdlp_float *xLastRestart;
     cupdlp_float *yLastRestart;
 
     CUPDLPvec *x, *xUpdate, *xAverage, *y, *yUpdate, *yAverage, *ax, *axUpdate,
-        *axAverage, *aty, *atyUpdate, *atyAverage, *x_ag, *y_ag, *x_bar, *x_md, *ax_bar, *ax_ag, *aty_ag, *x_agUpdate, *y_agUpdate, *x_barUpdate;
+        *axAverage, *aty, *atyUpdate, *atyAverage, *x_ag, *y_ag, *x_bar, *x_md, *ax_bar, *ax_ag, *aty_ag, *x_agUpdate, *y_agUpdate, *x_barUpdate, *aty_agUpdate, *ax_agUpdate, *x_agAverage, *y_agAverage, *ax_agAverage, *aty_agAverage;
   };
 
   struct CUPDLP_STEPSIZE

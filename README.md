@@ -45,7 +45,7 @@ Usage example: set `nIterLim` to `5000` and solve.
 | Param | Type | Range | Default | Description |
 |:---:|:---:|:---:|:---:|:---:|
 |`fname`|`str`|` `|` `|`.mps` or `.mps.gz` file of the LP instance|
-|`fout`|`str`|` `|`./solution.json`|`.json` file to save result|
+|`out`|`str`|` `|`./solution.json`|`.json` file to save result|
 |`savesol`|`bool`|`true, false`|`false`|whether to write solution to `.json` output|
 |`ifScaling`|`bool`|`true, false`|`true`|Whether to use scaling|
 |`ifRuizScaling`|`bool`|`true, false`|`true`|Whether to use Ruiz scaling (10 times)|
@@ -64,7 +64,10 @@ Usage example: set `nIterLim` to `5000` and solve.
 <!-- |`iScalingMethod`|`int`|`0-5`|`0`|Which scaling to use: 0-Column, 1-Row, 2-Col&Row, 3-Ruiz, 4-Col&Row&Obj, 5-Ruiz| -->
 <!-- |``|``|``|``|| -->
 
-
+## 增加新的迭代变量，需要修改的函数
+1. struct PDTEST_ITERATES的定义
+2. PDTEST_Init_Variables
+3. PDTEST_Alloc中的PDTESTiterates_Alloc
 
 
 

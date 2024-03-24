@@ -1071,6 +1071,10 @@ cupdlp_retcode PDTESTiterates_Alloc(PDTESTiterates *iterates, cupdlp_int ncols,
 
   CUPDLP_INIT_ZERO_VEC(iterates->xSum, ncols);
   CUPDLP_INIT_ZERO_VEC(iterates->ySum, nrows);
+  // 我的修改///////////////////////////////////////////////////
+  CUPDLP_INIT_ZERO_VEC(iterates->x_agSum, ncols);
+  CUPDLP_INIT_ZERO_VEC(iterates->y_agSum, nrows);
+  /////////////////////////////////////////////////////
   CUPDLP_INIT_ZERO_VEC(iterates->xLastRestart, ncols);
   CUPDLP_INIT_ZERO_VEC(iterates->yLastRestart, nrows);
 
@@ -1086,11 +1090,10 @@ cupdlp_retcode PDTESTiterates_Alloc(PDTESTiterates *iterates, cupdlp_int ncols,
   CUPDLP_INIT(iterates->aty, 1);
   CUPDLP_INIT(iterates->atyUpdate, 1);
   CUPDLP_INIT(iterates->atyAverage, 1);
-  /////////////////////////////////////////////////////
+  // 我的修改///////////////////////////////////////////////////
   CUPDLP_INIT(iterates->x_ag, 1);
   CUPDLP_INIT(iterates->y_ag, 1);
   CUPDLP_INIT(iterates->x_bar, 1);
-  // CUPDLP_INIT(iterates->y_bar, 1);
   CUPDLP_INIT(iterates->x_md, 1);
   CUPDLP_INIT(iterates->ax_bar, 1);
   CUPDLP_INIT(iterates->ax_ag, 1);
@@ -1098,6 +1101,12 @@ cupdlp_retcode PDTESTiterates_Alloc(PDTESTiterates *iterates, cupdlp_int ncols,
   CUPDLP_INIT(iterates->x_agUpdate, 1);
   CUPDLP_INIT(iterates->y_agUpdate, 1);
   CUPDLP_INIT(iterates->x_barUpdate, 1);
+  CUPDLP_INIT(iterates->ax_agUpdate, 1);
+  CUPDLP_INIT(iterates->aty_agUpdate, 1);
+  CUPDLP_INIT(iterates->x_agAverage, 1);
+  CUPDLP_INIT(iterates->y_agAverage, 1);
+  CUPDLP_INIT(iterates->ax_agAverage, 1);
+  CUPDLP_INIT(iterates->aty_agAverage, 1);
   /////////////////////////////////////////////////////
 
   CUPDLP_CALL(vec_Alloc(iterates->x, ncols));
@@ -1112,7 +1121,7 @@ cupdlp_retcode PDTESTiterates_Alloc(PDTESTiterates *iterates, cupdlp_int ncols,
   CUPDLP_CALL(vec_Alloc(iterates->aty, ncols));
   CUPDLP_CALL(vec_Alloc(iterates->atyUpdate, ncols));
   CUPDLP_CALL(vec_Alloc(iterates->atyAverage, ncols));
-  /////////////////////////////////////////////////////
+  // 我的修改///////////////////////////////////////////////////
   CUPDLP_CALL(vec_Alloc(iterates->x_ag, ncols));
   CUPDLP_CALL(vec_Alloc(iterates->x_bar, ncols));
   CUPDLP_CALL(vec_Alloc(iterates->x_md, ncols));
@@ -1120,10 +1129,15 @@ cupdlp_retcode PDTESTiterates_Alloc(PDTESTiterates *iterates, cupdlp_int ncols,
   CUPDLP_CALL(vec_Alloc(iterates->x_barUpdate, ncols));
   CUPDLP_CALL(vec_Alloc(iterates->aty_ag, ncols));
   CUPDLP_CALL(vec_Alloc(iterates->y_ag, nrows));
-  // CUPDLP_CALL(vec_Alloc(iterates->y_bar, nrows));
   CUPDLP_CALL(vec_Alloc(iterates->y_agUpdate, nrows));
   CUPDLP_CALL(vec_Alloc(iterates->ax_bar, nrows));
   CUPDLP_CALL(vec_Alloc(iterates->ax_ag, nrows));
+  CUPDLP_CALL(vec_Alloc(iterates->ax_agUpdate, nrows));
+  CUPDLP_CALL(vec_Alloc(iterates->aty_agUpdate, ncols));
+  CUPDLP_CALL(vec_Alloc(iterates->x_agAverage, ncols));
+  CUPDLP_CALL(vec_Alloc(iterates->y_agAverage, nrows));
+  CUPDLP_CALL(vec_Alloc(iterates->ax_agAverage, nrows));
+  CUPDLP_CALL(vec_Alloc(iterates->aty_agAverage, ncols));
   /////////////////////////////////////////////////////
 
   // initialization
