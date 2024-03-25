@@ -353,7 +353,7 @@ void PDHG_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg)
   // ATyCPU(pdhg, iterates->atyUpdate, iterates->yUpdate);
   ATy(pdhg, iterates->atyUpdate, iterates->yUpdate);
 }
-void PDTEST_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg, cupdlp_int nIter_restart)
+void PDTEST_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg, cupdlp_int *nIter_restart)
 {
   //            CUPDLP_ASSERT(0);
   CUPDLPproblem *problem = pdhg->problem;
@@ -361,17 +361,19 @@ void PDTEST_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg, cupdlp_int nIter
   CUPDLPstepsize *stepsize = pdhg->stepsize;
   CUPDLPtimers *timers = pdhg->timers; // 各种耗时
   // dStepSizeUpdate是论文中的eta
-  cupdlp_float dStepSize =
-      sqrt(stepsize->dPrimalStep * stepsize->dDualStep);
+  // cupdlp_float dStepSize =
+  //     sqrt(stepsize->dPrimalStep * stepsize->dDualStep);
 
-  stepsize->dPrimalStep = dStepSize;
-  stepsize->dDualStep = dStepSize;
+  // stepsize->dPrimalStep = dStepSize;
+  // stepsize->dDualStep = dStepSize;
   cupdlp_float dMultiStartTime;
   cupdlp_float dAddStartTime;
-  cupdlp_int t_count = nIter_restart + 1;
+  cupdlp_int t_count = *nIter_restart + 1;
+  // cupdlp_int t_count = timers->nIter + 1;
   cupdlp_printf("t_count: %d\n", t_count);
   // cupdlp_float beta = (t_count + 1) / 2.0;
-  cupdlp_float beta = t_count / 2.7;
+  cupdlp_float beta = (t_count + 3.8) / 4.8;
+  // cupdlp_float beta = t_count + 0.0;
   cupdlp_float dIterTime = getTimeStamp();
 
   // 没有必要计算x_md, 因为梯度是常数，用不到x_md
@@ -561,7 +563,7 @@ cupdlp_retcode PDHG_Update_Iterate_Adaptive_Step_Size(CUPDLPwork *pdhg)
 exit_cleanup:
   return retcode;
 }
-cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag(CUPDLPwork *pdhg, cupdlp_int nIter_restart)
+cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag(CUPDLPwork *pdhg, cupdlp_int *nIter_restart)
 {
   cupdlp_retcode retcode = RETCODE_OK;
   CUPDLPproblem *problem = pdhg->problem;
@@ -585,7 +587,7 @@ cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag(CUPDLPwork *pdhg, cup
 #pragma region Update
     cupdlp_float dMultiStartTime;
     cupdlp_float dAddStartTime;
-    cupdlp_int t_count = nIter_restart + 1;
+    cupdlp_int t_count = *nIter_restart + 1;
     cupdlp_printf("t_count: %d\n", t_count);
     cupdlp_float beta = (t_count + 1) / 2.0;
     cupdlp_float dIterTime = getTimeStamp();
@@ -732,7 +734,7 @@ exit_cleanup:
   return retcode;
 }
 
-cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size(CUPDLPwork *pdhg, cupdlp_int nIter_restart)
+cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size(CUPDLPwork *pdhg, cupdlp_int *nIter_restart)
 {
   cupdlp_retcode retcode = RETCODE_OK;
   CUPDLPproblem *problem = pdhg->problem;
@@ -756,7 +758,7 @@ cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size(CUPDLPwork *pdhg, cupdlp
 #pragma region Update
     cupdlp_float dMultiStartTime;
     cupdlp_float dAddStartTime;
-    cupdlp_int t_count = nIter_restart + 1;
+    cupdlp_int t_count = *nIter_restart + 1;
     cupdlp_printf("t_count: %d\n", t_count);
     cupdlp_float beta = (t_count + 1) / 2.0;
     cupdlp_float dIterTime = getTimeStamp();
@@ -1099,10 +1101,12 @@ void PDTEST_Compute_Average_Iterate(CUPDLPwork *work)
   cupdlp_float dDualScale =
       stepsize->dSumDualStep > 0.0 ? 1.0 / stepsize->dSumDualStep : 1.0;
 
+  // 把sum copy 给 average
   CUPDLP_COPY_VEC(iterates->x_agAverage->data, iterates->x_agSum, cupdlp_float,
                   lp->nCols);
   CUPDLP_COPY_VEC(iterates->y_agAverage->data, iterates->y_agSum, cupdlp_float,
                   lp->nRows);
+  // 把 average 乘上 1/sumstep
   cupdlp_scaleVector(work, dPrimalScale, iterates->x_agAverage->data, lp->nCols);
   cupdlp_scaleVector(work, dDualScale, iterates->y_agAverage->data, lp->nRows);
   // cupdlp_printf("dPrimalScale: %f\n", dPrimalScale);
@@ -1119,7 +1123,7 @@ void PDHG_Update_Average(CUPDLPwork *work)
   CUPDLPproblem *problem = work->problem;
   CUPDLPdata *lp = problem->data;
   CUPDLPstepsize *stepsize = work->stepsize;
-  PDTESTiterates *iterates = work->PDTESTiterates;
+  CUPDLPiterates *iterates = work->iterates;
 
   // PDLP weighs average iterates in this way
   cupdlp_float dMeanStepSize =
@@ -1127,10 +1131,10 @@ void PDHG_Update_Average(CUPDLPwork *work)
   // AddToVector(iterates->xSum, dMeanStepSize, iterates->xUpdate,
   // lp->nCols); AddToVector(iterates->ySum, dMeanStepSize,
   // iterates->yUpdate, lp->nRows);
-  cupdlp_axpy(work, lp->nCols, &dMeanStepSize, iterates->x_agUpdate->data,
-              iterates->x_agSum);
-  cupdlp_axpy(work, lp->nRows, &dMeanStepSize, iterates->y_agUpdate->data,
-              iterates->y_agSum);
+  cupdlp_axpy(work, lp->nCols, &dMeanStepSize, iterates->xUpdate->data,
+              iterates->xSum);
+  cupdlp_axpy(work, lp->nRows, &dMeanStepSize, iterates->yUpdate->data,
+              iterates->ySum);
 
   stepsize->dSumPrimalStep += dMeanStepSize;
   stepsize->dSumDualStep += dMeanStepSize;
@@ -1202,7 +1206,7 @@ exit_cleanup:
   return RETCODE_OK;
 }
 
-cupdlp_retcode PDTEST_Average_Update_Iterate(CUPDLPwork *pdhg, cupdlp_int nIter_restart)
+cupdlp_retcode PDTEST_Average_Update_Iterate(CUPDLPwork *pdhg, cupdlp_int *nIter_restart)
 {
   cupdlp_retcode retcode = RETCODE_OK;
 
@@ -1252,7 +1256,7 @@ cupdlp_retcode PDTEST_Average_Update_Iterate(CUPDLPwork *pdhg, cupdlp_int nIter_
 exit_cleanup:
   return RETCODE_OK;
 }
-cupdlp_retcode PDTEST_Update_Iterate(CUPDLPwork *pdhg, cupdlp_int nIter_restart)
+cupdlp_retcode PDTEST_Update_Iterate(CUPDLPwork *pdhg, cupdlp_int *nIter_restart)
 {
   cupdlp_retcode retcode = RETCODE_OK;
 
@@ -1280,7 +1284,7 @@ cupdlp_retcode PDTEST_Update_Iterate(CUPDLPwork *pdhg, cupdlp_int nIter_restart)
     break;
   }
 
-  PDHG_Update_Average(pdhg);
+  PDTEST_Update_Average(pdhg);
 
   // 使用CUPDLP_COPY_VEC宏复制更新后的原始变量x和对偶变量y，以及它们对应的辅助变量ax和aty到更新变量xUpdate、yUpdate、axUpdate和atyUpdate。这一步确保了算法中使用的变量是最新的迭代结果
   CUPDLP_COPY_VEC(iterates->x->data, iterates->xUpdate->data, cupdlp_float, problem->nCols);

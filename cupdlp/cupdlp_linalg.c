@@ -641,6 +641,7 @@ cupdlp_int cupdlp_twoNorm(CUPDLPwork *w, const cupdlp_int n,
   return 0;
 }
 
+// x = weight * x
 cupdlp_int cupdlp_scaleVector(CUPDLPwork *w, const cupdlp_float weight,
                               cupdlp_float *x, const cupdlp_int n)
 {

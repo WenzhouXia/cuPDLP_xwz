@@ -141,24 +141,22 @@ PDHG_restart_choice PDTEST_Check_Restart_GPU(CUPDLPwork *work)
   cupdlp_float muCurrent = PDHG_Restart_Score_GPU(
       work->stepsize->dBeta, work->resobj->dPrimalFeas, work->resobj->dDualFeas,
       work->resobj->dDualityGap);
-  // cupdlp_float muAverage = PDHG_Restart_Score_GPU(
-  //     work->stepsize->dBeta, work->resobj->dPrimalFeasAverage,
-  //     work->resobj->dDualFeasAverage, work->resobj->dDualityGapAverage);
+  cupdlp_float muAverage = PDHG_Restart_Score_GPU(
+      work->stepsize->dBeta, work->resobj->dPrimalFeasAverage,
+      work->resobj->dDualFeasAverage, work->resobj->dDualityGapAverage);
 
   cupdlp_float muCandidate = 0.0;
-  PDHG_restart_choice restart_choice = PDHG_RESTART_TO_CURRENT;
-  muCandidate = muCurrent;
-  // PDHG_restart_choice restart_choice = PDHG_RESTART_TO_AVERAGE;
-  // if (muCurrent < muAverage)
-  // {
-  //   restart_choice = PDHG_RESTART_TO_CURRENT;
-  //   muCandidate = muCurrent;
-  // }
-  // else
-  // {
-  //   // restart_choice = PDHG_RESTART_TO_AVERAGE;
-  //   muCandidate = muAverage;
-  // }
+  PDHG_restart_choice restart_choice = PDHG_RESTART_TO_AVERAGE;
+  if (muCurrent < muAverage)
+  {
+    restart_choice = PDHG_RESTART_TO_CURRENT;
+    muCandidate = muCurrent;
+  }
+  else
+  {
+    // restart_choice = PDHG_RESTART_TO_AVERAGE;
+    muCandidate = muAverage;
+  }
 
   // Or should we do artificial restart based on iteration count?
   // if (2 * (timers->nIter - iterates->iLastRestartIter) >= timers->nIter) {
@@ -203,37 +201,31 @@ PDHG_restart_choice PDTEST_Check_Restart_GPU(CUPDLPwork *work)
     }
   }
   // record candidate
-  // if (muCurrent < muAverage)
-  // {
-  //   resobj->dPrimalFeasLastCandidate = resobj->dPrimalFeas;
-  //   resobj->dDualFeasLastCandidate = resobj->dDualFeas;
-  //   resobj->dDualityGapLastCandidate = resobj->dDualityGap;
-  // }
-  // else
-  // {
-  //   resobj->dPrimalFeasLastCandidate = resobj->dPrimalFeasAverage;
-  //   resobj->dDualFeasLastCandidate = resobj->dDualFeasAverage;
-  //   resobj->dDualityGapLastCandidate = resobj->dDualityGapAverage;
-  // }
-  resobj->dPrimalFeasLastCandidate = resobj->dPrimalFeas;
-  resobj->dDualFeasLastCandidate = resobj->dDualFeas;
-  resobj->dDualityGapLastCandidate = resobj->dDualityGap;
+  if (muCurrent < muAverage)
+  {
+    resobj->dPrimalFeasLastCandidate = resobj->dPrimalFeas;
+    resobj->dDualFeasLastCandidate = resobj->dDualFeas;
+    resobj->dDualityGapLastCandidate = resobj->dDualityGap;
+  }
+  else
+  {
+    resobj->dPrimalFeasLastCandidate = resobj->dPrimalFeasAverage;
+    resobj->dDualFeasLastCandidate = resobj->dDualFeasAverage;
+    resobj->dDualityGapLastCandidate = resobj->dDualityGapAverage;
+  }
 
   if (restart_choice != PDHG_NO_RESTART)
   {
-    // if (muCurrent < muAverage)
-    // {
-    //   cupdlp_printf("Last restart was iter %d: %s", iterates->iLastRestartIter,
-    //                 "current\n");
-    // }
-    // else
-    // {
-    //   cupdlp_printf("Last restart was iter %d: %s", iterates->iLastRestartIter,
-    //                 "average\n");
-    // }
-
-    cupdlp_printf("Last restart was iter %d: %s", iterates->iLastRestartIter,
-                  "current\n");
+    if (muCurrent < muAverage)
+    {
+      cupdlp_printf("Last restart was iter %d: %s", iterates->iLastRestartIter,
+                    "current\n");
+    }
+    else
+    {
+      cupdlp_printf("Last restart was iter %d: %s", iterates->iLastRestartIter,
+                    "average\n");
+    }
   }
   return restart_choice;
 }

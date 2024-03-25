@@ -406,8 +406,8 @@ void PDTEST_Average_Init_Variables(CUPDLPwork *work)
   CUPDLP_ZERO_VEC(iterates->x_bar->data, cupdlp_float, lp->nCols);
   PDHG_Project_Bounds(work, iterates->x_bar->data);
 
-  CUPDLP_ZERO_VEC(iterates->x_md->data, cupdlp_float, lp->nCols);
-  PDHG_Project_Bounds(work, iterates->x_md->data);
+  // CUPDLP_ZERO_VEC(iterates->x_md->data, cupdlp_float, lp->nCols);
+  // PDHG_Project_Bounds(work, iterates->x_md->data);
 
   CUPDLP_ZERO_VEC(iterates->y->data, cupdlp_float, lp->nRows);
   CUPDLP_ZERO_VEC(iterates->y_ag->data, cupdlp_float, lp->nRows);
@@ -863,7 +863,8 @@ cupdlp_retcode PDTEST_Average_Solve(CUPDLPwork *pdhg)
 
   // PDHG_Print_Header(pdhg);
   // 主要的迭代！！
-  cupdlp_int nIter_restart = 0;
+  cupdlp_int nIter_restart_value = 0;
+  cupdlp_int *nIter_restart = &nIter_restart_value;
   for (timers->nIter = 0; timers->nIter < settings->nIterLim; ++timers->nIter)
   {
     PDHG_Compute_SolvingTime(pdhg);
@@ -911,9 +912,9 @@ cupdlp_retcode PDTEST_Average_Solve(CUPDLPwork *pdhg)
       {
         cupdlp_printf("Optimal average solution.\n");
 
-        CUPDLP_COPY_VEC(iterates->x->data, iterates->xAverage->data,
+        CUPDLP_COPY_VEC(iterates->x_ag->data, iterates->x_agAverage->data,
                         cupdlp_float, problem->nCols);
-        CUPDLP_COPY_VEC(iterates->y->data, iterates->yAverage->data,
+        CUPDLP_COPY_VEC(iterates->y_ag->data, iterates->y_agAverage->data,
                         cupdlp_float, problem->nRows);
 
         resobj->termIterate = AVERAGE_ITERATE;
@@ -938,7 +939,7 @@ cupdlp_retcode PDTEST_Average_Solve(CUPDLPwork *pdhg)
       PDTEST_Average_Restart_Iterate(pdhg, nIter_restart); // restart策略
     }
     CUPDLP_CALL(PDTEST_Update_Iterate(pdhg, nIter_restart)); // 迭代更新
-    nIter_restart += 1;
+    *nIter_restart += 1;
   }
   // print at last
   PDHG_Print_Header(pdhg);
@@ -1011,7 +1012,8 @@ cupdlp_retcode PDTEST_Solve(CUPDLPwork *pdhg)
 
   // PDHG_Print_Header(pdhg);
   // 主要的迭代！！
-  cupdlp_int nIter_restart = 0;
+  cupdlp_int nIter_resetart_value = 0;
+  cupdlp_int *nIter_restart = &nIter_resetart_value;
   for (timers->nIter = 0; timers->nIter < settings->nIterLim; ++timers->nIter)
   {
     PDHG_Compute_SolvingTime(pdhg);
@@ -1086,7 +1088,7 @@ cupdlp_retcode PDTEST_Solve(CUPDLPwork *pdhg)
       PDTEST_Restart_Iterate(pdhg, nIter_restart); // restart策略
     }
     CUPDLP_CALL(PDTEST_Update_Iterate(pdhg, nIter_restart)); // 迭代更新
-    nIter_restart += 1;
+    *nIter_restart += 1;
   }
   // print at last
   PDHG_Print_Header(pdhg);

@@ -89,7 +89,7 @@ void PDHG_Restart_Iterate(CUPDLPwork *pdhg)
   }
 }
 
-void PDTEST_Restart_Iterate(CUPDLPwork *pdhg, cupdlp_int nIter_restart)
+void PDTEST_Restart_Iterate(CUPDLPwork *pdhg, cupdlp_int *nIter_restart)
 {
   switch (pdhg->settings->eRestartMethod)
   {
@@ -106,7 +106,7 @@ void PDTEST_Restart_Iterate(CUPDLPwork *pdhg, cupdlp_int nIter_restart)
   }
 }
 
-void PDTEST_Average_Restart_Iterate(CUPDLPwork *pdhg, cupdlp_int nIter_restart)
+void PDTEST_Average_Restart_Iterate(CUPDLPwork *pdhg, cupdlp_int *nIter_restart)
 {
   switch (pdhg->settings->eRestartMethod)
   {
@@ -114,7 +114,6 @@ void PDTEST_Average_Restart_Iterate(CUPDLPwork *pdhg, cupdlp_int nIter_restart)
     // cupdlp_printf("PDHG_WITHOUT_RESTART\n");
     break;
   case PDHG_GPU_RESTART:
-    // cupdlp_printf("PDHG_GPU_RESTART\n");
     PDTEST_Average_Restart_Iterate_GPU(pdhg, nIter_restart);
     break;
     // case PDHG_CPU_RESTART:
@@ -144,6 +143,7 @@ void PDHG_Restart_Iterate_GPU(CUPDLPwork *pdhg)
 
   if (restart_choice == PDHG_RESTART_TO_AVERAGE)
   {
+    cupdlp_printf("Restart to average\n");
     resobj->dPrimalFeasLastRestart = resobj->dPrimalFeasAverage;
     resobj->dDualFeasLastRestart = resobj->dDualFeasAverage;
     resobj->dDualityGapLastRestart = resobj->dDualityGapAverage;
@@ -166,6 +166,7 @@ void PDHG_Restart_Iterate_GPU(CUPDLPwork *pdhg)
   }
   else
   {
+    cupdlp_printf("Restart to current\n");
     resobj->dPrimalFeasLastRestart = resobj->dPrimalFeas;
     resobj->dDualFeasLastRestart = resobj->dDualFeas;
     resobj->dDualityGapLastRestart = resobj->dDualityGap;
@@ -187,7 +188,7 @@ void PDHG_Restart_Iterate_GPU(CUPDLPwork *pdhg)
   // cupdlp_printf("Recomputed stepsize ratio: %e,  sqrt(ratio)=%e",
   // stepsize->dBeta, sqrt(stepsize->dBeta));
 }
-void PDTEST_Average_Restart_Iterate_GPU(CUPDLPwork *pdhg, cupdlp_int nIter_restart)
+void PDTEST_Average_Restart_Iterate_GPU(CUPDLPwork *pdhg, cupdlp_int *nIter_restart)
 {
   CUPDLPproblem *problem = pdhg->problem;
   PDTESTiterates *iterates = pdhg->PDTESTiterates;
@@ -202,7 +203,8 @@ void PDTEST_Average_Restart_Iterate_GPU(CUPDLPwork *pdhg, cupdlp_int nIter_resta
     return;
 
   // 如果restart了，就把nIter_restart置为0
-  nIter_restart = 0;
+  cupdlp_printf("Restart，重置nIter_restart为0\n");
+  *nIter_restart = 0;
 
   stepsize->dSumPrimalStep = 0.0;
   stepsize->dSumDualStep = 0.0;
@@ -211,6 +213,7 @@ void PDTEST_Average_Restart_Iterate_GPU(CUPDLPwork *pdhg, cupdlp_int nIter_resta
 
   if (restart_choice == PDHG_RESTART_TO_AVERAGE)
   {
+    cupdlp_printf("Restart to average\n");
     resobj->dPrimalFeasLastRestart = resobj->dPrimalFeasAverage;
     resobj->dDualFeasLastRestart = resobj->dDualFeasAverage;
     resobj->dDualityGapLastRestart = resobj->dDualityGapAverage;
@@ -241,6 +244,7 @@ void PDTEST_Average_Restart_Iterate_GPU(CUPDLPwork *pdhg, cupdlp_int nIter_resta
   }
   else
   {
+    cupdlp_printf("Restart to current\n");
     resobj->dPrimalFeasLastRestart = resobj->dPrimalFeas;
     resobj->dDualFeasLastRestart = resobj->dDualFeas;
     resobj->dDualityGapLastRestart = resobj->dDualityGap;
@@ -272,7 +276,7 @@ void PDTEST_Average_Restart_Iterate_GPU(CUPDLPwork *pdhg, cupdlp_int nIter_resta
   // cupdlp_printf("Recomputed stepsize ratio: %e,  sqrt(ratio)=%e",
   // stepsize->dBeta, sqrt(stepsize->dBeta));
 }
-void PDTEST_Restart_Iterate_GPU(CUPDLPwork *pdhg, cupdlp_int nIter_restart)
+void PDTEST_Restart_Iterate_GPU(CUPDLPwork *pdhg, cupdlp_int *nIter_restart)
 {
   CUPDLPproblem *problem = pdhg->problem;
   PDTESTiterates *iterates = pdhg->PDTESTiterates;
@@ -286,7 +290,7 @@ void PDTEST_Restart_Iterate_GPU(CUPDLPwork *pdhg, cupdlp_int nIter_restart)
   if (restart_choice == PDHG_NO_RESTART)
     return;
   // 如果restart了，就把nIter_restart置为0
-  nIter_restart = 0;
+  *nIter_restart = 0;
 
   // stepsize->dSumPrimalStep = 0.0;
   // stepsize->dSumDualStep = 0.0;
