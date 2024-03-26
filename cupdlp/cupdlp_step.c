@@ -296,6 +296,7 @@ void PDHG_Compute_Step_Size_Ratio(CUPDLPwork *pdhg)
   stepsize->dTheta = 1.0;
 }
 
+// Primal Weight Update
 void PDTEST_Compute_Step_Size_Ratio(CUPDLPwork *pdhg)
 {
   CUPDLPproblem *problem = pdhg->problem;
@@ -326,6 +327,12 @@ void PDTEST_Compute_Step_Size_Ratio(CUPDLPwork *pdhg)
   stepsize->dPrimalStep = dMeanStepSize / sqrt(stepsize->dBeta);
   stepsize->dDualStep = stepsize->dPrimalStep * stepsize->dBeta;
   stepsize->dTheta = 1.0;
+  ////////////////////////////////////
+  // // dStepSizeUpdate是论文中的eta
+  // cupdlp_float dMeanStepSize = sqrt(stepsize->dPrimalStep * stepsize->dDualStep);
+  // stepsize->dPrimalStep = dMeanStepSize;
+  // stepsize->dDualStep = dMeanStepSize;
+  ////////////////////////////////////
 }
 
 void PDHG_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg)
@@ -360,22 +367,26 @@ void PDTEST_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg, cupdlp_int *nIte
   PDTESTiterates *iterates = pdhg->PDTESTiterates;
   CUPDLPstepsize *stepsize = pdhg->stepsize;
   CUPDLPtimers *timers = pdhg->timers; // 各种耗时
-  // dStepSizeUpdate是论文中的eta
-  // cupdlp_float dStepSize =
-  //     sqrt(stepsize->dPrimalStep * stepsize->dDualStep);
 
-  // stepsize->dPrimalStep = dStepSize;
-  // stepsize->dDualStep = dStepSize;
+  // // // dStepSizeUpdate是论文中的eta
+  // cupdlp_float dMeanStepSize = sqrt(stepsize->dPrimalStep * stepsize->dDualStep);
+  // stepsize->dPrimalStep = dMeanStepSize;
+  // stepsize->dDualStep = dMeanStepSize;
+
   cupdlp_float dMultiStartTime;
   cupdlp_float dAddStartTime;
   cupdlp_int t_count = *nIter_restart + 1;
   // cupdlp_int t_count = timers->nIter + 1;
   cupdlp_printf("t_count: %d\n", t_count);
-  // cupdlp_float beta = (t_count + 1) / 2.0;
+  // cupdlp_float beta = (t_count + 5.0) / 6.0;
   cupdlp_float beta = (t_count + 3.8) / 4.8;
   // cupdlp_float beta = t_count + 0.0;
+  // theta^{t+1}
+  // cupdlp_float theta = t_count / (t_count + 1.0);
+  cupdlp_float theta = 1.0;
   cupdlp_float dIterTime = getTimeStamp();
 
+#pragma region Update
   // 没有必要计算x_md, 因为梯度是常数，用不到x_md
   // x_md^{t} = (1 - 1 / beta^t)x_ag^{t} + (1 / beta^t)x^{t}
   // PDTEST_x_md_step(pdhg, beta);
@@ -417,10 +428,6 @@ void PDTEST_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg, cupdlp_int *nIte
   PDTEST_y_ag_step(pdhg, beta);
   timers->dVecVecAddTime += getTimeStamp() - dAddStartTime;
 
-  // theta^{t+1}
-  // cupdlp_float theta = t_count / (t_count + 1.0);
-  cupdlp_float theta = 1.0;
-
   // x_bar^{t+1} = theta^{t+1}(x^{t+1} - x^{t}) + x^{t+1}
   dAddStartTime = getTimeStamp();
   PDTEST_x_bar_step(pdhg, theta);
@@ -431,6 +438,7 @@ void PDTEST_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg, cupdlp_int *nIte
   Ax(pdhg, iterates->ax_agUpdate, iterates->x_agUpdate);
   ATy(pdhg, iterates->aty_agUpdate, iterates->y_agUpdate);
   timers->dMatVecMultiplyTime += getTimeStamp() - dMultiStartTime;
+#pragma endregion
 
   timers->dIterTime += getTimeStamp() - dIterTime;
 }
@@ -1007,7 +1015,8 @@ cupdlp_retcode PDTEST_Init_Step_Sizes(CUPDLPwork *pdhg)
       stepsize->dBeta = 1.0;
     }
 
-    stepsize->dPrimalStep = 0.8 / sqrt(stepsize->dPrimalStep);
+    // stepsize->dPrimalStep = 0.8 / sqrt(stepsize->dPrimalStep);
+    stepsize->dPrimalStep = 1.0 / sqrt(stepsize->dPrimalStep);
     stepsize->dDualStep = stepsize->dPrimalStep;
     // 算出dPrimalStep和dDualStep
     stepsize->dPrimalStep /= sqrt(stepsize->dBeta);
@@ -1041,10 +1050,16 @@ cupdlp_retcode PDTEST_Init_Step_Sizes(CUPDLPwork *pdhg)
         (1.0 / problem->data->csc_matrix->MatElemNormInf) /
         sqrt(stepsize->dBeta);
     stepsize->dDualStep = stepsize->dPrimalStep * stepsize->dBeta;
+
     iterates->dLastRestartBeta = stepsize->dBeta;
   }
 
   //////////////////////////////////////////////////////
+  // // dStepSizeUpdate是论文中的eta
+  // cupdlp_float dMeanStepSize = sqrt(stepsize->dPrimalStep * stepsize->dDualStep);
+  // stepsize->dPrimalStep = dMeanStepSize;
+  // stepsize->dDualStep = dMeanStepSize;
+
   // CUPDLPdata *data = problem->data;
   // CUPDLP_MATRIX_FORMAT matrix_format = data->matrix_format;
   // cupdlp_printf("matrix_format: %d\n", matrix_format);
@@ -1140,6 +1155,7 @@ void PDHG_Update_Average(CUPDLPwork *work)
   stepsize->dSumDualStep += dMeanStepSize;
 }
 
+// 更新x_agSum和y_agSum, dSumPrimalStep和dSumDualStep
 void PDTEST_Update_Average(CUPDLPwork *work)
 {
   CUPDLPproblem *problem = work->problem;
@@ -1158,6 +1174,8 @@ void PDTEST_Update_Average(CUPDLPwork *work)
 
   stepsize->dSumPrimalStep += dMeanStepSize;
   stepsize->dSumDualStep += dMeanStepSize;
+  // stepsize->dSumPrimalStep += stepsize->dPrimalStep;
+  // stepsize->dSumDualStep += stepsize->dDualStep;
 }
 
 cupdlp_retcode PDHG_Update_Iterate(CUPDLPwork *pdhg)
@@ -1234,7 +1252,6 @@ cupdlp_retcode PDTEST_Average_Update_Iterate(CUPDLPwork *pdhg, cupdlp_int *nIter
     break;
   }
 
-  // 其实是更新x_agSum和y_agSum
   PDTEST_Update_Average(pdhg);
 
   // 使用CUPDLP_COPY_VEC宏复制更新后的原始变量x和对偶变量y，以及它们对应的辅助变量ax和aty到更新变量xUpdate、yUpdate、axUpdate和atyUpdate。这一步确保了算法中使用的变量是最新的迭代结果

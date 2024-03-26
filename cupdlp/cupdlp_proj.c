@@ -262,12 +262,13 @@ void PDTEST_Average_Restart_Iterate_GPU(CUPDLPwork *pdhg, cupdlp_int *nIter_rest
     CUPDLP_COPY_VEC(iterates->ax_bar->data, iterates->ax_ag->data, cupdlp_float,
                     problem->nRows);
   }
-
+  //////////////////////////////////////
   PDTEST_Compute_Step_Size_Ratio(pdhg);
+  //////////////////////////////////////
 
-  CUPDLP_COPY_VEC(iterates->xLastRestart, iterates->x->data, cupdlp_float,
+  CUPDLP_COPY_VEC(iterates->xLastRestart, iterates->x_ag->data, cupdlp_float,
                   problem->nCols);
-  CUPDLP_COPY_VEC(iterates->yLastRestart, iterates->y->data, cupdlp_float,
+  CUPDLP_COPY_VEC(iterates->yLastRestart, iterates->y_ag->data, cupdlp_float,
                   problem->nRows);
 
   iterates->iLastRestartIter = timers->nIter;

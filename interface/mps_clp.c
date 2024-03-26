@@ -285,10 +285,15 @@ cupdlp_retcode main(int argc, char **argv)
     break;
   case 2:
     cupdlp_printf("--------------------------------------------------\n");
-    cupdlp_printf("enter main solve loop, PDTESTm_min\n");
+    cupdlp_printf("enter main solve loop, PDTEST_Average\n");
     cupdlp_printf("--------------------------------------------------\n");
     CUPDLP_CALL(LP_SolvePDTEST_Average(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
     break;
+  case 3:
+    cupdlp_printf("--------------------------------------------------\n");
+    cupdlp_printf("enter main solve loop, PDTEST_min\n");
+    cupdlp_printf("--------------------------------------------------\n");
+    CUPDLP_CALL(LP_SolvePDTEST_min(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
   default:
     cupdlp_printf("Error: ifPDTEST = %d\n, 不在取值范围内", ifPDTEST);
     break;
