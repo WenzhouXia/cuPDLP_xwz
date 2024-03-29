@@ -450,8 +450,8 @@ void PDTEST_Init_Variables(CUPDLPwork *work)
   CUPDLP_ZERO_VEC(iterates->x_bar->data, cupdlp_float, lp->nCols);
   PDHG_Project_Bounds(work, iterates->x_bar->data);
 
-  CUPDLP_ZERO_VEC(iterates->x_md->data, cupdlp_float, lp->nCols);
-  PDHG_Project_Bounds(work, iterates->x_md->data);
+  // CUPDLP_ZERO_VEC(iterates->x_md->data, cupdlp_float, lp->nCols);
+  // PDHG_Project_Bounds(work, iterates->x_md->data);
 
   CUPDLP_ZERO_VEC(iterates->y->data, cupdlp_float, lp->nRows);
   CUPDLP_ZERO_VEC(iterates->y_ag->data, cupdlp_float, lp->nRows);
@@ -710,6 +710,15 @@ cupdlp_retcode PDHG_Solve(CUPDLPwork *pdhg)
   CUPDLPiterates *iterates = pdhg->iterates;
   CUPDLPtimers *timers = pdhg->timers;
 
+  cupdlp_float dCheckTime = 0.0;
+  cupdlp_float dCheckTimetemp = 0.0;
+  cupdlp_float dUpdateTime = 0.0;
+  cupdlp_float dUpdateTimetemp = 0.0;
+  cupdlp_float dCheckTerminationTime = 0.0;
+  cupdlp_float dCheckTerminationTimetemp = 0.0;
+  cupdlp_float dRestartTime = 0.0;
+  cupdlp_float dRestartTimetemp = 0.0;
+
   timers->dSolvingBeg = getTimeStamp();
 
   PDHG_Init_Data(pdhg);
@@ -725,6 +734,7 @@ cupdlp_retcode PDHG_Solve(CUPDLPwork *pdhg)
 
   for (timers->nIter = 0; timers->nIter < settings->nIterLim; ++timers->nIter)
   {
+    dCheckTimetemp = getTimeStamp();
     PDHG_Compute_SolvingTime(pdhg);
 #if CUPDLP_DUMP_ITERATES_STATS & CUPDLP_DEBUG
     PDHG_Dump_Stats(pdhg);
@@ -755,7 +765,7 @@ cupdlp_retcode PDHG_Solve(CUPDLPwork *pdhg)
         PDHG_Print_Iter(pdhg);
         PDHG_Print_Iter_Average(pdhg);
       }
-
+      dCheckTerminationTimetemp = getTimeStamp();
       if (PDHG_Check_Termination(pdhg, bool_print))
       {
         cupdlp_printf("Optimal current solution.\n");
@@ -791,11 +801,21 @@ cupdlp_retcode PDHG_Solve(CUPDLPwork *pdhg)
         resobj->termCode = TIMELIMIT_OR_ITERLIMIT;
         break;
       }
-
+      dCheckTerminationTime += getTimeStamp() - dCheckTerminationTimetemp;
+      dRestartTimetemp = getTimeStamp();
       PDHG_Restart_Iterate(pdhg);
+      dRestartTime += getTimeStamp() - dRestartTimetemp;
+      dCheckTime += getTimeStamp() - dCheckTimetemp;
     }
+    dUpdateTimetemp = getTimeStamp();
     CUPDLP_CALL(PDHG_Update_Iterate(pdhg));
+    dUpdateTime += getTimeStamp() - dUpdateTimetemp;
   }
+  cupdlp_printf("Check time: %e\n", dCheckTime);
+  cupdlp_printf("Update time: %e\n", dUpdateTime);
+  cupdlp_printf("Check termination time: %e\n", dCheckTerminationTime);
+  cupdlp_printf("Restart time: %e\n", dRestartTime);
+  cupdlp_printf("Compute Update time: %e\n", timers->dIterTime);
   // print at last
   PDHG_Print_Header(pdhg);
   PDHG_Print_Iter(pdhg);
@@ -849,6 +869,10 @@ cupdlp_retcode PDTEST_Average_Solve(CUPDLPwork *pdhg)
   CUPDLPresobj *resobj = pdhg->resobj;             /* residuals and objectives 残差和目标函数值*/
   PDTESTiterates *iterates = pdhg->PDTESTiterates; // 迭代变量
   CUPDLPtimers *timers = pdhg->timers;             // 各种耗时
+  cupdlp_float dCheckTime = 0.0;
+  cupdlp_float dCheckTimetemp = 0.0;
+  cupdlp_float dUpdateTime = 0.0;
+  cupdlp_float dUpdateTimetemp = 0.0;
 
   timers->dSolvingBeg = getTimeStamp();
 
@@ -891,6 +915,7 @@ cupdlp_retcode PDTEST_Average_Solve(CUPDLPwork *pdhg)
 #endif
     if (bool_checking)
     {
+      dCheckTimetemp = getTimeStamp();
       PDTEST_Compute_Average_Iterate(pdhg);
       PDTEST_Average_Compute_Residuals(pdhg);
       if (bool_print)
@@ -937,10 +962,15 @@ cupdlp_retcode PDTEST_Average_Solve(CUPDLPwork *pdhg)
       }
 
       PDTEST_Average_Restart_Iterate(pdhg, nIter_restart); // restart策略
+      dCheckTime += getTimeStamp() - dCheckTimetemp;
     }
+    dUpdateTimetemp = getTimeStamp();
     CUPDLP_CALL(PDTEST_Update_Iterate(pdhg, nIter_restart)); // 迭代更新
     *nIter_restart += 1;
+    dUpdateTime += getTimeStamp() - dUpdateTimetemp;
   }
+  cupdlp_printf("Check time: %e\n", dCheckTime);
+  cupdlp_printf("Update time: %e\n", dUpdateTime);
   // print at last
   PDHG_Print_Header(pdhg);
   PDHG_Print_Iter(pdhg);
@@ -1040,7 +1070,6 @@ cupdlp_retcode PDTEST_Solve(CUPDLPwork *pdhg)
 #endif
     if (bool_checking)
     {
-      // PDHG_Compute_Average_Iterate(pdhg);
       PDTEST_Compute_Residuals(pdhg);
       if (bool_print)
       {
@@ -1283,64 +1312,136 @@ cupdlp_retcode LP_SolvePDTEST_min(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntPara
   PDTESTiterates *iterates = pdhg->PDTESTiterates; // 迭代变量
   CUPDLPstepsize *stepsize = pdhg->stepsize;
   CUPDLPproblem *problem = pdhg->problem;
-
+  cupdlp_int restartFreq = 1000;
+  CUPDLPresobj *resobj = pdhg->resobj;
+  cupdlp_float stopThr = 1.0E-5;
+  cupdlp_printf("stopThr = %f\n", stopThr);
+  timers->dSolvingTime = getTimeStamp();
   for (timers->nIter = 0; timers->nIter < settings->nIterLim; ++timers->nIter)
   {
     cupdlp_int t = timers->nIter + 1;
+    cupdlp_float beta = (t + 3.8) / 4.8;
+    cupdlp_float theta = 1.0;
 
-    cupdlp_float beta = (t + 1) / 2.0;
-    cupdlp_float theta = t / (t + 1.0);
+    // 计算平均解
+    // PDHG_Compute_Average_Iterate(pdhg);
 
+#pragma region 迭代
     // PDTEST_printCudaDenseVecGPU(iterates->y_ag);
     // PDTEST_printCudaDenseVecGPU(iterates->x_ag);
-
     // 计算Ax_bar^{t}, 后面计算y^{t+1}有用
+    // Ax(pdhg, iterates->ax_bar, iterates->x_bar);
+    // // y^{t+1} = y^t + dDualStep * (b - A * (x_bar^{t})
+    // PDTEST_dualGradientStep(pdhg, stepsize->dDualStep);
+    // cupdlp_printf("y^{t+1} = y^t + dDualStep * (b - A * (x_bar^{t})\n");
+    // PDHG_Project_Row_Duals(pdhg, iterates->yUpdate->data);
+    // // PDTEST_printCudaDenseVecGPU(iterates->yUpdate);
+    // // 计算ATy^{t+1}, 后面计算x^{t+1}有用
+    // ATy(pdhg, iterates->atyUpdate, iterates->yUpdate);
+    // // x^{t+1} = proj_{X}(x^t - dPrimalStep * (c - A'y^{t+1}))
+    // PDTEST_primalGradientStep(pdhg, stepsize->dPrimalStep);
+    // cupdlp_printf("x^{t+1} = proj_{X}(x^t - dPrimalStep * (c - A'y^{t+1}))\n");
+    // PDHG_Project_Bounds(pdhg, iterates->xUpdate->data);
+    // // PDTEST_printCudaDenseVecGPU(iterates->xUpdate);
+    // // x_ag^{t+1} = (1 - 1 / beta^t)x_ag^{t} + (1 / beta^t)x^{t+1}
+    // cupdlp_printf("beta = %f\n", beta);
+    // PDTEST_x_ag_step(pdhg, beta);
+    // cupdlp_printf("x_ag^{t+1} = (1 - 1 / beta^t)x_ag^{t} + (1 / beta^t)x^{t+1}\n");
+    // // PDTEST_printCudaDenseVecGPU(iterates->x_agUpdate);
+    // // PDTEST_printCudaDenseVecGPU(iterates->x_ag);
+    // // PDTEST_printCudaDenseVecGPU(iterates->xUpdate);
+    // // 没有必要进行Project，因为都是已经投影过的x进行线性组合
+    // // PDHG_Project_Bounds(pdhg, iterates->x_agUpdate->data);
+    // // y_ag^{t+1} = (1 - 1 / beta^t)y_ag^{t} + (1 / beta^t)y^{t}
+    // PDTEST_y_ag_step(pdhg, beta);
+    // // x_bar^{t+1} = theta^{t+1}(x^{t+1} - x^{t}) + x^{t+1}
+    // PDTEST_x_bar_step(pdhg, theta);
+    // // 更新一下ax_ag和aty_ag
+    // Ax(pdhg, iterates->ax_ag, iterates->x_agUpdate);
+    // ATy(pdhg, iterates->aty_ag, iterates->y_agUpdate);
+
     Ax(pdhg, iterates->ax_bar, iterates->x_bar);
-    // y^{t+1} = y^t + dDualStep * (b - A * (x_bar^{t})
     PDTEST_dualGradientStep(pdhg, stepsize->dDualStep);
-    cupdlp_printf("y^{t+1} = y^t + dDualStep * (b - A * (x_bar^{t})\n");
     PDHG_Project_Row_Duals(pdhg, iterates->yUpdate->data);
-    PDTEST_printCudaDenseVecGPU(iterates->yUpdate);
-
-    // 计算ATy^{t+1}, 后面计算x^{t+1}有用
     ATy(pdhg, iterates->atyUpdate, iterates->yUpdate);
-    // x^{t+1} = proj_{X}(x^t - dPrimalStep * (c - A'y^{t+1}))
     PDTEST_primalGradientStep(pdhg, stepsize->dPrimalStep);
-    cupdlp_printf("x^{t+1} = proj_{X}(x^t - dPrimalStep * (c - A'y^{t+1}))\n");
     PDHG_Project_Bounds(pdhg, iterates->xUpdate->data);
-    PDTEST_printCudaDenseVecGPU(iterates->xUpdate);
-
-    // x_ag^{t+1} = (1 - 1 / beta^t)x_ag^{t} + (1 / beta^t)x^{t+1}
-    cupdlp_printf("beta = %f\n", beta);
     PDTEST_x_ag_step(pdhg, beta);
-    cupdlp_printf("x_ag^{t+1} = (1 - 1 / beta^t)x_ag^{t} + (1 / beta^t)x^{t+1}\n");
-    PDTEST_printCudaDenseVecGPU(iterates->x_agUpdate);
-    PDTEST_printCudaDenseVecGPU(iterates->x_ag);
-    PDTEST_printCudaDenseVecGPU(iterates->xUpdate);
-    // 没有必要进行Project，因为都是已经投影过的x进行线性组合
-    // PDHG_Project_Bounds(pdhg, iterates->x_agUpdate->data);
-
-    // y_ag^{t+1} = (1 - 1 / beta^t)y_ag^{t} + (1 / beta^t)y^{t}
     PDTEST_y_ag_step(pdhg, beta);
-
-    // x_bar^{t+1} = theta^{t+1}(x^{t+1} - x^{t}) + x^{t+1}
     PDTEST_x_bar_step(pdhg, theta);
-    // 更新一下ax_ag和aty_ag
-    Ax(pdhg, iterates->ax_ag, iterates->x_agUpdate);
-    ATy(pdhg, iterates->aty_ag, iterates->y_agUpdate);
+    Ax(pdhg, iterates->ax_agUpdate, iterates->x_agUpdate);
+    ATy(pdhg, iterates->aty_agUpdate, iterates->y_agUpdate);
 
-    PDTEST_Compute_dDualObj(pdhg);
-    PDTEST_Compute_Residuals(pdhg);
-    PDHG_Print_Header(pdhg);
-    PDHG_Print_Iter(pdhg);
+#pragma endregion
 
+#pragma region 检查是否收敛
+    int bool_print = 1;
+    if (timers->nIter % 40 == 39)
+    {
+      PDTEST_Compute_Residuals(pdhg);
+      PDHG_Print_Header(pdhg);
+      PDHG_Print_Iter(pdhg);
+      if (fabs(resobj->dDualityGap) < stopThr)
+      {
+        cupdlp_printf("Gap = %f\n", resobj->dDualityGap);
+
+        cupdlp_printf("Optimal current solution.\n");
+        resobj->termIterate = LAST_ITERATE;
+        resobj->termCode = OPTIMAL;
+        break;
+      }
+      //   if (PDHG_Check_Termination_Average(pdhg, bool_print))
+      //   {
+      //     cupdlp_printf("Optimal average solution.\n");
+
+      //     CUPDLP_COPY_VEC(iterates->x_ag->data, iterates->x_agAverage->data,
+      //                     cupdlp_float, problem->nCols);
+      //     CUPDLP_COPY_VEC(iterates->y_ag->data, iterates->y_agAverage->data,
+      //                     cupdlp_float, problem->nRows);
+
+      //     resobj->termIterate = AVERAGE_ITERATE;
+      //     resobj->termCode = OPTIMAL;
+      //     break;
+      //   }
+    }
+#pragma endregion
+
+#pragma region 更新
+    resobj->dPrimalFeasLastRestart = resobj->dPrimalFeas;
+    resobj->dDualFeasLastRestart = resobj->dDualFeas;
+    resobj->dDualityGapLastRestart = resobj->dDualityGap;
     CUPDLP_COPY_VEC(iterates->x->data, iterates->xUpdate->data, cupdlp_float, problem->nCols);
     CUPDLP_COPY_VEC(iterates->x_bar->data, iterates->x_barUpdate->data, cupdlp_float, problem->nCols);
     CUPDLP_COPY_VEC(iterates->x_ag->data, iterates->x_agUpdate->data, cupdlp_float, problem->nCols);
     CUPDLP_COPY_VEC(iterates->y->data, iterates->yUpdate->data, cupdlp_float, problem->nRows);
     CUPDLP_COPY_VEC(iterates->y_ag->data, iterates->y_agUpdate->data, cupdlp_float, problem->nRows);
-  }
+#pragma endregion
 
+#pragma region 重启
+    if (timers->nIter % restartFreq == restartFreq - 1)
+    {
+      // 重启
+      cupdlp_printf("Restart to current\n");
+      CUPDLP_COPY_VEC(iterates->x->data, iterates->x_ag->data, cupdlp_float,
+                      problem->nCols);
+      CUPDLP_COPY_VEC(iterates->y->data, iterates->y_ag->data, cupdlp_float,
+                      problem->nRows);
+      CUPDLP_COPY_VEC(iterates->ax->data, iterates->ax_ag->data, cupdlp_float,
+                      problem->nRows);
+      CUPDLP_COPY_VEC(iterates->aty->data, iterates->aty_ag->data,
+                      cupdlp_float, problem->nCols);
+
+      CUPDLP_COPY_VEC(iterates->x_bar->data, iterates->x_ag->data, cupdlp_float,
+                      problem->nCols);
+      CUPDLP_COPY_VEC(iterates->ax_bar->data, iterates->ax_ag->data, cupdlp_float,
+                      problem->nRows);
+    }
+#pragma endregion
+  }
+  timers->dSolvingTime = getTimeStamp() - timers->dSolvingTime;
+  PDTEST_Compute_Residuals(pdhg);
+  PDHG_Print_Header(pdhg);
+  PDHG_Print_Iter(pdhg);
   // 后处理，应该是把原来的scaling之类的变回去
   PDTEST_PostSolve(pdhg, nCols_origin, constraint_new_idx, x_origin, y_origin);
 

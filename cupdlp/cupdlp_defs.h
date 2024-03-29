@@ -411,6 +411,7 @@ extern "C"
     cupdlp_float dMatVecMultiplyTime;
     cupdlp_float dVecVecAddTime;
     cupdlp_float dIterTime;
+    cupdlp_float dAdapStepTime;
 #endif
 #if !(CUPDLP_CPU)
     // GPU timers

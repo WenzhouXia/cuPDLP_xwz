@@ -341,6 +341,13 @@ void PDHG_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg)
   CUPDLPproblem *problem = pdhg->problem;
   CUPDLPiterates *iterates = pdhg->iterates;
   CUPDLPstepsize *stepsize = pdhg->stepsize;
+
+  // //////////////////////////////////////////////
+  // cupdlp_float dMeanStep = sqrt(stepsize->dPrimalStep * stepsize->dDualStep);
+  // stepsize->dPrimalStep = dMeanStep;
+  // stepsize->dPrimalStep = dMeanStep;
+  // ////////////////////////////////////////////////
+
   // Ax(pdhg, iterates->ax, iterates->x);
   // ATyCPU(pdhg, iterates->aty, iterates->y);
   Ax(pdhg, iterates->ax, iterates->x);
@@ -368,10 +375,10 @@ void PDTEST_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg, cupdlp_int *nIte
   CUPDLPstepsize *stepsize = pdhg->stepsize;
   CUPDLPtimers *timers = pdhg->timers; // 各种耗时
 
-  // // // dStepSizeUpdate是论文中的eta
-  // cupdlp_float dMeanStepSize = sqrt(stepsize->dPrimalStep * stepsize->dDualStep);
-  // stepsize->dPrimalStep = dMeanStepSize;
-  // stepsize->dDualStep = dMeanStepSize;
+  // // dStepSizeUpdate是论文中的eta
+  cupdlp_float dMeanStepSize = sqrt(stepsize->dPrimalStep * stepsize->dDualStep);
+  stepsize->dPrimalStep = dMeanStepSize;
+  stepsize->dDualStep = dMeanStepSize;
 
   cupdlp_float dMultiStartTime;
   cupdlp_float dAddStartTime;
@@ -456,6 +463,8 @@ cupdlp_retcode PDHG_Update_Iterate_Adaptive_Step_Size(CUPDLPwork *pdhg)
   CUPDLPproblem *problem = pdhg->problem;
   CUPDLPiterates *iterates = pdhg->iterates;
   CUPDLPstepsize *stepsize = pdhg->stepsize;
+  CUPDLPtimers *timers = pdhg->timers; // 各种耗时
+  cupdlp_float dComputeUpdatetemp = 0.0;
 
   cupdlp_float dStepSizeUpdate =
       sqrt(stepsize->dPrimalStep * stepsize->dDualStep);
@@ -472,6 +481,7 @@ cupdlp_retcode PDHG_Update_Iterate_Adaptive_Step_Size(CUPDLPwork *pdhg)
     cupdlp_float dDualStepUpdate = dStepSizeUpdate * sqrt(stepsize->dBeta);
 
 #pragma region Update
+    dComputeUpdatetemp = getTimeStamp();
     // x^{k+1} = proj_{X}(x^k - dPrimalStep * (cupdlp - A'y^k))
     PDHG_primalGradientStep(pdhg, dPrimalStepUpdate);
 
@@ -483,6 +493,7 @@ cupdlp_retcode PDHG_Update_Iterate_Adaptive_Step_Size(CUPDLPwork *pdhg)
 
     PDHG_Project_Row_Duals(pdhg, iterates->yUpdate->data);
     ATy(pdhg, iterates->atyUpdate, iterates->yUpdate);
+    timers->dIterTime += getTimeStamp() - dComputeUpdatetemp;
 #pragma endregion
 
     // dMovement是\|z_{t+1}-z_t\|_2^2/2, 分子
@@ -973,6 +984,13 @@ cupdlp_retcode PDHG_Init_Step_Sizes(CUPDLPwork *pdhg)
         (1.0 / problem->data->csc_matrix->MatElemNormInf) /
         sqrt(stepsize->dBeta);
     stepsize->dDualStep = stepsize->dPrimalStep * stepsize->dBeta;
+
+    // //////////////////////////////////////////////
+    // cupdlp_float dMeanStep = sqrt(stepsize->dPrimalStep * stepsize->dDualStep);
+    // stepsize->dPrimalStep = dMeanStep;
+    // stepsize->dPrimalStep = dMeanStep;
+    // ////////////////////////////////////////////////
+
     iterates->dLastRestartBeta = stepsize->dBeta;
   }
 
@@ -1082,6 +1100,7 @@ void PDHG_Compute_Average_Iterate(CUPDLPwork *work)
   CUPDLPstepsize *stepsize = work->stepsize;
   CUPDLPiterates *iterates = work->iterates;
 
+  // 分类：没有重启时，xAverage = xSum/dSumPrimalStep; 有重启时，xAverage = xSum
   cupdlp_float dPrimalScale =
       stepsize->dSumPrimalStep > 0.0 ? 1.0 / stepsize->dSumPrimalStep : 1.0;
   cupdlp_float dDualScale =

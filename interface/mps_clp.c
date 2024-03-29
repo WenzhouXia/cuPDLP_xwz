@@ -54,7 +54,7 @@ cupdlp_retcode main(int argc, char **argv)
   CUPDLPcsc *csc_cpu = cupdlp_NULL;
   CUPDLPproblem *prob = cupdlp_NULL;
 
-  // load parameters
+#pragma region load parameters
   for (cupdlp_int i = 0; i < argc - 1; i++)
   {
     // if (strcmp(argv[i], "-niter") == 0) {
@@ -97,6 +97,7 @@ cupdlp_retcode main(int argc, char **argv)
   cupdlp_float floatParam[N_FLOAT_USER_PARAM] = {0.0};
   CUPDLP_CALL(getUserParam(argc, argv, ifChangeIntParam, intParam,
                            ifChangeFloatParam, floatParam));
+#pragma endregion
 
   model = createModel();
   loadMps(model, fname);
@@ -294,8 +295,9 @@ cupdlp_retcode main(int argc, char **argv)
     cupdlp_printf("enter main solve loop, PDTEST_min\n");
     cupdlp_printf("--------------------------------------------------\n");
     CUPDLP_CALL(LP_SolvePDTEST_min(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
+    break;
   default:
-    cupdlp_printf("Error: ifPDTEST = %d\n, 不在取值范围内", ifPDTEST);
+    cupdlp_printf("Error: ifPDTEST = %d, 不在取值范围内", ifPDTEST);
     break;
   }
   //

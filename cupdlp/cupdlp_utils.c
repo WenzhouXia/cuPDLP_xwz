@@ -1210,6 +1210,7 @@ cupdlp_retcode timers_Alloc(CUPDLPtimers *timers)
   timers->dMatVecMultiplyTime = 0.0;
   timers->dVecVecAddTime = 0.0;
   timers->dIterTime = 0.0;
+  timers->dAdapStepTime = 0.0;
 #endif
 #if !(CUPDLP_CPU)
   // GPU timers
