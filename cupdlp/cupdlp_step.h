@@ -16,6 +16,12 @@ void PDTEST_x_bar_step(CUPDLPwork *work, cupdlp_float theta);
 void PDTEST_primalGradientStep(CUPDLPwork *work, cupdlp_float dPrimalStepSize);
 void PDTEST_dualGradientStep(CUPDLPwork *work, cupdlp_float dDualStepSize);
 
+void PDTEST_x_ag_step_ReverseOrder(CUPDLPwork *work, cupdlp_float beta);
+void PDTEST_y_ag_step_ReverseOrder(CUPDLPwork *work, cupdlp_float beta);
+void PDTEST_x_bar_step_ReverseOrder(CUPDLPwork *work, cupdlp_float theta);
+void PDTEST_primalGradientStep_ReverseOrder(CUPDLPwork *work, cupdlp_float dPrimalStepSize);
+void PDTEST_dualGradientStep_ReverseOrder(CUPDLPwork *work, cupdlp_float dDualStepSize);
+
 cupdlp_retcode PDHG_Power_Method(CUPDLPwork *work, double *lambda);
 cupdlp_retcode PDTEST_Power_Method(CUPDLPwork *work, double *lambda);
 
@@ -24,6 +30,7 @@ void PDTEST_Compute_Step_Size_Ratio(CUPDLPwork *pdhg);
 
 void PDHG_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg);
 void PDTEST_Update_Iterate_Constant_Step_Size(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
+void PDTEST_Update_Iterate_Constant_Step_Size_ReverseOrder(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
 
 void PDHG_Update_Iterate_Malitsky_Pock(CUPDLPwork *pdhg);
 

@@ -369,6 +369,11 @@ extern "C"
     cupdlp_float dBeta;
     cupdlp_float dTheta; // Used in Malitsky-Pock stepsize
     cupdlp_int nStepSizeIter;
+
+    /////////////////////////////////////////////////
+    cupdlp_float dStepSizeLastIter;
+    cupdlp_float dBeta_ag;
+    /////////////////////////////////////////////////
   };
 
   struct CUPDLP_SCALING

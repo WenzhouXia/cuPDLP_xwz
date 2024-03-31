@@ -965,7 +965,7 @@ cupdlp_retcode PDTEST_Average_Solve(CUPDLPwork *pdhg)
       dCheckTime += getTimeStamp() - dCheckTimetemp;
     }
     dUpdateTimetemp = getTimeStamp();
-    CUPDLP_CALL(PDTEST_Update_Iterate(pdhg, nIter_restart)); // 迭代更新
+    CUPDLP_CALL(PDTEST_Average_Update_Iterate(pdhg, nIter_restart)); // 迭代更新
     *nIter_restart += 1;
     dUpdateTime += getTimeStamp() - dUpdateTimetemp;
   }
@@ -1114,7 +1114,7 @@ cupdlp_retcode PDTEST_Solve(CUPDLPwork *pdhg)
         break;
       }
 
-      PDTEST_Restart_Iterate(pdhg, nIter_restart); // restart策略
+      PDTEST_Restart_Iterate_Only_Beta(pdhg, nIter_restart); // restart策略
     }
     CUPDLP_CALL(PDTEST_Update_Iterate(pdhg, nIter_restart)); // 迭代更新
     *nIter_restart += 1;
