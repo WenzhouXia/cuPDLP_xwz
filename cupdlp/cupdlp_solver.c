@@ -1263,9 +1263,158 @@ cupdlp_retcode PDTEST_Solve_best(CUPDLPwork *pdhg)
         break;
       }
 
-      PDTEST_Restart_Iterate_Only_Beta(pdhg, nIter_restart); // restart策略
+      PDTEST_Restart_Iterate_best(pdhg, nIter_restart); // restart策略
     }
     CUPDLP_CALL(PDTEST_Update_Iterate_best(pdhg, nIter_restart)); // 迭代更新
+    *nIter_restart += 1;
+  }
+  // print at last
+  PDHG_Print_Header(pdhg);
+  PDHG_Print_Iter(pdhg);
+
+  // PDHG_Print_Iter_Average(pdhg);
+
+#if PDHG_USE_TIMERS
+  cupdlp_printf("Timing information:\n");
+  // cupdlp_printf("%20s %e in %d iterations\n", "Total solver time",
+  //               timers->dSolvingTime, timers->nIter);
+  cupdlp_printf(
+      "%20s %e in %d iterations\n", "Total solver time",
+      timers->dSolvingTime + timers->dScalingTime + timers->dPresolveTime,
+      timers->nIter);
+  cupdlp_printf("%20s %e in %d iterations\n", "Solve time",
+                timers->dSolvingTime, timers->nIter);
+  cupdlp_printf("%20s %e \n", "Iters per sec",
+                timers->nIter / timers->dSolvingTime);
+  cupdlp_printf("%20s %e\n", "Scaling time", timers->dScalingTime);
+  cupdlp_printf("%20s %e\n", "Presolve time", timers->dPresolveTime);
+  cupdlp_printf("%20s %e in %d calls\n", "Ax", timers->dAxTime,
+                timers->nAxCalls);
+  cupdlp_printf("%20s %e in %d calls\n", "Aty", timers->dAtyTime,
+                timers->nAtyCalls);
+  cupdlp_printf("%20s %e in %d calls\n", "ComputeResiduals",
+                timers->dComputeResidualsTime, timers->nComputeResidualsCalls);
+  cupdlp_printf("%20s %e in %d calls\n", "UpdateIterates",
+                timers->dUpdateIterateTime, timers->nUpdateIterateCalls);
+  cupdlp_printf("dMatVecMultiplyTime: %e\n", timers->dMatVecMultiplyTime);
+  cupdlp_printf("dVecVecAddTime: %e\n", timers->dVecVecAddTime);
+  cupdlp_printf("dIterTime: %e\n", timers->dIterTime);
+#endif
+
+#if !(CUPDLP_CPU)
+  cupdlp_printf("GPU Timing information:\n");
+  cupdlp_printf("%20s %e\n", "CudaPrepare", timers->CudaPrepareTime);
+  cupdlp_printf("%20s %e\n", "Alloc&CopyMatToDevice",
+                timers->AllocMem_CopyMatToDeviceTime);
+  cupdlp_printf("%20s %e\n", "CopyVecToDevice", timers->CopyVecToDeviceTime);
+  cupdlp_printf("%20s %e\n", "DeviceMatVecProd", timers->DeviceMatVecProdTime);
+  cupdlp_printf("%20s %e\n", "CopyVecToHost", timers->CopyVecToHostTime);
+#endif
+
+exit_cleanup:
+  return retcode;
+}
+
+cupdlp_retcode PDTEST_Solve_best2(CUPDLPwork *pdhg)
+{
+  cupdlp_retcode retcode = RETCODE_OK;
+
+  CUPDLPproblem *problem = pdhg->problem;    // 需要求解的问题
+  CUPDLPstepsize *stepsize = pdhg->stepsize; // 步长
+  CUPDLPsettings *settings = pdhg->settings; // 设置，包括scaling, termination criteria, max iter and time, restart
+
+  CUPDLPresobj *resobj = pdhg->resobj;             /* residuals and objectives 残差和目标函数值*/
+  PDTESTiterates *iterates = pdhg->PDTESTiterates; // 迭代变量
+  CUPDLPtimers *timers = pdhg->timers;             // 各种耗时
+
+  timers->dSolvingBeg = getTimeStamp();
+
+  // PDHG_Init_Data(pdhg);
+
+  CUPDLP_CALL(PDTEST_Init_Step_Sizes(pdhg));
+
+  PDTEST_Init_Variables(pdhg);
+
+  // todo: translate check_data into cuda or do it on cpu
+  // PDHG_Check_Data(pdhg);
+
+  // PDHG_Print_Header(pdhg);
+  // 主要的迭代！！
+  cupdlp_int nIter_resetart_value = 0;
+  cupdlp_int *nIter_restart = &nIter_resetart_value;
+  for (timers->nIter = 0; timers->nIter < settings->nIterLim; ++timers->nIter)
+  {
+    PDHG_Compute_SolvingTime(pdhg);
+#if CUPDLP_DUMP_ITERATES_STATS & CUPDLP_DEBUG
+    PDTEST_Dump_Stats(pdhg);
+#endif
+    int bool_checking = (timers->nIter < 10) ||
+                        (timers->nIter == (settings->nIterLim - 1)) ||
+                        (timers->dSolvingTime > settings->dTimeLim);
+    int bool_print = 0;
+#if CUPDLP_DEBUG
+    bool_checking = (bool_checking || !(timers->nIter % CUPDLP_DEBUG_INTERVAL));
+    bool_print = bool_checking;
+#else
+    // 检查：迭代次数<10/迭代次数到了/迭代时间到了/迭代次数=0(mod40)
+    bool_checking =
+        (bool_checking || !(timers->nIter % CUPDLP_RELEASE_INTERVAL));
+    // 打印：检查且迭代次数=0(mod特定值)/迭代次数到了/迭代时间到了
+    bool_print =
+        (bool_checking && !(timers->nIter % (CUPDLP_RELEASE_INTERVAL *
+                                             settings->nLogInterval))) ||
+        (timers->nIter == (settings->nIterLim - 1)) ||
+        (timers->dSolvingTime > settings->dTimeLim);
+#endif
+    if (bool_checking)
+    {
+      PDTEST_Compute_Residuals(pdhg);
+      if (bool_print)
+      {
+        PDHG_Print_Header(pdhg);
+        PDHG_Print_Iter(pdhg);
+        // PDHG_Print_Iter_Average(pdhg);
+      }
+
+      if (PDHG_Check_Termination(pdhg, bool_print))
+      {
+        cupdlp_printf("Optimal current solution.\n");
+        resobj->termIterate = LAST_ITERATE;
+        resobj->termCode = OPTIMAL;
+        break;
+      }
+
+      // if (PDHG_Check_Termination_Average(pdhg, bool_print))
+      // {
+      //   cupdlp_printf("Optimal average solution.\n");
+
+      //   CUPDLP_COPY_VEC(iterates->x->data, iterates->xAverage->data,
+      //                   cupdlp_float, problem->nCols);
+      //   CUPDLP_COPY_VEC(iterates->y->data, iterates->yAverage->data,
+      //                   cupdlp_float, problem->nRows);
+
+      //   resobj->termIterate = AVERAGE_ITERATE;
+      //   resobj->termCode = OPTIMAL;
+      //   break;
+      // }
+
+      if (timers->dSolvingTime > settings->dTimeLim)
+      {
+        cupdlp_printf("Time limit reached.\n");
+        resobj->termCode = TIMELIMIT_OR_ITERLIMIT;
+        break;
+      }
+
+      if (timers->nIter == (settings->nIterLim - 1))
+      {
+        cupdlp_printf("Iteration limit reached.\n");
+        resobj->termCode = TIMELIMIT_OR_ITERLIMIT;
+        break;
+      }
+
+      PDTEST_Restart_Iterate_best2(pdhg, nIter_restart); // restart策略
+    }
+    CUPDLP_CALL(PDTEST_Update_Iterate_best2(pdhg, nIter_restart)); // 迭代更新
     *nIter_restart += 1;
   }
   // print at last
@@ -1430,6 +1579,27 @@ cupdlp_retcode LP_SolvePDTEST_best(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntPar
                                   ifChangeFloatParam, floatParam));
 
   CUPDLP_CALL(PDTEST_Solve_best(pdhg));
+
+  // 后处理，应该是把原来的scaling之类的变回去
+  PDTEST_PostSolve(pdhg, nCols_origin, constraint_new_idx, x_origin, y_origin);
+
+  writeJson(fp, pdhg, x_origin, nCols_origin, y_origin, pdhg->problem->nRows,
+            ifSaveSol);
+
+exit_cleanup:
+  PDHG_Destroy(&pdhg);
+  return retcode;
+}
+cupdlp_retcode LP_SolvePDTEST_best2(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam, cupdlp_int *intParam, cupdlp_bool *ifChangeFloatParam, cupdlp_float *floatParam, char *fp, cupdlp_float *x_origin, cupdlp_int nCols_origin, cupdlp_float *y_origin, cupdlp_bool ifSaveSol, cupdlp_int *constraint_new_idx)
+{
+  cupdlp_retcode retcode = RETCODE_OK;
+
+  PDHG_PrintHugeCUPDHG();
+
+  CUPDLP_CALL(PDTEST_SetUserParam(pdhg, ifChangeIntParam, intParam,
+                                  ifChangeFloatParam, floatParam));
+
+  CUPDLP_CALL(PDTEST_Solve_best2(pdhg));
 
   // 后处理，应该是把原来的scaling之类的变回去
   PDTEST_PostSolve(pdhg, nCols_origin, constraint_new_idx, x_origin, y_origin);

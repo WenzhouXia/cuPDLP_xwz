@@ -23,6 +23,7 @@ cupdlp_retcode main(int argc, char **argv)
   cupdlp_bool ifSaveSol = false;
   cupdlp_bool ifPresolve = false;
   cupdlp_int ifPDTEST = false;
+  cupdlp_int bestID = 1;
   int nnz = 0;
   double *rhs = NULL;
   double *cost = NULL;
@@ -83,6 +84,10 @@ cupdlp_retcode main(int argc, char **argv)
     else if (strcmp(argv[i], "-ifPDTEST") == 0)
     {
       ifPDTEST = atoi(argv[i + 1]);
+    }
+    else if (strcmp(argv[i], "-bestID") == 0)
+    {
+      bestID = atoi(argv[i + 1]);
     }
   }
   if (strcmp(argv[argc - 1], "-h") == 0)
@@ -302,6 +307,12 @@ cupdlp_retcode main(int argc, char **argv)
     cupdlp_printf("--------------------------------------------------\n");
     CUPDLP_CALL(LP_SolvePDTEST_best(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
     break;
+  // case 5:
+  //   cupdlp_printf("--------------------------------------------------\n");
+  //   cupdlp_printf("enter main solve loop, PDTEST_best\n");
+  //   cupdlp_printf("--------------------------------------------------\n");
+  //   CUPDLP_CALL(LP_SolvePDTEST_best2(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
+  //   break;
   default:
     cupdlp_printf("Error: ifPDTEST = %d, 不在取值范围内", ifPDTEST);
     break;

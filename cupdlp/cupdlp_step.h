@@ -37,6 +37,7 @@ void PDHG_Update_Iterate_Malitsky_Pock(CUPDLPwork *pdhg);
 cupdlp_retcode PDHG_Update_Iterate_Adaptive_Step_Size(CUPDLPwork *pdhg);
 cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
 cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag_best(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
+cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag_best2(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
 cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
 
 cupdlp_retcode PDHG_Init_Step_Sizes(CUPDLPwork *pdhg);
@@ -52,6 +53,7 @@ cupdlp_retcode PDHG_Update_Iterate(CUPDLPwork *pdhg);
 cupdlp_retcode PDTEST_Average_Update_Iterate(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
 cupdlp_retcode PDTEST_Update_Iterate(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
 cupdlp_retcode PDTEST_Update_Iterate_best(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
+cupdlp_retcode PDTEST_Update_Iterate_best2(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
 
 void PDHG_primalGradientStep(CUPDLPwork *work, cupdlp_float dPrimalStepSize);
 void PDHG_dualGradientStep(CUPDLPwork *work, cupdlp_float dDualStepSize);

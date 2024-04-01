@@ -692,6 +692,12 @@ cupdlp_retcode getUserParam(int argc, char **argv,
       intParam[IF_PDTEST] = atoi(argv[i + 1]);
       cupdlp_printf("提取的ifPDTEST: %d\n", intParam[IF_PDTEST]);
     }
+    else if (strcmp(argv[i], "-bestID") == 0)
+    {
+      ifChangeIntParam[BEST_ID] = true;
+      intParam[BEST_ID] = atoi(argv[i + 1]);
+      cupdlp_printf("bestID: %d\n", intParam[BEST_ID]);
+    }
   }
 
   if (strcmp(argv[argc - 1], "-h") == 0)
@@ -766,6 +772,10 @@ cupdlp_retcode settings_SetUserParam(CUPDLPsettings *settings,
   if (ifChangeIntParam[IF_PDTEST])
   {
     settings->ifPDTEST = intParam[IF_PDTEST];
+  }
+  if (ifChangeIntParam[BEST_ID])
+  {
+    settings->bestID = intParam[BEST_ID];
   }
 
 exit_cleanup:

@@ -107,6 +107,7 @@ extern "C"
     N_LOG_INTERVAL,
     IF_PRESOLVE,
     IF_PDTEST,
+    BEST_ID,
   } CUPDLP_INT_USER_PARAM_INDEX;
 #define N_INT_USER_PARAM 10
   typedef enum
@@ -200,6 +201,7 @@ extern "C"
     // restart
     pdhg_restart eRestartMethod;
     cupdlp_int ifPDTEST;
+    cupdlp_int bestID;
   };
 
   // some elements are duplicated from CUPDLP_DATA
