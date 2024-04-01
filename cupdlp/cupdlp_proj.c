@@ -379,3 +379,111 @@ void PDTEST_Restart_Iterate_GPU_Only_Beta(CUPDLPwork *pdhg, cupdlp_int *nIter_re
   // cupdlp_printf("Recomputed stepsize ratio: %e,  sqrt(ratio)=%e",
   // stepsize->dBeta, sqrt(stepsize->dBeta));
 }
+
+void PDTEST_Restart_Iterate_GPU_Only_VariableUpdate(CUPDLPwork *pdhg, cupdlp_int *nIter_restart)
+{
+  CUPDLPproblem *problem = pdhg->problem;
+  PDTESTiterates *iterates = pdhg->PDTESTiterates;
+  CUPDLPstepsize *stepsize = pdhg->stepsize;
+  CUPDLPresobj *resobj = pdhg->resobj;
+  CUPDLPtimers *timers = pdhg->timers;
+
+  PDHG_restart_choice restart_choice = PDTEST_Check_Restart_GPU_Only_Current(pdhg);
+
+  if (restart_choice == PDHG_NO_RESTART)
+    return;
+  ///////////////////////////////////////////////////
+  // 如果restart了，就把nIter_restart置为0
+  // *nIter_restart = 0;
+  // stepsize->dBeta_ag = 0.0;
+  stepsize->dBeta_ag = 1.0;
+  CUPDLP_COPY_VEC(iterates->x->data, iterates->x_ag->data, cupdlp_float,
+                  problem->nCols);
+  CUPDLP_COPY_VEC(iterates->y->data, iterates->y_ag->data, cupdlp_float,
+                  problem->nRows);
+  CUPDLP_COPY_VEC(iterates->ax->data, iterates->ax_ag->data, cupdlp_float,
+                  problem->nRows);
+  CUPDLP_COPY_VEC(iterates->aty->data, iterates->aty_ag->data,
+                  cupdlp_float, problem->nCols);
+
+  CUPDLP_COPY_VEC(iterates->x_bar->data, iterates->x_ag->data, cupdlp_float,
+                  problem->nCols);
+  CUPDLP_COPY_VEC(iterates->ax_bar->data, iterates->ax_ag->data, cupdlp_float,
+                  problem->nRows);
+  ///////////////////////////////////////////////////
+  stepsize->dSumPrimalStep = 0.0;
+  stepsize->dSumDualStep = 0.0;
+
+  resobj->dPrimalFeasLastRestart = resobj->dPrimalFeas;
+  resobj->dDualFeasLastRestart = resobj->dDualFeas;
+  resobj->dDualityGapLastRestart = resobj->dDualityGap;
+
+  ////////////////////////////////////////////////////////
+  PDTEST_Compute_Step_Size_Ratio(pdhg);
+  ////////////////////////////////////////////////////////
+
+  CUPDLP_COPY_VEC(iterates->xLastRestart, iterates->x_ag->data, cupdlp_float,
+                  problem->nCols);
+  CUPDLP_COPY_VEC(iterates->yLastRestart, iterates->y_ag->data, cupdlp_float,
+                  problem->nRows);
+
+  iterates->iLastRestartIter = timers->nIter;
+
+  PDTEST_Compute_Residuals(pdhg);
+  // cupdlp_printf("Recomputed stepsize ratio: %e,  sqrt(ratio)=%e",
+  // stepsize->dBeta, sqrt(stepsize->dBeta));
+}
+
+void PDTEST_Restart_Iterate_GPU_Only_WeightUpdate(CUPDLPwork *pdhg, cupdlp_int *nIter_restart)
+{
+  CUPDLPproblem *problem = pdhg->problem;
+  PDTESTiterates *iterates = pdhg->PDTESTiterates;
+  CUPDLPstepsize *stepsize = pdhg->stepsize;
+  CUPDLPresobj *resobj = pdhg->resobj;
+  CUPDLPtimers *timers = pdhg->timers;
+
+  PDHG_restart_choice restart_choice = PDTEST_Check_Restart_GPU_Only_Current(pdhg);
+
+  if (restart_choice == PDHG_NO_RESTART)
+    return;
+  ///////////////////////////////////////////////////
+  // 如果restart了，就把nIter_restart置为0
+  // *nIter_restart = 0;
+  // stepsize->dBeta_ag = 0.0;
+  stepsize->dBeta_ag = 1.0;
+  CUPDLP_COPY_VEC(iterates->x->data, iterates->x_ag->data, cupdlp_float,
+                  problem->nCols);
+  CUPDLP_COPY_VEC(iterates->y->data, iterates->y_ag->data, cupdlp_float,
+                  problem->nRows);
+  CUPDLP_COPY_VEC(iterates->ax->data, iterates->ax_ag->data, cupdlp_float,
+                  problem->nRows);
+  CUPDLP_COPY_VEC(iterates->aty->data, iterates->aty_ag->data,
+                  cupdlp_float, problem->nCols);
+
+  CUPDLP_COPY_VEC(iterates->x_bar->data, iterates->x_ag->data, cupdlp_float,
+                  problem->nCols);
+  CUPDLP_COPY_VEC(iterates->ax_bar->data, iterates->ax_ag->data, cupdlp_float,
+                  problem->nRows);
+  ///////////////////////////////////////////////////
+  stepsize->dSumPrimalStep = 0.0;
+  stepsize->dSumDualStep = 0.0;
+
+  resobj->dPrimalFeasLastRestart = resobj->dPrimalFeas;
+  resobj->dDualFeasLastRestart = resobj->dDualFeas;
+  resobj->dDualityGapLastRestart = resobj->dDualityGap;
+
+  ////////////////////////////////////////////////////////
+  PDTEST_Compute_Step_Size_Ratio(pdhg);
+  ////////////////////////////////////////////////////////
+
+  CUPDLP_COPY_VEC(iterates->xLastRestart, iterates->x_ag->data, cupdlp_float,
+                  problem->nCols);
+  CUPDLP_COPY_VEC(iterates->yLastRestart, iterates->y_ag->data, cupdlp_float,
+                  problem->nRows);
+
+  iterates->iLastRestartIter = timers->nIter;
+
+  PDTEST_Compute_Residuals(pdhg);
+  // cupdlp_printf("Recomputed stepsize ratio: %e,  sqrt(ratio)=%e",
+  // stepsize->dBeta, sqrt(stepsize->dBeta));
+}

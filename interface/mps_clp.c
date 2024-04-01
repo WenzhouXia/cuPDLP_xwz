@@ -296,6 +296,12 @@ cupdlp_retcode main(int argc, char **argv)
     cupdlp_printf("--------------------------------------------------\n");
     CUPDLP_CALL(LP_SolvePDTEST_min(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
     break;
+  case 4:
+    cupdlp_printf("--------------------------------------------------\n");
+    cupdlp_printf("enter main solve loop, PDTEST_best\n");
+    cupdlp_printf("--------------------------------------------------\n");
+    CUPDLP_CALL(LP_SolvePDTEST_best(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
+    break;
   default:
     cupdlp_printf("Error: ifPDTEST = %d, 不在取值范围内", ifPDTEST);
     break;

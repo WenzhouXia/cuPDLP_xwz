@@ -644,31 +644,31 @@ cupdlp_retcode PDHG_Update_Iterate_Adaptive_Step_Size(CUPDLPwork *pdhg)
     cupdlp_printf("dDualStepUpdate: %f\n", dDualStepUpdate);
 #pragma region Update
     dComputeUpdatetemp = getTimeStamp();
-    cupdlp_printf("x");
-    PDTEST_printCudaDenseVecGPU(iterates->x);
-    cupdlp_printf("aty");
-    PDTEST_printCudaDenseVecGPU(iterates->aty);
+    // cupdlp_printf("x");
+    // PDTEST_printCudaDenseVecGPU(iterates->x);
+    // cupdlp_printf("aty");
+    // PDTEST_printCudaDenseVecGPU(iterates->aty);
     // x^{k+1} = proj_{X}(x^k - dPrimalStep * (cupdlp - A'y^k))
     PDHG_primalGradientStep(pdhg, dPrimalStepUpdate);
     PDHG_Project_Bounds(pdhg, iterates->xUpdate->data);
-    cupdlp_printf("xUpdate");
-    PDTEST_printCudaDenseVecGPU(iterates->xUpdate);
-    cupdlp_printf("xUpdate");
-    PDTEST_printCudaDenseVecGPU(iterates->xUpdate);
+    // cupdlp_printf("xUpdate");
+    // PDTEST_printCudaDenseVecGPU(iterates->xUpdate);
+    // cupdlp_printf("xUpdate");
+    // PDTEST_printCudaDenseVecGPU(iterates->xUpdate);
     Ax(pdhg, iterates->axUpdate, iterates->xUpdate);
 
     // y^{k+1} = proj_{Y}(y^k + dDualStep * (b - A * (2 * x^{k+1} - x^{k})))
     PDHG_dualGradientStep(pdhg, dDualStepUpdate);
     PDHG_Project_Row_Duals(pdhg, iterates->yUpdate->data);
-    cupdlp_printf("yUpdate");
-    PDTEST_printCudaDenseVecGPU(iterates->yUpdate);
+    // cupdlp_printf("yUpdate");
+    // PDTEST_printCudaDenseVecGPU(iterates->yUpdate);
     ATy(pdhg, iterates->atyUpdate, iterates->yUpdate);
     timers->dIterTime += getTimeStamp() - dComputeUpdatetemp;
 
-    cupdlp_printf("aty");
-    PDTEST_printCudaDenseVecGPU(iterates->aty);
-    cupdlp_printf("atyUpdate");
-    PDTEST_printCudaDenseVecGPU(iterates->atyUpdate);
+    // cupdlp_printf("aty");
+    // PDTEST_printCudaDenseVecGPU(iterates->aty);
+    // cupdlp_printf("atyUpdate");
+    // PDTEST_printCudaDenseVecGPU(iterates->atyUpdate);
 #pragma endregion
 
     // dMovement是\|z_{t+1}-z_t\|_2^2/2, 分子
@@ -794,6 +794,7 @@ cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag(CUPDLPwork *pdhg, cup
     cupdlp_printf("theta: %f\n", theta);
     // stepsize->dBeta_ag = theta * stepsize->dBeta_ag + 1.0;
     // stepsize->dBeta_ag = theta * stepsize->dBeta_ag + 0.2;
+    // stepsize->dBeta_ag = (t_count + 3.8) / 4.8;
     stepsize->dBeta_ag = 1.0;
 
     cupdlp_printf("beta: %f\n", stepsize->dBeta_ag);
@@ -804,16 +805,16 @@ cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag(CUPDLPwork *pdhg, cup
     // theta^{t+1}
     cupdlp_float dIterTime = getTimeStamp();
     // 计算ATy^{t}, 后面计算x^{t+1}有
-    cupdlp_printf("x");
-    PDTEST_printCudaDenseVecGPU(iterates->x);
+    // cupdlp_printf("x");
+    // PDTEST_printCudaDenseVecGPU(iterates->x);
     ATy(pdhg, iterates->aty, iterates->y);
-    cupdlp_printf("aty");
-    PDTEST_printCudaDenseVecGPU(iterates->aty);
+    // cupdlp_printf("aty");
+    // PDTEST_printCudaDenseVecGPU(iterates->aty);
     // x^{t+1} = proj_{X}(x^t - dPrimalStep * (c - A'y^{t}))
     PDTEST_primalGradientStep_ReverseOrder(pdhg, dPrimalStepUpdate);
     PDHG_Project_Bounds(pdhg, iterates->xUpdate->data);
-    cupdlp_printf("xUpdate");
-    PDTEST_printCudaDenseVecGPU(iterates->xUpdate);
+    // cupdlp_printf("xUpdate");
+    // PDTEST_printCudaDenseVecGPU(iterates->xUpdate);
 
     // x_bar^{t+1} = theta^{t+1}(x^{t+1} - x^{t}) + x^{t+1}
     PDTEST_x_bar_step_ReverseOrder(pdhg, theta);
@@ -827,19 +828,19 @@ cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag(CUPDLPwork *pdhg, cup
     PDTEST_x_ag_step_ReverseOrder(pdhg, beta);
     // y_ag^{t+1} = (1 - 1 / beta^t)y_ag^{t} + (1 / beta^t)y^{t+1}
     PDTEST_y_ag_step_ReverseOrder(pdhg, beta);
-    cupdlp_printf("x_agUpdate");
-    PDTEST_printCudaDenseVecGPU(iterates->x_agUpdate);
-    cupdlp_printf("y_agUpdate");
-    PDTEST_printCudaDenseVecGPU(iterates->y_agUpdate);
+    // cupdlp_printf("x_agUpdate");
+    // PDTEST_printCudaDenseVecGPU(iterates->x_agUpdate);
+    // cupdlp_printf("y_agUpdate");
+    // PDTEST_printCudaDenseVecGPU(iterates->y_agUpdate);
 
     // 更新一下ax_ag和aty_ag
     Ax(pdhg, iterates->ax_agUpdate, iterates->x_agUpdate);
     ATy(pdhg, iterates->aty_agUpdate, iterates->y_agUpdate);
 
-    cupdlp_printf("aty_ag");
-    PDTEST_printCudaDenseVecGPU(iterates->aty_ag);
-    cupdlp_printf("aty_agUpdate");
-    PDTEST_printCudaDenseVecGPU(iterates->aty_agUpdate);
+    // cupdlp_printf("aty_ag");
+    // PDTEST_printCudaDenseVecGPU(iterates->aty_ag);
+    // cupdlp_printf("aty_agUpdate");
+    // PDTEST_printCudaDenseVecGPU(iterates->aty_agUpdate);
 #pragma region Update
 // // 计算Ax_bar^{t}, 后面计算y^{t+1}有用
 // dMultiStartTime = getTimeStamp();
@@ -888,6 +889,182 @@ cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag(CUPDLPwork *pdhg, cup
 // timers->dMatVecMultiplyTime += getTimeStamp() - dMultiStartTime;
 // timers->dIterTime += getTimeStamp() - dIterTime;
 #pragma endregion
+#pragma endregion
+
+    cupdlp_float dMovement = 0.0;
+    cupdlp_float dInteraction = 0.0;
+
+#if !(CUPDLP_CPU) & USE_KERNELS
+    PDTEST_compute_interaction_and_movement(pdhg, &dMovement, &dInteraction);
+#else
+    cupdlp_float dX = 0.0;
+    cupdlp_diffTwoNormSquared(pdhg, iterates->x->data, iterates->xUpdate->data,
+                              problem->nCols, &dX);
+    dX *= 0.5 * sqrt(stepsize->dBeta);
+
+    cupdlp_float dY = 0.0;
+    cupdlp_diffTwoNormSquared(pdhg, iterates->y->data, iterates->yUpdate->data,
+                              problem->nRows, &dY);
+    dY /= 2.0 * sqrt(stepsize->dBeta);
+    dMovement = dX + dY;
+
+    //      Δx' (AΔy)
+    cupdlp_diffDotDiff(pdhg, iterates->x->data, iterates->xUpdate->data,
+                       iterates->aty->data, iterates->atyUpdate->data,
+                       problem->nCols, &dInteraction);
+#endif
+
+#if CUPDLP_DUMP_LINESEARCH_STATS & CUPDLP_DEBUG
+    cupdlp_float dInteractiony = 0.0;
+    //      Δy' (AΔx)
+    cupdlp_diffDotDiff(pdhg, iterates->y->data, iterates->yUpdate->data,
+                       iterates->ax->data, iterates->axUpdate->data,
+                       problem->nRows, &dInteractiony);
+#endif
+
+    cupdlp_float dStepSizeLimit;
+    if (dInteraction != 0.0)
+    {
+      dStepSizeLimit = dMovement / fabs(dInteraction);
+    }
+    else
+    {
+      dStepSizeLimit = INFINITY;
+    }
+
+    cupdlp_printf("StepSizeLimit: %f\n", dStepSizeLimit);
+    cupdlp_printf("StepSizeUpdate: %f\n", dStepSizeUpdate);
+    if (dStepSizeUpdate <= dStepSizeLimit)
+    {
+      isDone = true;
+      stepsize->dStepSizeLastIter = dStepSizeUpdate;
+      // break;
+    }
+    else
+    {
+      CUPDLP_CHECK_TIMEOUT(pdhg);
+    }
+
+    cupdlp_float dFirstTerm = (1.0 - pow(stepsize->nStepSizeIter + 1.0,
+                                         -PDHG_STEPSIZE_REDUCTION_EXP)) *
+                              dStepSizeLimit;
+    cupdlp_float dSecondTerm =
+        (1.0 + pow(stepsize->nStepSizeIter + 1.0, -PDHG_STEPSIZE_GROWTH_EXP)) *
+        dStepSizeUpdate;
+    dStepSizeUpdate = fmin(dFirstTerm, dSecondTerm);
+#if CUPDLP_DUMP_LINESEARCH_STATS & CUPDLP_DEBUG
+    cupdlp_printf(" -- stepsize iteration %d: %f %f\n", stepIterThis,
+                  dStepSizeUpdate, dStepSizeLimit);
+
+    cupdlp_printf(" -- PrimalStep DualStep: %f %f\n", stepsize->dPrimalStep,
+                  stepsize->dDualStep);
+    cupdlp_printf(" -- FirstTerm SecondTerm: %f %f\n", dFirstTerm, dSecondTerm);
+    cupdlp_printf(" -- nStepSizeIter: %d\n", stepsize->nStepSizeIter);
+    cupdlp_printf(" -- RED_EXP GRO_EXP: %f %f\n", PDHG_STEPSIZE_REDUCTION_EXP,
+                  PDHG_STEPSIZE_GROWTH_EXP);
+
+    cupdlp_printf("     -- iteraction(x) interaction(y): %f %f\n", dInteraction,
+                  dInteractiony);
+    cupdlp_printf("     -- movement (scaled norm)  : %f\n", dMovement);
+    cupdlp_printf("     -- movement (scaled norm)  : %f\n", dMovement);
+    if (stepIterThis > 200)
+      break; // avoid unlimited runs due to bugs.
+#endif
+  }
+
+  stepsize->dPrimalStep = dStepSizeUpdate / sqrt(stepsize->dBeta);
+  stepsize->dDualStep = dStepSizeUpdate * sqrt(stepsize->dBeta);
+
+  // PDTEST_Compute_Step_Size_Ratio(pdhg);
+exit_cleanup:
+  return retcode;
+}
+
+cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag_best(CUPDLPwork *pdhg, cupdlp_int *nIter_restart)
+{
+  cupdlp_retcode retcode = RETCODE_OK;
+  CUPDLPproblem *problem = pdhg->problem;
+  PDTESTiterates *iterates = pdhg->PDTESTiterates;
+  CUPDLPstepsize *stepsize = pdhg->stepsize;
+  CUPDLPtimers *timers = pdhg->timers; // 各种耗时
+
+  cupdlp_float dStepSizeUpdate =
+      sqrt(stepsize->dPrimalStep * stepsize->dDualStep);
+
+  cupdlp_bool isDone = false;
+  // number of steps this round
+  int stepIterThis = 0;
+  cupdlp_int t_count = *nIter_restart + 1;
+  cupdlp_printf("t_count: %d\n", t_count);
+
+  while (!isDone)
+  {
+    ++stepsize->nStepSizeIter;
+    ++stepIterThis;
+
+    cupdlp_float dPrimalStepUpdate = dStepSizeUpdate / sqrt(stepsize->dBeta);
+    cupdlp_float dDualStepUpdate = dStepSizeUpdate * sqrt(stepsize->dBeta);
+    cupdlp_printf("dPrimalStepUpdate: %f\n", dPrimalStepUpdate);
+    cupdlp_printf("dDualStepUpdate: %f\n", dDualStepUpdate);
+#pragma region Update
+    // cupdlp_float dMultiStartTime;
+    // cupdlp_float dAddStartTime;
+    // cupdlp_float theta = t_count / (t_count + 1.0);
+    cupdlp_printf("dStepSizeLastIter: %f\n", stepsize->dStepSizeLastIter);
+    cupdlp_printf("dStepSizeUpdate: %f\n", dStepSizeUpdate);
+    cupdlp_float theta = 1 - dStepSizeUpdate / stepsize->dStepSizeLastIter;
+    // cupdlp_float theta = stepsize->dStepSizeLastIter / dStepSizeUpdate;
+    // cupdlp_float theta = 1.0;
+    cupdlp_printf("theta: %f\n", theta);
+    stepsize->dBeta_ag = (1 - theta) * stepsize->dBeta_ag + 1.0;
+    // stepsize->dBeta_ag = theta * stepsize->dBeta_ag + 0.2;
+    // stepsize->dBeta_ag = (t_count + 3.8) / 4.8;
+    // stepsize->dBeta_ag = 1.0;
+
+    cupdlp_printf("beta: %f\n", stepsize->dBeta_ag);
+    cupdlp_float beta = stepsize->dBeta_ag;
+    // cupdlp_float beta = (t_count + 1) / 2.0;
+    // cupdlp_float beta = (t_count + 3.8) / 4.8;
+    // cupdlp_float beta = 1.0;
+    // theta^{t+1}
+    cupdlp_float dIterTime = getTimeStamp();
+    // 计算ATy^{t}, 后面计算x^{t+1}有
+    // cupdlp_printf("x");
+    // PDTEST_printCudaDenseVecGPU(iterates->x);
+    ATy(pdhg, iterates->aty, iterates->y);
+    // cupdlp_printf("aty");
+    // PDTEST_printCudaDenseVecGPU(iterates->aty);
+    // x^{t+1} = proj_{X}(x^t - dPrimalStep * (c - A'y^{t}))
+    PDTEST_primalGradientStep_ReverseOrder(pdhg, stepsize->dPrimalStep);
+    PDHG_Project_Bounds(pdhg, iterates->xUpdate->data);
+    // cupdlp_printf("xUpdate");
+    // PDTEST_printCudaDenseVecGPU(iterates->xUpdate);
+
+    // x_bar^{t+1} = theta^{t+1}(x^{t+1} - x^{t}) + x^{t+1}
+    PDTEST_x_bar_step_ReverseOrder(pdhg, theta);
+    // 计算Ax_bar^{t}, 后面计算y^{t+1}有用
+    Ax(pdhg, iterates->ax_bar, iterates->x_barUpdate);
+
+    // y^{t+1} = y^t + dDualStep * (b - A * (x_bar^{t+1})
+    PDTEST_dualGradientStep_ReverseOrder(pdhg, stepsize->dDualStep);
+    PDHG_Project_Row_Duals(pdhg, iterates->yUpdate->data);
+    // x_ag^{t+1} = (1 - 1 / beta^t)x_ag^{t} + (1 / beta^t)x^{t+1}
+    PDTEST_x_ag_step_ReverseOrder(pdhg, beta);
+    // y_ag^{t+1} = (1 - 1 / beta^t)y_ag^{t} + (1 / beta^t)y^{t+1}
+    PDTEST_y_ag_step_ReverseOrder(pdhg, beta);
+    // cupdlp_printf("x_agUpdate");
+    // PDTEST_printCudaDenseVecGPU(iterates->x_agUpdate);
+    // cupdlp_printf("y_agUpdate");
+    // PDTEST_printCudaDenseVecGPU(iterates->y_agUpdate);
+
+    // 更新一下ax_ag和aty_ag
+    Ax(pdhg, iterates->ax_agUpdate, iterates->x_agUpdate);
+    ATy(pdhg, iterates->aty_agUpdate, iterates->y_agUpdate);
+
+    // cupdlp_printf("aty_ag");
+    // PDTEST_printCudaDenseVecGPU(iterates->aty_ag);
+    // cupdlp_printf("aty_agUpdate");
+    // PDTEST_printCudaDenseVecGPU(iterates->aty_agUpdate);
 #pragma endregion
 
     cupdlp_float dMovement = 0.0;
@@ -1545,6 +1722,57 @@ cupdlp_retcode PDTEST_Update_Iterate(CUPDLPwork *pdhg, cupdlp_int *nIter_restart
   case PDHG_ADAPTIVE_LINESEARCH:
     cupdlp_printf("PDTEST_ADAPTIVE_LINESEARCH\n");
     CUPDLP_CALL(PDTEST_Update_Iterate_Adaptive_Step_Size_ag(pdhg, nIter_restart));
+    // CUPDLP_CALL(PDTEST_Update_Iterate_Adaptive_Step_Size(pdhg, nIter_restart));
+    break;
+  }
+
+  // PDTEST_Update_Average(pdhg);
+
+  // 使用CUPDLP_COPY_VEC宏复制更新后的原始变量x和对偶变量y，以及它们对应的辅助变量ax和aty到更新变量xUpdate、yUpdate、axUpdate和atyUpdate。这一步确保了算法中使用的变量是最新的迭代结果
+  CUPDLP_COPY_VEC(iterates->x->data, iterates->xUpdate->data, cupdlp_float, problem->nCols);
+  CUPDLP_COPY_VEC(iterates->x_bar->data, iterates->x_barUpdate->data, cupdlp_float, problem->nCols);
+  CUPDLP_COPY_VEC(iterates->x_ag->data, iterates->x_agUpdate->data, cupdlp_float, problem->nCols);
+  CUPDLP_COPY_VEC(iterates->y->data, iterates->yUpdate->data, cupdlp_float, problem->nRows);
+  CUPDLP_COPY_VEC(iterates->y_ag->data, iterates->y_agUpdate->data, cupdlp_float, problem->nRows);
+
+  CUPDLP_COPY_VEC(iterates->ax_ag->data, iterates->ax_agUpdate->data, cupdlp_float,
+                  problem->nRows);
+  CUPDLP_COPY_VEC(iterates->aty_ag->data, iterates->aty_agUpdate->data, cupdlp_float,
+                  problem->nCols);
+
+#if PDHG_USE_TIMERS
+  timers->dUpdateIterateTime += getTimeStamp() - dStartTime;
+#endif
+
+exit_cleanup:
+  return RETCODE_OK;
+}
+
+cupdlp_retcode PDTEST_Update_Iterate_best(CUPDLPwork *pdhg, cupdlp_int *nIter_restart)
+{
+  cupdlp_retcode retcode = RETCODE_OK;
+
+#if PDHG_USE_TIMERS
+  CUPDLPtimers *timers = pdhg->timers;
+  ++timers->nUpdateIterateCalls;
+  cupdlp_float dStartTime = getTimeStamp();
+#endif
+
+  CUPDLPproblem *problem = pdhg->problem;
+  CUPDLPstepsize *stepsize = pdhg->stepsize;
+  PDTESTiterates *iterates = pdhg->PDTESTiterates;
+
+  // PDTEST_Update_Iterate_Constant_Step_Size(pdhg, nIterL_restart);
+  // 选择各种更新，看看效果
+  switch (stepsize->eLineSearchMethod)
+  {
+  case PDHG_FIXED_LINESEARCH:
+    // PDTEST_Update_Iterate_Constant_Step_Size(pdhg, nIter_restart);
+    PDTEST_Update_Iterate_Constant_Step_Size_ReverseOrder(pdhg, nIter_restart);
+    break;
+  case PDHG_ADAPTIVE_LINESEARCH:
+    cupdlp_printf("PDTEST_ADAPTIVE_LINESEARCH\n");
+    CUPDLP_CALL(PDTEST_Update_Iterate_Adaptive_Step_Size_ag_best(pdhg, nIter_restart));
     // CUPDLP_CALL(PDTEST_Update_Iterate_Adaptive_Step_Size(pdhg, nIter_restart));
     break;
   }

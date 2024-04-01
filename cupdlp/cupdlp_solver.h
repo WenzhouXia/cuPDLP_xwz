@@ -60,6 +60,7 @@ extern "C"
   cupdlp_retcode PDHG_Solve(CUPDLPwork *pdhg);
   cupdlp_retcode PDTEST_Average_Solve(CUPDLPwork *pdhg);
   cupdlp_retcode PDTEST_Solve(CUPDLPwork *pdhg);
+  cupdlp_retcode PDTEST_Solve_best(CUPDLPwork *pdhg);
 
   void PDHG_PostSolve(CUPDLPwork *pdhg, cupdlp_int nCols_origin,
                       cupdlp_int *constraint_new_idx, cupdlp_float *x_origin,
@@ -84,6 +85,13 @@ extern "C"
                                 cupdlp_float *x_origin, cupdlp_int nCols_origin,
                                 cupdlp_float *y_origin, cupdlp_bool ifSaveSol,
                                 cupdlp_int *constraint_new_idx);
+  cupdlp_retcode LP_SolvePDTEST_best(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam,
+                                     cupdlp_int *intParam,
+                                     cupdlp_bool *ifChangeFloatParam,
+                                     cupdlp_float *floatParam, char *fp,
+                                     cupdlp_float *x_origin, cupdlp_int nCols_origin,
+                                     cupdlp_float *y_origin, cupdlp_bool ifSaveSol,
+                                     cupdlp_int *constraint_new_idx);
   cupdlp_retcode LP_SolvePDTEST_Average(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam,
                                         cupdlp_int *intParam,
                                         cupdlp_bool *ifChangeFloatParam,

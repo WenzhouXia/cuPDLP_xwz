@@ -21,5 +21,7 @@ void PDHG_Restart_Iterate_GPU(CUPDLPwork *pdhg);
 void PDTEST_Average_Restart_Iterate_GPU(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
 void PDTEST_Restart_Iterate_GPU(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
 void PDTEST_Restart_Iterate_GPU_Only_Beta(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
+void PDTEST_Restart_Iterate_GPU_Only_WeightUpdate(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
+void PDTEST_Restart_Iterate_GPU_Only_VariableUpdate(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
 
 #endif // CUPDLP_CUPDLP_PROJ_H
