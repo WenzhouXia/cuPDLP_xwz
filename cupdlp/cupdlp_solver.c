@@ -191,6 +191,25 @@ void PDTEST_printCudaMatGPU(CUPDLPwork *work)
   }
 }
 
+void PDTEST_printCudafloatGPU(cupdlp_float *data, int size)
+{
+  // 在主机内存中分配空间来存储成本向量
+  cupdlp_float *hostData = (cupdlp_float *)malloc(size * sizeof(cupdlp_float));
+
+  // 从GPU复制到主机
+  cudaMemcpy(hostData, data, size * sizeof(cupdlp_float), cudaMemcpyDeviceToHost);
+
+  // 打印成本向量
+  cupdlp_printf("Vector length: %d\n", size);
+  cupdlp_printf("Vector elements:\n");
+  for (int i = 0; i < size; ++i)
+  {
+    cupdlp_printf("Element[%d]: %f\n", i, hostData[i]);
+  }
+
+  // 释放主机内存
+  free(hostData);
+}
 void PDTEST_Compute_dDualObj(CUPDLPwork *work)
 {
   CUPDLPproblem *problem = work->problem;

@@ -33,6 +33,8 @@ extern "C"
                                      double *dDualObj, double *dComplementarity);
   void PDTEST_printCudaDenseVecGPU(const CUPDLPvec *vec);
   void PDTEST_printCudaMatGPU(CUPDLPwork *work);
+  void PDTEST_printCudafloatGPU(cupdlp_float *data, int size);
+
   void PDTEST_Compute_dDualObj(CUPDLPwork *work);
 
   void PDHG_Compute_Residuals(CUPDLPwork *work);

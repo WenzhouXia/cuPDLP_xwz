@@ -38,6 +38,9 @@ cupdlp_retcode PDHG_Update_Iterate_Adaptive_Step_Size(CUPDLPwork *pdhg);
 cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
 cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag_best(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
 cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag_best2(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
+cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag_best3(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
+cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag_best4(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
+cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag_best5(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
 cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
 
 cupdlp_retcode PDHG_Init_Step_Sizes(CUPDLPwork *pdhg);

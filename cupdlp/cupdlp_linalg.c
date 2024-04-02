@@ -867,14 +867,24 @@ void PDTEST_compute_interaction_and_movement(CUPDLPwork *w,
   cupdlp_float beta = sqrt(w->stepsize->dBeta);
   cupdlp_float dX = 0.0;
   cupdlp_float dY = 0.0;
-
+  // cupdlp_printf("iterates->x_ag\n");
+  // PDTEST_printCudaDenseVecGPU(iterates->x_ag);
+  // cupdlp_printf("iterates->x_agUpdate\n");
+  // PDTEST_printCudaDenseVecGPU(iterates->x_agUpdate);
+  // cupdlp_printf("iterates->y_ag\n");
+  // PDTEST_printCudaDenseVecGPU(iterates->y_ag);
+  // cupdlp_printf("iterates->y_agUpdate\n");
+  // PDTEST_printCudaDenseVecGPU(iterates->y_agUpdate);
   cupdlp_sub(w->buffer2, iterates->x_ag->data, iterates->x_agUpdate->data, nCols);
   cupdlp_twoNorm(w, nCols, w->buffer2, &dX);
   cupdlp_sub(w->buffer3, iterates->y_ag->data, iterates->y_agUpdate->data, nRows);
   cupdlp_twoNorm(w, nRows, w->buffer3, &dY);
-
+  cupdlp_printf("dX:%f\n", dX);
+  cupdlp_printf("dY:%f\n", dY);
   *dMovement = pow(dX, 2.0) * 0.5 * beta + pow(dY, 2.0) / (2.0 * beta);
 
   cupdlp_sub(w->buffer3, iterates->aty_ag->data, iterates->aty_agUpdate->data, nCols);
   cupdlp_dot(w, nCols, w->buffer2, w->buffer3, dInteraction);
+
+  // cupdlp_printf("dInteraction:%f\n", *dInteraction);
 }
