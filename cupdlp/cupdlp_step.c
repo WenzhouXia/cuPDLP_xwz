@@ -1592,8 +1592,8 @@ cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag_best4(CUPDLPwork *pdh
     // stepsize->dBeta_ag = theta * stepsize->dBeta_ag + 1.0;
     // stepsize->dBeta_ag = theta * stepsize->dBeta_ag + 0.2;
     // stepsize->dBeta_ag = (t_count + 3.8) / 4.8;
-    // stepsize->dBeta_ag = 1.0;
-    stepsize->dBeta_ag = 1.0 - 0.1 * theta;
+    stepsize->dBeta_ag = 1.0;
+    // stepsize->dBeta_ag = 1.0 - 0.1 * theta;
     // stepsize->dBeta_ag = 1.0 + 0.1 * theta;
     // stepsize->dBeta_ag = 1.0 - theta;
     // stepsize->dBeta_ag = 1.0 + 0.5 * theta;
