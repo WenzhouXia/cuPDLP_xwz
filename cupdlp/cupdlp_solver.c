@@ -1201,7 +1201,7 @@ cupdlp_retcode PDTEST_Solve_best(CUPDLPwork *pdhg)
 
   // PDHG_Init_Data(pdhg);
 
-  CUPDLP_CALL(PDTEST_Init_Step_Sizes(pdhg));
+  CUPDLP_CALL(PDTEST_Init_Step_Sizes_best(pdhg));
 
   PDTEST_Init_Variables(pdhg);
 

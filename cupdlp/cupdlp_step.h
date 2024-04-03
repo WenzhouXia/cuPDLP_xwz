@@ -45,7 +45,12 @@ cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size(CUPDLPwork *pdhg, cupdlp
 
 cupdlp_retcode PDHG_Init_Step_Sizes(CUPDLPwork *pdhg);
 cupdlp_retcode PDTEST_Init_Step_Sizes(CUPDLPwork *pdhg);
-
+cupdlp_retcode PDTEST_Init_Step_Sizes_best(CUPDLPwork *pdhg);
+cupdlp_retcode PDTEST_Init_Step_Sizes_best1(CUPDLPwork *pdhg);
+cupdlp_retcode PDTEST_Init_Step_Sizes_best2(CUPDLPwork *pdhg);
+cupdlp_retcode PDTEST_Init_Step_Sizes_best3(CUPDLPwork *pdhg);
+cupdlp_retcode PDTEST_Init_Step_Sizes_best4(CUPDLPwork *pdhg);
+cupdlp_retcode PDTEST_Init_Step_Sizes_best5(CUPDLPwork *pdhg);
 void PDHG_Compute_Average_Iterate(CUPDLPwork *work);
 void PDTEST_Compute_Average_Iterate(CUPDLPwork *work);
 

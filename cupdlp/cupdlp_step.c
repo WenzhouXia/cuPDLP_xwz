@@ -1390,12 +1390,12 @@ cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag_best3(CUPDLPwork *pdh
     ++stepsize->nStepSizeIter;
     ++stepIterThis;
     cupdlp_int t_count = *nIter_restart + 1;
-    cupdlp_printf("t_count: %d\n", t_count);
+    // cupdlp_printf("t_count: %d\n", t_count);
 
     cupdlp_float dPrimalStepUpdate = dStepSizeUpdate / sqrt(stepsize->dBeta);
     cupdlp_float dDualStepUpdate = dStepSizeUpdate * sqrt(stepsize->dBeta);
-    cupdlp_printf("dPrimalStepUpdate: %f\n", dPrimalStepUpdate);
-    cupdlp_printf("dDualStepUpdate: %f\n", dDualStepUpdate);
+    // cupdlp_printf("dPrimalStepUpdate: %f\n", dPrimalStepUpdate);
+    // cupdlp_printf("dDualStepUpdate: %f\n", dDualStepUpdate);
 
     // cupdlp_float dMultiStartTime;
     // cupdlp_float dAddStartTime;
@@ -1414,7 +1414,7 @@ cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag_best3(CUPDLPwork *pdh
     // stepsize->dBeta_ag = (t_count + 3.8) / 4.8;
     // stepsize->dBeta_ag = 1.0;
     // stepsize->dBeta_ag = 1.0 - theta;
-    stepsize->dBeta_ag = 1.0 - 1.0 * theta;
+    stepsize->dBeta_ag = 1.0 - 0.5 * theta;
 
     cupdlp_printf("beta: %f\n", stepsize->dBeta_ag);
     cupdlp_float beta = stepsize->dBeta_ag;
@@ -1592,7 +1592,9 @@ cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag_best4(CUPDLPwork *pdh
     // stepsize->dBeta_ag = theta * stepsize->dBeta_ag + 1.0;
     // stepsize->dBeta_ag = theta * stepsize->dBeta_ag + 0.2;
     // stepsize->dBeta_ag = (t_count + 3.8) / 4.8;
-    stepsize->dBeta_ag = 1.0 + 0.1 * theta;
+    // stepsize->dBeta_ag = 1.0;
+    stepsize->dBeta_ag = 1.0 - 0.1 * theta;
+    // stepsize->dBeta_ag = 1.0 + 0.1 * theta;
     // stepsize->dBeta_ag = 1.0 - theta;
     // stepsize->dBeta_ag = 1.0 + 0.5 * theta;
 
@@ -2224,6 +2226,543 @@ cupdlp_retcode PDTEST_Init_Step_Sizes(CUPDLPwork *pdhg)
     {
       stepsize->dBeta = 1.0;
     }
+    // stepsize用无穷范数进行初始化，stepsize->dBeta是论文中的primal weight \omega的平方
+    // infNorm can be avoid by previously calculated infNorm of csc matrix
+    stepsize->dPrimalStep =
+        // (1.0 / infNorm(problem->data->csc_matrix->colMatElem,
+        // problem->data->csc_matrix->nMatElem)) /
+        (1.0 / problem->data->csc_matrix->MatElemNormInf) /
+        sqrt(stepsize->dBeta);
+    stepsize->dDualStep = stepsize->dPrimalStep * stepsize->dBeta;
+    iterates->dLastRestartBeta = stepsize->dBeta;
+
+    stepsize->dStepSizeLastIter = sqrt(stepsize->dPrimalStep * stepsize->dDualStep);
+    stepsize->dBeta_ag = 0.0;
+  }
+
+  //////////////////////////////////////////////////////
+  // // dStepSizeUpdate是论文中的eta
+  // cupdlp_float dMeanStepSize = sqrt(stepsize->dPrimalStep * stepsize->dDualStep);
+  // stepsize->dPrimalStep = dMeanStepSize;
+  // stepsize->dDualStep = dMeanStepSize;
+
+  // CUPDLPdata *data = problem->data;
+  // CUPDLP_MATRIX_FORMAT matrix_format = data->matrix_format;
+  // cupdlp_printf("matrix_format: %d\n", matrix_format);
+  // cupdlp_float matrix_2norm = problem->data->matrix_2norm;
+  // stepsize->dPrimalStep = 1 / matrix_2norm;
+  // stepsize->dDualStep = 1 / matrix_2norm;
+  //////////////////////////////////////////////////////
+  iterates->iLastRestartIter = 0;
+  stepsize->dSumPrimalStep = 0;
+  stepsize->dSumDualStep = 0;
+
+exit_cleanup:
+  return retcode;
+}
+
+cupdlp_retcode PDTEST_Init_Step_Sizes_best(CUPDLPwork *pdhg)
+{
+  cupdlp_retcode retcode = RETCODE_OK;
+
+  CUPDLPproblem *problem = pdhg->problem;
+
+  PDTESTiterates *iterates = pdhg->PDTESTiterates;
+  CUPDLPstepsize *stepsize = pdhg->stepsize;
+  cupdlp_int ifPDTEST = pdhg->settings->ifPDTEST;
+  cupdlp_int bestID = pdhg->settings->bestID;
+  switch (bestID)
+  {
+  case 1:
+    cupdlp_printf("bestID: %d\n", bestID);
+    CUPDLP_CALL(PDTEST_Init_Step_Sizes_best1(pdhg));
+    break;
+  case 2:
+    cupdlp_printf("bestID: %d\n", bestID);
+    CUPDLP_CALL(PDTEST_Init_Step_Sizes_best2(pdhg));
+    break;
+  case 3:
+    cupdlp_printf("bestID: %d\n", bestID);
+    CUPDLP_CALL(PDTEST_Init_Step_Sizes_best3(pdhg));
+    break;
+  case 4:
+    cupdlp_printf("bestID: %d\n", bestID);
+    CUPDLP_CALL(PDTEST_Init_Step_Sizes_best4(pdhg));
+    break;
+  case 5:
+    cupdlp_printf("bestID: %d\n", bestID);
+    CUPDLP_CALL(PDTEST_Init_Step_Sizes_best5(pdhg));
+    break;
+  default:
+    cupdlp_printf("Error: bestID = %d, 不在取值范围内", bestID);
+    break;
+  }
+
+exit_cleanup:
+  return retcode;
+}
+
+cupdlp_retcode PDTEST_Init_Step_Sizes_best1(CUPDLPwork *pdhg)
+{
+  cupdlp_retcode retcode = RETCODE_OK;
+
+  CUPDLPproblem *problem = pdhg->problem;
+
+  PDTESTiterates *iterates = pdhg->PDTESTiterates;
+  CUPDLPstepsize *stepsize = pdhg->stepsize;
+
+  if (stepsize->eLineSearchMethod == PDHG_FIXED_LINESEARCH)
+  {
+    CUPDLP_CALL(PDTEST_Power_Method(pdhg, &stepsize->dPrimalStep));
+    // PDLP Intial primal weight = norm(cost) / norm(rhs) = sqrt(beta)
+    // cupdlp_float a = twoNormSquared(problem->cost, problem->nCols);
+    // cupdlp_float b = twoNormSquared(problem->rhs, problem->nRows);
+
+    // a, b记录的是cost和rhs的二范数的平方
+    cupdlp_float a = 0.0;
+    cupdlp_float b = 0.0;
+    cupdlp_twoNormSquared(pdhg, problem->nCols, problem->cost, &a);
+    cupdlp_twoNormSquared(pdhg, problem->nRows, problem->rhs, &b);
+
+    if (fmin(a, b) > 1e-6)
+    {
+      stepsize->dBeta = a / b;
+    }
+    else
+    {
+      stepsize->dBeta = 1.0;
+    }
+
+    // stepsize->dPrimalStep = 0.8 / sqrt(stepsize->dPrimalStep);
+    stepsize->dPrimalStep = 0.8 / sqrt(stepsize->dPrimalStep);
+    stepsize->dDualStep = stepsize->dPrimalStep;
+    // 算出dPrimalStep和dDualStep
+    stepsize->dPrimalStep /= sqrt(stepsize->dBeta);
+    stepsize->dDualStep *= sqrt(stepsize->dBeta);
+  }
+  else
+  {
+    stepsize->dTheta = 1.0;
+
+    // PDLP Intial primal weight = norm(cost) / norm(rhs) = sqrt(beta)
+    // cupdlp_float a = twoNormSquared(problem->cost, problem->nCols);
+    // cupdlp_float b = twoNormSquared(problem->rhs, problem->nRows);
+    cupdlp_float a = 0.0;
+    cupdlp_float b = 0.0;
+    // cupdlp_printf("q向量: \n");
+    // PDTEST_printCudafloatGPU(problem->cost, 20);
+    // cupdlp_printf("c向量: \n");
+    // PDTEST_printCudafloatGPU(problem->rhs, 20);
+    cupdlp_twoNormSquared(pdhg, problem->nCols, problem->cost, &a);
+    cupdlp_twoNormSquared(pdhg, problem->nRows, problem->rhs, &b);
+    cupdlp_printf("a的值: %f, b的值: %f\n", a, b);
+
+    if (fmin(a, b) > 1e-6)
+    {
+      stepsize->dBeta = a / b;
+    }
+    else
+    {
+      stepsize->dBeta = 1.0;
+    }
+    // stepsize用无穷范数进行初始化，stepsize->dBeta是论文中的primal weight \omega的平方
+    // infNorm can be avoid by previously calculated infNorm of csc matrix
+    stepsize->dPrimalStep =
+        // (1.0 / infNorm(problem->data->csc_matrix->colMatElem,
+        // problem->data->csc_matrix->nMatElem)) /
+        (1.0 / problem->data->csc_matrix->MatElemNormInf) /
+        sqrt(stepsize->dBeta);
+    stepsize->dDualStep = stepsize->dPrimalStep * stepsize->dBeta;
+    iterates->dLastRestartBeta = stepsize->dBeta;
+
+    stepsize->dStepSizeLastIter = sqrt(stepsize->dPrimalStep * stepsize->dDualStep);
+    stepsize->dBeta_ag = 0.0;
+  }
+
+  //////////////////////////////////////////////////////
+  // // dStepSizeUpdate是论文中的eta
+  // cupdlp_float dMeanStepSize = sqrt(stepsize->dPrimalStep * stepsize->dDualStep);
+  // stepsize->dPrimalStep = dMeanStepSize;
+  // stepsize->dDualStep = dMeanStepSize;
+
+  // CUPDLPdata *data = problem->data;
+  // CUPDLP_MATRIX_FORMAT matrix_format = data->matrix_format;
+  // cupdlp_printf("matrix_format: %d\n", matrix_format);
+  // cupdlp_float matrix_2norm = problem->data->matrix_2norm;
+  // stepsize->dPrimalStep = 1 / matrix_2norm;
+  // stepsize->dDualStep = 1 / matrix_2norm;
+  //////////////////////////////////////////////////////
+  iterates->iLastRestartIter = 0;
+  stepsize->dSumPrimalStep = 0;
+  stepsize->dSumDualStep = 0;
+
+exit_cleanup:
+  return retcode;
+}
+
+cupdlp_retcode PDTEST_Init_Step_Sizes_best2(CUPDLPwork *pdhg)
+{
+  cupdlp_retcode retcode = RETCODE_OK;
+
+  CUPDLPproblem *problem = pdhg->problem;
+
+  PDTESTiterates *iterates = pdhg->PDTESTiterates;
+  CUPDLPstepsize *stepsize = pdhg->stepsize;
+
+  if (stepsize->eLineSearchMethod == PDHG_FIXED_LINESEARCH)
+  {
+    CUPDLP_CALL(PDTEST_Power_Method(pdhg, &stepsize->dPrimalStep));
+    // PDLP Intial primal weight = norm(cost) / norm(rhs) = sqrt(beta)
+    // cupdlp_float a = twoNormSquared(problem->cost, problem->nCols);
+    // cupdlp_float b = twoNormSquared(problem->rhs, problem->nRows);
+
+    // a, b记录的是cost和rhs的二范数的平方
+    cupdlp_float a = 0.0;
+    cupdlp_float b = 0.0;
+    cupdlp_twoNormSquared(pdhg, problem->nCols, problem->cost, &a);
+    cupdlp_twoNormSquared(pdhg, problem->nRows, problem->rhs, &b);
+
+    if (fmin(a, b) > 1e-6)
+    {
+      stepsize->dBeta = a / b;
+    }
+    else
+    {
+      stepsize->dBeta = 1.0;
+    }
+
+    // stepsize->dPrimalStep = 0.8 / sqrt(stepsize->dPrimalStep);
+    stepsize->dPrimalStep = 0.8 / sqrt(stepsize->dPrimalStep);
+    stepsize->dDualStep = stepsize->dPrimalStep;
+    // 算出dPrimalStep和dDualStep
+    stepsize->dPrimalStep /= sqrt(stepsize->dBeta);
+    stepsize->dDualStep *= sqrt(stepsize->dBeta);
+  }
+  else
+  {
+    stepsize->dTheta = 1.0;
+
+    // PDLP Intial primal weight = norm(cost) / norm(rhs) = sqrt(beta)
+    // cupdlp_float a = twoNormSquared(problem->cost, problem->nCols);
+    // cupdlp_float b = twoNormSquared(problem->rhs, problem->nRows);
+    cupdlp_float a = 0.0;
+    cupdlp_float b = 0.0;
+    // cupdlp_printf("q向量: \n");
+    // PDTEST_printCudafloatGPU(problem->cost, 20);
+    // cupdlp_printf("c向量: \n");
+    // PDTEST_printCudafloatGPU(problem->rhs, 20);
+    cupdlp_twoNormSquared(pdhg, problem->nCols, problem->cost, &a);
+    cupdlp_twoNormSquared(pdhg, problem->nRows, problem->rhs, &b);
+    cupdlp_printf("a的值: %f, b的值: %f\n", a, b);
+
+    if (fmin(a, b) > 1e-6)
+    {
+      stepsize->dBeta = a / b;
+    }
+    else
+    {
+      stepsize->dBeta = 1.0;
+    }
+    // stepsize->dBeta = 1.0;
+    // stepsize用无穷范数进行初始化，stepsize->dBeta是论文中的primal weight \omega的平方
+    // infNorm can be avoid by previously calculated infNorm of csc matrix
+    stepsize->dPrimalStep =
+        // (1.0 / infNorm(problem->data->csc_matrix->colMatElem,
+        // problem->data->csc_matrix->nMatElem)) /
+        (1.0 / problem->data->csc_matrix->MatElemNormInf) /
+        sqrt(stepsize->dBeta);
+    stepsize->dDualStep = stepsize->dPrimalStep * stepsize->dBeta;
+    iterates->dLastRestartBeta = stepsize->dBeta;
+
+    stepsize->dStepSizeLastIter = sqrt(stepsize->dPrimalStep * stepsize->dDualStep);
+    stepsize->dBeta_ag = 0.0;
+  }
+
+  //////////////////////////////////////////////////////
+  // // dStepSizeUpdate是论文中的eta
+  // cupdlp_float dMeanStepSize = sqrt(stepsize->dPrimalStep * stepsize->dDualStep);
+  // stepsize->dPrimalStep = dMeanStepSize;
+  // stepsize->dDualStep = dMeanStepSize;
+
+  // CUPDLPdata *data = problem->data;
+  // CUPDLP_MATRIX_FORMAT matrix_format = data->matrix_format;
+  // cupdlp_printf("matrix_format: %d\n", matrix_format);
+  // cupdlp_float matrix_2norm = problem->data->matrix_2norm;
+  // stepsize->dPrimalStep = 1 / matrix_2norm;
+  // stepsize->dDualStep = 1 / matrix_2norm;
+  //////////////////////////////////////////////////////
+  iterates->iLastRestartIter = 0;
+  stepsize->dSumPrimalStep = 0;
+  stepsize->dSumDualStep = 0;
+
+exit_cleanup:
+  return retcode;
+}
+
+cupdlp_retcode PDTEST_Init_Step_Sizes_best3(CUPDLPwork *pdhg)
+{
+  cupdlp_retcode retcode = RETCODE_OK;
+
+  CUPDLPproblem *problem = pdhg->problem;
+
+  PDTESTiterates *iterates = pdhg->PDTESTiterates;
+  CUPDLPstepsize *stepsize = pdhg->stepsize;
+
+  if (stepsize->eLineSearchMethod == PDHG_FIXED_LINESEARCH)
+  {
+    CUPDLP_CALL(PDTEST_Power_Method(pdhg, &stepsize->dPrimalStep));
+    // PDLP Intial primal weight = norm(cost) / norm(rhs) = sqrt(beta)
+    // cupdlp_float a = twoNormSquared(problem->cost, problem->nCols);
+    // cupdlp_float b = twoNormSquared(problem->rhs, problem->nRows);
+
+    // a, b记录的是cost和rhs的二范数的平方
+    cupdlp_float a = 0.0;
+    cupdlp_float b = 0.0;
+    cupdlp_twoNormSquared(pdhg, problem->nCols, problem->cost, &a);
+    cupdlp_twoNormSquared(pdhg, problem->nRows, problem->rhs, &b);
+
+    if (fmin(a, b) > 1e-6)
+    {
+      stepsize->dBeta = a / b;
+    }
+    else
+    {
+      stepsize->dBeta = 1.0;
+    }
+    // stepsize->dBeta = 1.0;
+
+    // stepsize->dPrimalStep = 0.8 / sqrt(stepsize->dPrimalStep);
+    stepsize->dPrimalStep = 0.8 / sqrt(stepsize->dPrimalStep);
+    stepsize->dDualStep = stepsize->dPrimalStep;
+    // 算出dPrimalStep和dDualStep
+    stepsize->dPrimalStep /= sqrt(stepsize->dBeta);
+    stepsize->dDualStep *= sqrt(stepsize->dBeta);
+  }
+  else
+  {
+    stepsize->dTheta = 1.0;
+
+    // PDLP Intial primal weight = norm(cost) / norm(rhs) = sqrt(beta)
+    // cupdlp_float a = twoNormSquared(problem->cost, problem->nCols);
+    // cupdlp_float b = twoNormSquared(problem->rhs, problem->nRows);
+    cupdlp_float a = 0.0;
+    cupdlp_float b = 0.0;
+    // cupdlp_printf("q向量: \n");
+    // PDTEST_printCudafloatGPU(problem->cost, 20);
+    // cupdlp_printf("c向量: \n");
+    // PDTEST_printCudafloatGPU(problem->rhs, 20);
+    cupdlp_twoNormSquared(pdhg, problem->nCols, problem->cost, &a);
+    cupdlp_twoNormSquared(pdhg, problem->nRows, problem->rhs, &b);
+    cupdlp_printf("a的值: %f, b的值: %f\n", a, b);
+
+    if (fmin(a, b) > 1e-6)
+    {
+      stepsize->dBeta = a / b;
+    }
+    else
+    {
+      stepsize->dBeta = 1.0;
+    }
+    // stepsize->dBeta = 1.0;
+
+    // stepsize用无穷范数进行初始化，stepsize->dBeta是论文中的primal weight \omega的平方
+    // infNorm can be avoid by previously calculated infNorm of csc matrix
+    stepsize->dPrimalStep =
+        // (1.0 / infNorm(problem->data->csc_matrix->colMatElem,
+        // problem->data->csc_matrix->nMatElem)) /
+        (1.0 / problem->data->csc_matrix->MatElemNormInf) /
+        sqrt(stepsize->dBeta);
+    stepsize->dDualStep = stepsize->dPrimalStep * stepsize->dBeta;
+    iterates->dLastRestartBeta = stepsize->dBeta;
+
+    stepsize->dStepSizeLastIter = sqrt(stepsize->dPrimalStep * stepsize->dDualStep);
+    stepsize->dBeta_ag = 0.0;
+  }
+
+  //////////////////////////////////////////////////////
+  // // dStepSizeUpdate是论文中的eta
+  // cupdlp_float dMeanStepSize = sqrt(stepsize->dPrimalStep * stepsize->dDualStep);
+  // stepsize->dPrimalStep = dMeanStepSize;
+  // stepsize->dDualStep = dMeanStepSize;
+
+  // CUPDLPdata *data = problem->data;
+  // CUPDLP_MATRIX_FORMAT matrix_format = data->matrix_format;
+  // cupdlp_printf("matrix_format: %d\n", matrix_format);
+  // cupdlp_float matrix_2norm = problem->data->matrix_2norm;
+  // stepsize->dPrimalStep = 1 / matrix_2norm;
+  // stepsize->dDualStep = 1 / matrix_2norm;
+  //////////////////////////////////////////////////////
+  iterates->iLastRestartIter = 0;
+  stepsize->dSumPrimalStep = 0;
+  stepsize->dSumDualStep = 0;
+
+exit_cleanup:
+  return retcode;
+}
+
+cupdlp_retcode PDTEST_Init_Step_Sizes_best4(CUPDLPwork *pdhg)
+{
+  cupdlp_retcode retcode = RETCODE_OK;
+
+  CUPDLPproblem *problem = pdhg->problem;
+
+  PDTESTiterates *iterates = pdhg->PDTESTiterates;
+  CUPDLPstepsize *stepsize = pdhg->stepsize;
+
+  if (stepsize->eLineSearchMethod == PDHG_FIXED_LINESEARCH)
+  {
+    CUPDLP_CALL(PDTEST_Power_Method(pdhg, &stepsize->dPrimalStep));
+    // PDLP Intial primal weight = norm(cost) / norm(rhs) = sqrt(beta)
+    // cupdlp_float a = twoNormSquared(problem->cost, problem->nCols);
+    // cupdlp_float b = twoNormSquared(problem->rhs, problem->nRows);
+
+    // a, b记录的是cost和rhs的二范数的平方
+    cupdlp_float a = 0.0;
+    cupdlp_float b = 0.0;
+    cupdlp_twoNormSquared(pdhg, problem->nCols, problem->cost, &a);
+    cupdlp_twoNormSquared(pdhg, problem->nRows, problem->rhs, &b);
+
+    if (fmin(a, b) > 1e-6)
+    {
+      stepsize->dBeta = a / b;
+    }
+    else
+    {
+      stepsize->dBeta = 1.0;
+    }
+
+    // stepsize->dPrimalStep = 0.8 / sqrt(stepsize->dPrimalStep);
+    stepsize->dPrimalStep = 0.8 / sqrt(stepsize->dPrimalStep);
+    stepsize->dDualStep = stepsize->dPrimalStep;
+    // 算出dPrimalStep和dDualStep
+    stepsize->dPrimalStep /= sqrt(stepsize->dBeta);
+    stepsize->dDualStep *= sqrt(stepsize->dBeta);
+  }
+  else
+  {
+    stepsize->dTheta = 1.0;
+
+    // PDLP Intial primal weight = norm(cost) / norm(rhs) = sqrt(beta)
+    // cupdlp_float a = twoNormSquared(problem->cost, problem->nCols);
+    // cupdlp_float b = twoNormSquared(problem->rhs, problem->nRows);
+    cupdlp_float a = 0.0;
+    cupdlp_float b = 0.0;
+    // cupdlp_printf("q向量: \n");
+    // PDTEST_printCudafloatGPU(problem->cost, 20);
+    // cupdlp_printf("c向量: \n");
+    // PDTEST_printCudafloatGPU(problem->rhs, 20);
+    cupdlp_twoNormSquared(pdhg, problem->nCols, problem->cost, &a);
+    cupdlp_twoNormSquared(pdhg, problem->nRows, problem->rhs, &b);
+    cupdlp_printf("a的值: %f, b的值: %f\n", a, b);
+
+    if (fmin(a, b) > 1e-6)
+    {
+      stepsize->dBeta = a / b;
+    }
+    else
+    {
+      stepsize->dBeta = 1.0;
+    }
+    // stepsize用无穷范数进行初始化，stepsize->dBeta是论文中的primal weight \omega的平方
+    // infNorm can be avoid by previously calculated infNorm of csc matrix
+    stepsize->dPrimalStep =
+        // (1.0 / infNorm(problem->data->csc_matrix->colMatElem,
+        // problem->data->csc_matrix->nMatElem)) /
+        (1.0 / problem->data->csc_matrix->MatElemNormInf) /
+        sqrt(stepsize->dBeta);
+    stepsize->dDualStep = stepsize->dPrimalStep * stepsize->dBeta;
+    iterates->dLastRestartBeta = stepsize->dBeta;
+
+    stepsize->dStepSizeLastIter = sqrt(stepsize->dPrimalStep * stepsize->dDualStep);
+    stepsize->dBeta_ag = 0.0;
+  }
+
+  //////////////////////////////////////////////////////
+  // // dStepSizeUpdate是论文中的eta
+  // cupdlp_float dMeanStepSize = sqrt(stepsize->dPrimalStep * stepsize->dDualStep);
+  // stepsize->dPrimalStep = dMeanStepSize;
+  // stepsize->dDualStep = dMeanStepSize;
+
+  // CUPDLPdata *data = problem->data;
+  // CUPDLP_MATRIX_FORMAT matrix_format = data->matrix_format;
+  // cupdlp_printf("matrix_format: %d\n", matrix_format);
+  // cupdlp_float matrix_2norm = problem->data->matrix_2norm;
+  // stepsize->dPrimalStep = 1 / matrix_2norm;
+  // stepsize->dDualStep = 1 / matrix_2norm;
+  //////////////////////////////////////////////////////
+  iterates->iLastRestartIter = 0;
+  stepsize->dSumPrimalStep = 0;
+  stepsize->dSumDualStep = 0;
+
+exit_cleanup:
+  return retcode;
+}
+
+cupdlp_retcode PDTEST_Init_Step_Sizes_best5(CUPDLPwork *pdhg)
+{
+  cupdlp_retcode retcode = RETCODE_OK;
+
+  CUPDLPproblem *problem = pdhg->problem;
+
+  PDTESTiterates *iterates = pdhg->PDTESTiterates;
+  CUPDLPstepsize *stepsize = pdhg->stepsize;
+
+  if (stepsize->eLineSearchMethod == PDHG_FIXED_LINESEARCH)
+  {
+    CUPDLP_CALL(PDTEST_Power_Method(pdhg, &stepsize->dPrimalStep));
+    // PDLP Intial primal weight = norm(cost) / norm(rhs) = sqrt(beta)
+    // cupdlp_float a = twoNormSquared(problem->cost, problem->nCols);
+    // cupdlp_float b = twoNormSquared(problem->rhs, problem->nRows);
+
+    // a, b记录的是cost和rhs的二范数的平方
+    cupdlp_float a = 0.0;
+    cupdlp_float b = 0.0;
+    cupdlp_twoNormSquared(pdhg, problem->nCols, problem->cost, &a);
+    cupdlp_twoNormSquared(pdhg, problem->nRows, problem->rhs, &b);
+
+    if (fmin(a, b) > 1e-6)
+    {
+      stepsize->dBeta = a / b;
+    }
+    else
+    {
+      stepsize->dBeta = 1.0;
+    }
+
+    // stepsize->dPrimalStep = 0.8 / sqrt(stepsize->dPrimalStep);
+    stepsize->dPrimalStep = 0.8 / sqrt(stepsize->dPrimalStep);
+    stepsize->dDualStep = stepsize->dPrimalStep;
+    // 算出dPrimalStep和dDualStep
+    stepsize->dPrimalStep /= sqrt(stepsize->dBeta);
+    stepsize->dDualStep *= sqrt(stepsize->dBeta);
+  }
+  else
+  {
+    stepsize->dTheta = 1.0;
+
+    // PDLP Intial primal weight = norm(cost) / norm(rhs) = sqrt(beta)
+    // cupdlp_float a = twoNormSquared(problem->cost, problem->nCols);
+    // cupdlp_float b = twoNormSquared(problem->rhs, problem->nRows);
+    cupdlp_float a = 0.0;
+    cupdlp_float b = 0.0;
+    // cupdlp_printf("q向量: \n");
+    // PDTEST_printCudafloatGPU(problem->cost, 20);
+    // cupdlp_printf("c向量: \n");
+    // PDTEST_printCudafloatGPU(problem->rhs, 20);
+    cupdlp_twoNormSquared(pdhg, problem->nCols, problem->cost, &a);
+    cupdlp_twoNormSquared(pdhg, problem->nRows, problem->rhs, &b);
+    cupdlp_printf("a的值: %f, b的值: %f\n", a, b);
+
+    if (fmin(a, b) > 1e-6)
+    {
+      stepsize->dBeta = a / b;
+    }
+    else
+    {
+      stepsize->dBeta = 1.0;
+    }
+    // stepsize->dBeta = 1.0;
+
     // stepsize用无穷范数进行初始化，stepsize->dBeta是论文中的primal weight \omega的平方
     // infNorm can be avoid by previously calculated infNorm of csc matrix
     stepsize->dPrimalStep =

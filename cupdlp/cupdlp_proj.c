@@ -516,20 +516,20 @@ void PDTEST_Restart_Iterate_GPU_best2(CUPDLPwork *pdhg, cupdlp_int *nIter_restar
   // 如果restart了，就把nIter_restart置为0
   // *nIter_restart = 0;
   // stepsize->dBeta_ag = 0.0;
-  stepsize->dBeta_ag = 1.0;
-  CUPDLP_COPY_VEC(iterates->x->data, iterates->x_ag->data, cupdlp_float,
-                  problem->nCols);
-  CUPDLP_COPY_VEC(iterates->y->data, iterates->y_ag->data, cupdlp_float,
-                  problem->nRows);
-  CUPDLP_COPY_VEC(iterates->ax->data, iterates->ax_ag->data, cupdlp_float,
-                  problem->nRows);
-  CUPDLP_COPY_VEC(iterates->aty->data, iterates->aty_ag->data,
-                  cupdlp_float, problem->nCols);
+  // stepsize->dBeta_ag = 1.0;
+  // CUPDLP_COPY_VEC(iterates->x->data, iterates->x_ag->data, cupdlp_float,
+  //                 problem->nCols);
+  // CUPDLP_COPY_VEC(iterates->y->data, iterates->y_ag->data, cupdlp_float,
+  //                 problem->nRows);
+  // CUPDLP_COPY_VEC(iterates->ax->data, iterates->ax_ag->data, cupdlp_float,
+  //                 problem->nRows);
+  // CUPDLP_COPY_VEC(iterates->aty->data, iterates->aty_ag->data,
+  //                 cupdlp_float, problem->nCols);
 
-  CUPDLP_COPY_VEC(iterates->x_bar->data, iterates->x_ag->data, cupdlp_float,
-                  problem->nCols);
-  CUPDLP_COPY_VEC(iterates->ax_bar->data, iterates->ax_ag->data, cupdlp_float,
-                  problem->nRows);
+  // CUPDLP_COPY_VEC(iterates->x_bar->data, iterates->x_ag->data, cupdlp_float,
+  //                 problem->nCols);
+  // CUPDLP_COPY_VEC(iterates->ax_bar->data, iterates->ax_ag->data, cupdlp_float,
+  //                 problem->nRows);
   ///////////////////////////////////////////////////
   stepsize->dSumPrimalStep = 0.0;
   stepsize->dSumDualStep = 0.0;
@@ -570,20 +570,20 @@ void PDTEST_Restart_Iterate_GPU_best3(CUPDLPwork *pdhg, cupdlp_int *nIter_restar
   // 如果restart了，就把nIter_restart置为0
   // *nIter_restart = 0;
   // stepsize->dBeta_ag = 0.0;
-  stepsize->dBeta_ag = 1.0;
-  // CUPDLP_COPY_VEC(iterates->x->data, iterates->x_ag->data, cupdlp_float,
-  //                 problem->nCols);
-  // CUPDLP_COPY_VEC(iterates->y->data, iterates->y_ag->data, cupdlp_float,
-  //                 problem->nRows);
-  // CUPDLP_COPY_VEC(iterates->ax->data, iterates->ax_ag->data, cupdlp_float,
-  //                 problem->nRows);
-  // CUPDLP_COPY_VEC(iterates->aty->data, iterates->aty_ag->data,
-  //                 cupdlp_float, problem->nCols);
+  // stepsize->dBeta_ag = 1.0;
+  CUPDLP_COPY_VEC(iterates->x->data, iterates->x_ag->data, cupdlp_float,
+                  problem->nCols);
+  CUPDLP_COPY_VEC(iterates->y->data, iterates->y_ag->data, cupdlp_float,
+                  problem->nRows);
+  CUPDLP_COPY_VEC(iterates->ax->data, iterates->ax_ag->data, cupdlp_float,
+                  problem->nRows);
+  CUPDLP_COPY_VEC(iterates->aty->data, iterates->aty_ag->data,
+                  cupdlp_float, problem->nCols);
 
-  // CUPDLP_COPY_VEC(iterates->x_bar->data, iterates->x_ag->data, cupdlp_float,
-  //                 problem->nCols);
-  // CUPDLP_COPY_VEC(iterates->ax_bar->data, iterates->ax_ag->data, cupdlp_float,
-  //                 problem->nRows);
+  CUPDLP_COPY_VEC(iterates->x_bar->data, iterates->x_ag->data, cupdlp_float,
+                  problem->nCols);
+  CUPDLP_COPY_VEC(iterates->ax_bar->data, iterates->ax_ag->data, cupdlp_float,
+                  problem->nRows);
   ///////////////////////////////////////////////////
   stepsize->dSumPrimalStep = 0.0;
   stepsize->dSumDualStep = 0.0;
