@@ -29,6 +29,8 @@ void PDTEST_Restart_Iterate_GPU_best2(CUPDLPwork *pdhg, cupdlp_int *nIter_restar
 void PDTEST_Restart_Iterate_GPU_best3(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
 void PDTEST_Restart_Iterate_GPU_best4(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
 void PDTEST_Restart_Iterate_GPU_best5(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
+void PDTEST_Restart_Iterate_GPU_best6(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
+
 void PDTEST_Restart_Iterate_GPU_Only_WeightUpdate(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
 void PDTEST_Restart_Iterate_GPU_Only_VariableUpdate(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
 
