@@ -572,15 +572,16 @@ void PDTEST_Update_Iterate_Constant_Step_Size_ReverseOrder(CUPDLPwork *pdhg, cup
   // cupdlp_float beta = (t_count + 5.0) / 6.0;
   // cupdlp_float beta = (t_count + 3.8) / 4.8;
   // cupdlp_float beta = t_count + 0.0;
-  cupdlp_float beta = 1.0;
+  // cupdlp_float beta = 1.0;
+  cupdlp_float beta = (t_count + 3.8) / 4.8;
   // theta^{t+1}
-  // cupdlp_float theta = t_count / (t_count + 1.0);
   cupdlp_float theta = 1.0;
+  // cupdlp_float theta = 1.0;
   cupdlp_float dIterTime = getTimeStamp();
 
 #pragma region Update
   cupdlp_printf("x_ag");
-  PDTEST_printCudaDenseVecGPU(iterates->x_ag);
+  // PDTEST_printCudaDenseVecGPU(iterates->x_ag);
   // 计算ATy^{t}, 后面计算x^{t+1}有用
   ATy(pdhg, iterates->aty, iterates->y);
   // x^{t+1} = proj_{X}(x^t - dPrimalStep * (c - A'y^{t}))
@@ -1777,7 +1778,7 @@ cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag_best5(CUPDLPwork *pdh
     // stepsize->dBeta_ag = theta * stepsize->dBeta_ag + 1.0;
     // stepsize->dBeta_ag = theta * stepsize->dBeta_ag + 0.2;
     // stepsize->dBeta_ag = (t_count + 3.8) / 4.8;
-    stepsize->dBeta_ag = 1.0 + 0.1 * (1 - theta);
+    stepsize->dBeta_ag = 1.0 + 0.5 * (1 - theta);
     // stepsize->dBeta_ag = 1.0 - theta;
     // stepsize->dBeta_ag = 1.0 + 0.5 * theta;
 

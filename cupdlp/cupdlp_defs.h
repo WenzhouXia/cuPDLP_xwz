@@ -374,6 +374,7 @@ extern "C"
 
     /////////////////////////////////////////////////
     cupdlp_float dStepSizeLastIter;
+    cupdlp_float dStepSizeSum;
     cupdlp_float dBeta_ag;
     /////////////////////////////////////////////////
   };
