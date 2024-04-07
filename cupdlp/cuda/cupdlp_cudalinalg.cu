@@ -201,6 +201,14 @@ extern "C" void cupdlp_dgrad_cuda(cupdlp_float *yUpdate, const cupdlp_float *y, 
       dual_grad_step_kernal<<<cuda_gridsize(len), CUPDLP_BLOCK_SIZE>>>(
           yUpdate, y, b, Ax, AxUpdate, dDualStep, len);
 }
+
+extern "C" void cupdlp_dgrad_cuda_AdapTheta(cupdlp_float *yUpdate, const cupdlp_float *y, const cupdlp_float *b,
+    const cupdlp_float *Ax, const cupdlp_float *AxUpdate,
+    const cupdlp_float dDualStep, const cupdlp_int len, const cupdlp_float theta) {
+      dual_grad_step_kernal_AdapTheta<<<cuda_gridsize(len), CUPDLP_BLOCK_SIZE>>>(
+          yUpdate, y, b, Ax, AxUpdate, dDualStep, len, theta);
+}
+
 extern "C" void pdtest_x_md_update_cuda(cupdlp_float *x_md, const cupdlp_float *x_ag, const cupdlp_float *x, const cupdlp_float beta, const cupdlp_int len) {
       pdtest_x_update_with_beta_kernal<<<cuda_gridsize(len), CUPDLP_BLOCK_SIZE>>>(
           x_md, x_ag, x, 1 / beta, len);

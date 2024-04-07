@@ -26,6 +26,7 @@ PDHG_restart_choice PDHG_Check_Restart_GPU(CUPDLPwork *work);
 
 PDHG_restart_choice PDTEST_Check_Restart_GPU(CUPDLPwork *work);
 PDHG_restart_choice PDTEST_Check_Restart_GPU_Only_Current(CUPDLPwork *work);
+PDHG_restart_choice PDTEST_Check_Restart_GPU_best6(CUPDLPwork *work);
 
 cupdlp_float PDHG_Restart_Score_GPU(cupdlp_float weightSquared,
                                     cupdlp_float dPrimalFeas,

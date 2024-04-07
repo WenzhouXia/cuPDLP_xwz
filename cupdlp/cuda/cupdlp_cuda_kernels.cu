@@ -113,6 +113,18 @@ __global__ void dual_grad_step_kernal(cupdlp_float *yUpdate,
   if (i < len) yUpdate[i] = y[i] + dDualStep * (b[i] - 2 * AxUpdate[i] + Ax[i]);
 }
 
+//yUpdate = y + dDualStep * (b -(theat+1)*AxUpdate + theta*Ax)
+__global__ void dual_grad_step_kernal_AdapTheta(cupdlp_float *yUpdate,
+                                      const cupdlp_float *y,
+                                      const cupdlp_float *b,
+                                      const cupdlp_float *Ax,
+                                      const cupdlp_float *AxUpdate,
+                                      const cupdlp_float dDualStep,
+                                      const cupdlp_int len, const cupdlp_float theta) {
+  cupdlp_int i = blockIdx.x * blockDim.x + threadIdx.x; 
+  if (i < len) yUpdate[i] = y[i] + dDualStep * (b[i] - (theta+1)* AxUpdate[i] + theta *Ax[i]);
+}
+
 
 
 __global__ void pdtest_x_update_with_beta_kernal(cupdlp_float *x_new,

@@ -143,6 +143,11 @@ __global__ void dual_grad_step_kernal(
     const cupdlp_float *Ax, const cupdlp_float *AxUpdate,
     const cupdlp_float dDualStep, const cupdlp_int len);
 
+    __global__ void dual_grad_step_kernal_AdapTheta(
+    cupdlp_float *yUpdate, const cupdlp_float *y, const cupdlp_float *b,
+    const cupdlp_float *Ax, const cupdlp_float *AxUpdate,
+    const cupdlp_float dDualStep, const cupdlp_int len, const cupdlp_float theta);
+
 __global__ void pdtest_x_update_with_beta_kernal(cupdlp_float *x_new,
                                              const cupdlp_float *x_1,
                                              const cupdlp_float *x_2,

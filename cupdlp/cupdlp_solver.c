@@ -325,6 +325,54 @@ void PDTEST_Average_Compute_Residuals(CUPDLPwork *work)
   problem->dComputeResidualsTime += getTimeStamp() - dStartTime;
 #endif
 }
+
+void PDTEST_Compute_Residuals_best(CUPDLPwork *work)
+{
+#if problem_USE_TIMERS
+  ++problem->nComputeResidualsCalls;
+  double dStartTime = getTimeStamp();
+#endif
+  CUPDLPproblem *problem = work->problem;
+  CUPDLPdata *lp = problem->data;
+  CUPDLPresobj *resobj = work->resobj;
+  PDTESTiterates *iterates = work->PDTESTiterates;
+  CUPDLPscaling *scaling = work->scaling;
+  CUPDLPsettings *settings = work->settings;
+  cupdlp_int bestID = settings->bestID;
+
+  switch (bestID)
+  {
+  case 0:
+    PDTEST_Compute_Residuals(work);
+    break;
+  case 1:
+    PDTEST_Compute_Residuals(work);
+    break;
+  case 2:
+    PDTEST_Compute_Residuals(work);
+    break;
+  case 3:
+    PDTEST_Compute_Residuals(work);
+    break;
+  case 4:
+    PDTEST_Compute_Residuals(work);
+    break;
+  case 5:
+    PDTEST_Compute_Residuals(work);
+    break;
+  case 6:
+    PDTEST_Compute_Residuals_CurrentandAverage(work);
+    break;
+  default:
+    cupdlp_printf("bestID not supported\n");
+    break;
+  }
+
+#if problem_USE_TIMERS
+  problem->dComputeResidualsTime += getTimeStamp() - dStartTime;
+#endif
+}
+
 void PDTEST_Compute_Residuals(CUPDLPwork *work)
 {
 #if problem_USE_TIMERS
@@ -363,6 +411,42 @@ void PDTEST_Compute_Residuals(CUPDLPwork *work)
   // resobj->dRelObjGapAverage =
   //     fabs(resobj->dPrimalObjAverage - resobj->dDualObjAverage) /
   //     (1.0 + fabs(resobj->dPrimalObjAverage) + fabs(resobj->dDualObjAverage));
+
+#if problem_USE_TIMERS
+  problem->dComputeResidualsTime += getTimeStamp() - dStartTime;
+#endif
+}
+
+void PDTEST_Compute_Residuals_CurrentandAverage(CUPDLPwork *work)
+{
+#if problem_USE_TIMERS
+  ++problem->nComputeResidualsCalls;
+  double dStartTime = getTimeStamp();
+#endif
+  CUPDLPproblem *problem = work->problem;
+  CUPDLPdata *lp = problem->data;
+  CUPDLPresobj *resobj = work->resobj;
+  PDTESTiterates *iterates = work->PDTESTiterates;
+  CUPDLPscaling *scaling = work->scaling;
+  CUPDLPsettings *settings = work->settings;
+
+  PDHG_Compute_Primal_Feasibility(work, resobj->primalResidual,
+                                  iterates->ax->data, iterates->x->data,
+                                  &resobj->dPrimalFeas, &resobj->dPrimalObj);
+  PDHG_Compute_Dual_Feasibility(work, resobj->dualResidual, iterates->aty->data, iterates->x->data, iterates->y->data, &resobj->dDualFeas, &resobj->dDualObj, &resobj->dComplementarity);
+
+  PDHG_Compute_Primal_Feasibility(work, resobj->primalResidualAverage, iterates->ax_ag->data, iterates->x_ag->data, &resobj->dPrimalFeasAverage, &resobj->dPrimalObjAverage);
+  PDHG_Compute_Dual_Feasibility(work, resobj->dualResidualAverage, iterates->aty_ag->data, iterates->x_ag->data, iterates->y_ag->data, &resobj->dDualFeasAverage, &resobj->dDualObjAverage, &resobj->dComplementarityAverage);
+
+  resobj->dDualityGap = resobj->dPrimalObj - resobj->dDualObj;
+  resobj->dRelObjGap =
+      fabs(resobj->dPrimalObj - resobj->dDualObj) /
+      (1.0 + fabs(resobj->dPrimalObj) + fabs(resobj->dDualObj));
+
+  resobj->dDualityGapAverage = resobj->dPrimalObjAverage - resobj->dDualObjAverage;
+  resobj->dRelObjGapAverage =
+      fabs(resobj->dPrimalObjAverage - resobj->dDualObjAverage) /
+      (1.0 + fabs(resobj->dPrimalObjAverage) + fabs(resobj->dDualObjAverage));
 
 #if problem_USE_TIMERS
   problem->dComputeResidualsTime += getTimeStamp() - dStartTime;
@@ -492,6 +576,7 @@ void PDTEST_Init_Variables(CUPDLPwork *work)
 
   stepsize->dSumPrimalStep = 0.0;
   stepsize->dSumDualStep = 0.0;
+  stepsize->dStepSizeSum = 0.0;
 
   CUPDLP_ZERO_VEC(iterates->xLastRestart, cupdlp_float, lp->nCols);
   CUPDLP_ZERO_VEC(iterates->yLastRestart, cupdlp_float, lp->nRows);
@@ -617,6 +702,97 @@ void PDHG_Check_Data(CUPDLPwork *work)
 
   // We need to test problems ranged row-bounds more carefully.
   CUPDLP_ASSERT(nRangedRow == 0);
+}
+
+cupdlp_bool PDTEST_Check_Termination_best(CUPDLPwork *pdhg, int bool_print)
+{
+  CUPDLPproblem *problem = pdhg->problem;
+  CUPDLPsettings *settings = pdhg->settings;
+  CUPDLPresobj *resobj = pdhg->resobj;
+  CUPDLPscaling *scaling = pdhg->scaling;
+  cupdlp_int bestID = settings->bestID;
+  PDTESTiterates *iterates = pdhg->PDTESTiterates;
+
+  switch (bestID)
+  {
+  case 0:
+    if (PDHG_Check_Termination(pdhg, bool_print))
+    {
+      cupdlp_printf("Optimal current solution.\n");
+      resobj->termIterate = LAST_ITERATE;
+      resobj->termCode = OPTIMAL;
+      break;
+    }
+    break;
+  case 1:
+    if (PDHG_Check_Termination(pdhg, bool_print))
+    {
+      cupdlp_printf("Optimal current solution.\n");
+      resobj->termIterate = LAST_ITERATE;
+      resobj->termCode = OPTIMAL;
+      break;
+    }
+    break;
+  case 2:
+    if (PDHG_Check_Termination(pdhg, bool_print))
+    {
+      cupdlp_printf("Optimal current solution.\n");
+      resobj->termIterate = LAST_ITERATE;
+      resobj->termCode = OPTIMAL;
+      break;
+    }
+    break;
+  case 3:
+    if (PDHG_Check_Termination(pdhg, bool_print))
+    {
+      cupdlp_printf("Optimal current solution.\n");
+      resobj->termIterate = LAST_ITERATE;
+      resobj->termCode = OPTIMAL;
+      break;
+    }
+    break;
+  case 4:
+    if (PDHG_Check_Termination(pdhg, bool_print))
+    {
+      cupdlp_printf("Optimal current solution.\n");
+      resobj->termIterate = LAST_ITERATE;
+      resobj->termCode = OPTIMAL;
+      break;
+    }
+    break;
+  case 5:
+    if (PDHG_Check_Termination(pdhg, bool_print))
+    {
+      cupdlp_printf("Optimal current solution.\n");
+      resobj->termIterate = LAST_ITERATE;
+      resobj->termCode = OPTIMAL;
+      break;
+    }
+    break;
+  case 6:
+    if (PDHG_Check_Termination(pdhg, bool_print))
+    {
+      cupdlp_printf("Optimal current solution.\n");
+      resobj->termIterate = LAST_ITERATE;
+      resobj->termCode = OPTIMAL;
+      break;
+    }
+
+    if (PDHG_Check_Termination_Average(pdhg, bool_print))
+    {
+      cupdlp_printf("Optimal average solution.\n");
+
+      CUPDLP_COPY_VEC(iterates->x->data, iterates->x_ag->data,
+                      cupdlp_float, problem->nCols);
+      CUPDLP_COPY_VEC(iterates->y->data, iterates->y_ag->data,
+                      cupdlp_float, problem->nRows);
+
+      resobj->termIterate = AVERAGE_ITERATE;
+      resobj->termCode = OPTIMAL;
+      break;
+    }
+    break;
+  }
 }
 
 cupdlp_bool PDHG_Check_Termination(CUPDLPwork *pdhg, int bool_print)
@@ -877,6 +1053,167 @@ cupdlp_retcode PDHG_Solve(CUPDLPwork *pdhg)
 exit_cleanup:
   return retcode;
 }
+
+cupdlp_retcode PDHG_Solve_AdapTheta(CUPDLPwork *pdhg)
+{
+  cupdlp_retcode retcode = RETCODE_OK;
+
+  CUPDLPproblem *problem = pdhg->problem;
+  CUPDLPstepsize *stepsize = pdhg->stepsize;
+  CUPDLPsettings *settings = pdhg->settings;
+  CUPDLPresobj *resobj = pdhg->resobj;
+  CUPDLPiterates *iterates = pdhg->iterates;
+  CUPDLPtimers *timers = pdhg->timers;
+
+  cupdlp_float dCheckTime = 0.0;
+  cupdlp_float dCheckTimetemp = 0.0;
+  cupdlp_float dUpdateTime = 0.0;
+  cupdlp_float dUpdateTimetemp = 0.0;
+  cupdlp_float dCheckTerminationTime = 0.0;
+  cupdlp_float dCheckTerminationTimetemp = 0.0;
+  cupdlp_float dRestartTime = 0.0;
+  cupdlp_float dRestartTimetemp = 0.0;
+
+  timers->dSolvingBeg = getTimeStamp();
+
+  PDHG_Init_Data(pdhg);
+
+  CUPDLP_CALL(PDHG_Init_Step_Sizes_AdapTheta(pdhg));
+
+  PDHG_Init_Variables(pdhg);
+
+  // todo: translate check_data into cuda or do it on cpu
+  // PDHG_Check_Data(pdhg);
+
+  // PDHG_Print_Header(pdhg);
+
+  for (timers->nIter = 0; timers->nIter < settings->nIterLim; ++timers->nIter)
+  {
+    dCheckTimetemp = getTimeStamp();
+    PDHG_Compute_SolvingTime(pdhg);
+#if CUPDLP_DUMP_ITERATES_STATS & CUPDLP_DEBUG
+    PDHG_Dump_Stats(pdhg);
+#endif
+    int bool_checking = (timers->nIter < 10) ||
+                        (timers->nIter == (settings->nIterLim - 1)) ||
+                        (timers->dSolvingTime > settings->dTimeLim);
+    int bool_print = 0;
+#if CUPDLP_DEBUG
+    bool_checking = (bool_checking || !(timers->nIter % CUPDLP_DEBUG_INTERVAL));
+    bool_print = bool_checking;
+#else
+    bool_checking =
+        (bool_checking || !(timers->nIter % CUPDLP_RELEASE_INTERVAL));
+    bool_print =
+        (bool_checking && !(timers->nIter % (CUPDLP_RELEASE_INTERVAL *
+                                             settings->nLogInterval))) ||
+        (timers->nIter == (settings->nIterLim - 1)) ||
+        (timers->dSolvingTime > settings->dTimeLim);
+#endif
+    if (bool_checking)
+    {
+      PDHG_Compute_Average_Iterate(pdhg);
+      PDHG_Compute_Residuals(pdhg);
+      if (bool_print)
+      {
+        PDHG_Print_Header(pdhg);
+        PDHG_Print_Iter(pdhg);
+        PDHG_Print_Iter_Average(pdhg);
+      }
+      dCheckTerminationTimetemp = getTimeStamp();
+      if (PDHG_Check_Termination(pdhg, bool_print))
+      {
+        cupdlp_printf("Optimal current solution.\n");
+        resobj->termIterate = LAST_ITERATE;
+        resobj->termCode = OPTIMAL;
+        break;
+      }
+
+      if (PDHG_Check_Termination_Average(pdhg, bool_print))
+      {
+        cupdlp_printf("Optimal average solution.\n");
+
+        CUPDLP_COPY_VEC(iterates->x->data, iterates->xAverage->data,
+                        cupdlp_float, problem->nCols);
+        CUPDLP_COPY_VEC(iterates->y->data, iterates->yAverage->data,
+                        cupdlp_float, problem->nRows);
+
+        resobj->termIterate = AVERAGE_ITERATE;
+        resobj->termCode = OPTIMAL;
+        break;
+      }
+
+      if (timers->dSolvingTime > settings->dTimeLim)
+      {
+        cupdlp_printf("Time limit reached.\n");
+        resobj->termCode = TIMELIMIT_OR_ITERLIMIT;
+        break;
+      }
+
+      if (timers->nIter == (settings->nIterLim - 1))
+      {
+        cupdlp_printf("Iteration limit reached.\n");
+        resobj->termCode = TIMELIMIT_OR_ITERLIMIT;
+        break;
+      }
+      dCheckTerminationTime += getTimeStamp() - dCheckTerminationTimetemp;
+      dRestartTimetemp = getTimeStamp();
+      PDHG_Restart_Iterate(pdhg);
+      dRestartTime += getTimeStamp() - dRestartTimetemp;
+      dCheckTime += getTimeStamp() - dCheckTimetemp;
+    }
+    dUpdateTimetemp = getTimeStamp();
+    CUPDLP_CALL(PDHG_Update_Iterate_AdapTheta(pdhg));
+    dUpdateTime += getTimeStamp() - dUpdateTimetemp;
+  }
+  cupdlp_printf("Check time: %e\n", dCheckTime);
+  cupdlp_printf("Update time: %e\n", dUpdateTime);
+  cupdlp_printf("Check termination time: %e\n", dCheckTerminationTime);
+  cupdlp_printf("Restart time: %e\n", dRestartTime);
+  cupdlp_printf("Compute Update time: %e\n", timers->dIterTime);
+  // print at last
+  PDHG_Print_Header(pdhg);
+  PDHG_Print_Iter(pdhg);
+  PDHG_Print_Iter_Average(pdhg);
+
+#if PDHG_USE_TIMERS
+  cupdlp_printf("Timing information:\n");
+  // cupdlp_printf("%20s %e in %d iterations\n", "Total solver time",
+  //               timers->dSolvingTime, timers->nIter);
+  cupdlp_printf(
+      "%20s %e in %d iterations\n", "Total solver time",
+      timers->dSolvingTime + timers->dScalingTime + timers->dPresolveTime,
+      timers->nIter);
+  cupdlp_printf("%20s %e in %d iterations\n", "Solve time",
+                timers->dSolvingTime, timers->nIter);
+  cupdlp_printf("%20s %e \n", "Iters per sec",
+                timers->nIter / timers->dSolvingTime);
+  cupdlp_printf("%20s %e\n", "Scaling time", timers->dScalingTime);
+  cupdlp_printf("%20s %e\n", "Presolve time", timers->dPresolveTime);
+  cupdlp_printf("%20s %e in %d calls\n", "Ax", timers->dAxTime,
+                timers->nAxCalls);
+  cupdlp_printf("%20s %e in %d calls\n", "Aty", timers->dAtyTime,
+                timers->nAtyCalls);
+  cupdlp_printf("%20s %e in %d calls\n", "ComputeResiduals",
+                timers->dComputeResidualsTime, timers->nComputeResidualsCalls);
+  cupdlp_printf("%20s %e in %d calls\n", "UpdateIterates",
+                timers->dUpdateIterateTime, timers->nUpdateIterateCalls);
+#endif
+
+#if !(CUPDLP_CPU)
+  cupdlp_printf("GPU Timing information:\n");
+  cupdlp_printf("%20s %e\n", "CudaPrepare", timers->CudaPrepareTime);
+  cupdlp_printf("%20s %e\n", "Alloc&CopyMatToDevice",
+                timers->AllocMem_CopyMatToDeviceTime);
+  cupdlp_printf("%20s %e\n", "CopyVecToDevice", timers->CopyVecToDeviceTime);
+  cupdlp_printf("%20s %e\n", "DeviceMatVecProd", timers->DeviceMatVecProdTime);
+  cupdlp_printf("%20s %e\n", "CopyVecToHost", timers->CopyVecToHostTime);
+#endif
+
+exit_cleanup:
+  return retcode;
+}
+
 cupdlp_retcode PDTEST_Average_Solve(CUPDLPwork *pdhg)
 {
   cupdlp_retcode retcode = RETCODE_OK;
@@ -1238,13 +1575,14 @@ cupdlp_retcode PDTEST_Solve_best(CUPDLPwork *pdhg)
 #endif
     if (bool_checking)
     {
-      PDTEST_Compute_Residuals(pdhg);
+      PDTEST_Compute_Residuals_best(pdhg);
       if (bool_print)
       {
         PDHG_Print_Header(pdhg);
         PDHG_Print_Iter(pdhg);
-        // PDHG_Print_Iter_Average(pdhg);
+        PDHG_Print_Iter_Average(pdhg);
       }
+      // PDTEST_Check_Termination_best(pdhg, bool_print);
 
       if (PDHG_Check_Termination(pdhg, bool_print))
       {
@@ -1254,19 +1592,19 @@ cupdlp_retcode PDTEST_Solve_best(CUPDLPwork *pdhg)
         break;
       }
 
-      // if (PDHG_Check_Termination_Average(pdhg, bool_print))
-      // {
-      //   cupdlp_printf("Optimal average solution.\n");
+      if (PDHG_Check_Termination_Average(pdhg, bool_print))
+      {
+        cupdlp_printf("Optimal average solution.\n");
 
-      //   CUPDLP_COPY_VEC(iterates->x->data, iterates->xAverage->data,
-      //                   cupdlp_float, problem->nCols);
-      //   CUPDLP_COPY_VEC(iterates->y->data, iterates->yAverage->data,
-      //                   cupdlp_float, problem->nRows);
+        CUPDLP_COPY_VEC(iterates->x->data, iterates->xAverage->data,
+                        cupdlp_float, problem->nCols);
+        CUPDLP_COPY_VEC(iterates->y->data, iterates->yAverage->data,
+                        cupdlp_float, problem->nRows);
 
-      //   resobj->termIterate = AVERAGE_ITERATE;
-      //   resobj->termCode = OPTIMAL;
-      //   break;
-      // }
+        resobj->termIterate = AVERAGE_ITERATE;
+        resobj->termCode = OPTIMAL;
+        break;
+      }
 
       if (timers->dSolvingTime > settings->dTimeLim)
       {
@@ -1555,6 +1893,27 @@ cupdlp_retcode LP_SolvePDHG(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam, cup
                                 ifChangeFloatParam, floatParam));
 
   CUPDLP_CALL(PDHG_Solve(pdhg));
+
+  PDHG_PostSolve(pdhg, nCols_origin, constraint_new_idx, x_origin, y_origin);
+
+  writeJson(fp, pdhg, x_origin, nCols_origin, y_origin, pdhg->problem->nRows,
+            ifSaveSol);
+
+exit_cleanup:
+  PDHG_Destroy(&pdhg);
+  return retcode;
+}
+
+cupdlp_retcode LP_SolvePDHG_AdapTheta(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam, cupdlp_int *intParam, cupdlp_bool *ifChangeFloatParam, cupdlp_float *floatParam, char *fp, cupdlp_float *x_origin, cupdlp_int nCols_origin, cupdlp_float *y_origin, cupdlp_bool ifSaveSol, cupdlp_int *constraint_new_idx)
+{
+  cupdlp_retcode retcode = RETCODE_OK;
+
+  PDHG_PrintHugeCUPDHG();
+
+  CUPDLP_CALL(PDHG_SetUserParam(pdhg, ifChangeIntParam, intParam,
+                                ifChangeFloatParam, floatParam));
+
+  CUPDLP_CALL(PDHG_Solve_AdapTheta(pdhg));
 
   PDHG_PostSolve(pdhg, nCols_origin, constraint_new_idx, x_origin, y_origin);
 

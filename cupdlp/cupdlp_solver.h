@@ -39,7 +39,9 @@ extern "C"
 
   void PDHG_Compute_Residuals(CUPDLPwork *work);
   void PDTEST_Average_Compute_Residuals(CUPDLPwork *work);
+  void PDTEST_Compute_Residuals_best(CUPDLPwork *work);
   void PDTEST_Compute_Residuals(CUPDLPwork *work);
+  void PDTEST_Compute_Residuals_CurrentandAverage(CUPDLPwork *work);
 
   void PDHG_Init_Variables(CUPDLPwork *work);
   void PDTEST_Average_Init_Variables(CUPDLPwork *work);
@@ -47,6 +49,7 @@ extern "C"
 
   void PDHG_Check_Data(CUPDLPwork *work);
 
+  cupdlp_bool PDTEST_Check_Termination_best(CUPDLPwork *pdhg, int bool_print);
   cupdlp_bool PDHG_Check_Termination(CUPDLPwork *pdhg, int bool_print);
 
   cupdlp_bool PDHG_Check_Termination_Average(CUPDLPwork *pdhg, int bool_print);
@@ -60,6 +63,7 @@ extern "C"
   void PDHG_Compute_SolvingTime(CUPDLPwork *pdhg);
 
   cupdlp_retcode PDHG_Solve(CUPDLPwork *pdhg);
+  cupdlp_retcode PDHG_Solve_AdapTheta(CUPDLPwork *pdhg);
   cupdlp_retcode PDTEST_Average_Solve(CUPDLPwork *pdhg);
   cupdlp_retcode PDTEST_Solve(CUPDLPwork *pdhg);
   cupdlp_retcode PDTEST_Solve_best(CUPDLPwork *pdhg);
@@ -80,6 +84,14 @@ extern "C"
                               cupdlp_float *x_origin, cupdlp_int nCols_origin,
                               cupdlp_float *y_origin, cupdlp_bool ifSaveSol,
                               cupdlp_int *constraint_new_idx);
+
+  cupdlp_retcode LP_SolvePDHG_AdapTheta(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam,
+                                        cupdlp_int *intParam,
+                                        cupdlp_bool *ifChangeFloatParam,
+                                        cupdlp_float *floatParam, char *fp,
+                                        cupdlp_float *x_origin, cupdlp_int nCols_origin,
+                                        cupdlp_float *y_origin, cupdlp_bool ifSaveSol,
+                                        cupdlp_int *constraint_new_idx);
 
   cupdlp_retcode LP_SolvePDTEST(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam,
                                 cupdlp_int *intParam,

@@ -103,6 +103,7 @@ extern "C"
                                         cupdlp_int nrows);
 
     cupdlp_retcode stepsize_Alloc(CUPDLPstepsize *stepsize);
+    cupdlp_retcode PDTEST_stepsize_Alloc(CUPDLPstepsize *stepsize);
 
     cupdlp_retcode scaling_Alloc(CUPDLPscaling *scaling, CUPDLPproblem *problem,
                                  cupdlp_int ncols, cupdlp_int nrows);

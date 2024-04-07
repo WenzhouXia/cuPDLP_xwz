@@ -1178,6 +1178,27 @@ exit_cleanup:
   return retcode;
 }
 
+cupdlp_retcode PDTEST_stepsize_Alloc(CUPDLPstepsize *stepsize)
+{
+  cupdlp_retcode retcode = RETCODE_OK;
+
+  stepsize->eLineSearchMethod = PDHG_ADAPTIVE_LINESEARCH;
+
+  // initialization
+  stepsize->nStepSizeIter = 0;
+  stepsize->dPrimalStep = 0.0;
+  stepsize->dDualStep = 0.0;
+  stepsize->dSumPrimalStep = 0.0;
+  stepsize->dSumDualStep = 0.0;
+  stepsize->dBeta = 0.0;
+  stepsize->dTheta = 0.0;
+  stepsize->dStepSizeLastIter = 0.0;
+  stepsize->dStepSizeSum = 0.0;
+
+exit_cleanup:
+  return retcode;
+}
+
 cupdlp_retcode scaling_Alloc(CUPDLPscaling *scaling, CUPDLPproblem *problem,
                              cupdlp_int ncols, cupdlp_int nrows)
 {
@@ -1336,7 +1357,7 @@ cupdlp_retcode PDTEST_Alloc(CUPDLPwork *w)
   // CUPDLP_CALL(iterates_Alloc(w->iterates, w->problem->data->nCols, w->problem->data->nRows));
   CUPDLP_CALL(PDTESTiterates_Alloc(w->PDTESTiterates, w->problem->data->nCols, w->problem->data->nRows));
 
-  CUPDLP_CALL(stepsize_Alloc(w->stepsize));
+  CUPDLP_CALL(PDTEST_stepsize_Alloc(w->stepsize));
 
 #if !(CUPDLP_CPU)
   //   CHECK_CUSPARSE(cusparseCreate(&w->cusparsehandle));

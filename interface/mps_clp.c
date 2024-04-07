@@ -22,7 +22,7 @@ cupdlp_retcode main(int argc, char **argv)
   int nCols_origin;
   cupdlp_bool ifSaveSol = false;
   cupdlp_bool ifPresolve = false;
-  cupdlp_int ifPDTEST = false;
+  cupdlp_int ifPDTEST = 0;
   cupdlp_int bestID = 1;
   int nnz = 0;
   double *rhs = NULL;
@@ -217,14 +217,39 @@ cupdlp_retcode main(int argc, char **argv)
   {
     ifPDTEST = intParam[IF_PDTEST]; // 默认用PDHG不用PDTEST，ifPDTEST默认值为0
   }
-  if (!ifPDTEST)
+  // if (!ifPDTEST)
+  // {
+  //   CUPDLP_CALL(problem_alloc(prob, nRows, nCols, nEqs, cost, offset, sign_origin,
+  //                             csc_cpu, src_matrix_format, dst_matrix_format, rhs,
+  //                             lower, upper, &alloc_matrix_time, &copy_vec_time));
+  // }
+  // else
+  // {
+  //   /////////////////////////////////////////////////////////////////////
+  //   cupdlp_printf("--------------------------------------------------\n");
+  //   cupdlp_float sum = 0.0;
+  //   cupdlp_printf("csc_cpu->nMatElem = %d\n", csc_cpu->nMatElem);
+  //   for (cupdlp_int i = 0; i < csc_cpu->nMatElem; ++i)
+  //   {
+  //     cupdlp_float value = csc_cpu->colMatElem[i]; // 获取矩阵非零元素的值
+  //     sum += value * value;                        // 将元素的平方累加到总和中
+  //   }
+  //   cupdlp_float matrix_2norm = sqrt(sum);
+  //   cupdlp_printf("matrix_2norm = %f\n", matrix_2norm);
+  //   /////////////////////////////////////////////////////////////////////
+  //   CUPDLP_CALL(PDTEST_problem_alloc(prob, nRows, nCols, nEqs, cost, offset, sign_origin,
+  //                                    csc_cpu, src_matrix_format, dst_matrix_format, rhs,
+  //                                    lower, upper, &alloc_matrix_time, &copy_vec_time, matrix_2norm));
+  // }
+  switch (ifPDTEST)
   {
-    CUPDLP_CALL(problem_alloc(prob, nRows, nCols, nEqs, cost, offset, sign_origin,
-                              csc_cpu, src_matrix_format, dst_matrix_format, rhs,
-                              lower, upper, &alloc_matrix_time, &copy_vec_time));
-  }
-  else
-  {
+  case 0:
+  case 5:
+    CUPDLP_CALL(problem_alloc(prob, nRows, nCols, nEqs, cost, offset, sign_origin, csc_cpu, src_matrix_format, dst_matrix_format, rhs, lower, upper, &alloc_matrix_time, &copy_vec_time));
+  case 1:
+  case 2:
+  case 3:
+  case 4:
     /////////////////////////////////////////////////////////////////////
     cupdlp_printf("--------------------------------------------------\n");
     cupdlp_float sum = 0.0;
@@ -247,13 +272,21 @@ cupdlp_retcode main(int argc, char **argv)
 
   w->problem = prob;
   w->scaling = scaling;
-  if (!ifPDTEST)
+  switch (ifPDTEST)
   {
+  case 0:
+  case 5:
     PDHG_Alloc(w);
-  }
-  else
-  {
+    break;
+  case 1:
+  case 2:
+  case 3:
+  case 4:
     PDTEST_Alloc(w);
+    break;
+  default:
+    cupdlp_printf("Error: ifPDTEST = %d, 不在取值范围内", ifPDTEST);
+    break;
   }
   // // PDHG_Alloc(w);
   // PDTEST_Alloc(w);
@@ -307,12 +340,13 @@ cupdlp_retcode main(int argc, char **argv)
     cupdlp_printf("--------------------------------------------------\n");
     CUPDLP_CALL(LP_SolvePDTEST_best(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
     break;
-  // case 5:
-  //   cupdlp_printf("--------------------------------------------------\n");
-  //   cupdlp_printf("enter main solve loop, PDTEST_best\n");
-  //   cupdlp_printf("--------------------------------------------------\n");
-  //   CUPDLP_CALL(LP_SolvePDTEST_best2(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
-  //   break;
+  case 5:
+    cupdlp_printf("--------------------------------------------------\n");
+    cupdlp_printf("enter main solve loop, PDHG_AdapTheta\n");
+    cupdlp_printf("--------------------------------------------------\n");
+    CUPDLP_CALL(LP_SolvePDHG_AdapTheta(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
+    break;
+
   default:
     cupdlp_printf("Error: ifPDTEST = %d, 不在取值范围内", ifPDTEST);
     break;

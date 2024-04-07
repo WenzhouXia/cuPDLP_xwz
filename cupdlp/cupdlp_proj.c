@@ -727,13 +727,17 @@ void PDTEST_Restart_Iterate_GPU_best6(CUPDLPwork *pdhg, cupdlp_int *nIter_restar
   CUPDLPresobj *resobj = pdhg->resobj;
   CUPDLPtimers *timers = pdhg->timers;
 
-  PDHG_restart_choice restart_choice = PDTEST_Check_Restart_GPU_Only_Current(pdhg);
+  PDHG_restart_choice restart_choice = PDTEST_Check_Restart_GPU_best6(pdhg);
 
   if (restart_choice == PDHG_NO_RESTART)
     return;
+
+  stepsize->dStepSizeSum = 0.0;
+  stepsize->dSumPrimalStep = 0.0;
+  stepsize->dSumDualStep = 0.0;
   ///////////////////////////////////////////////////
   // 如果restart了，就把nIter_restart置为0
-  *nIter_restart = 0;
+  // *nIter_restart = 0;
   // stepsize->dBeta_ag = 0.0;
   // stepsize->dBeta_ag = 1.0;
   // CUPDLP_COPY_VEC(iterates->x->data, iterates->x_ag->data, cupdlp_float,
@@ -750,20 +754,56 @@ void PDTEST_Restart_Iterate_GPU_best6(CUPDLPwork *pdhg, cupdlp_int *nIter_restar
   // CUPDLP_COPY_VEC(iterates->ax_bar->data, iterates->ax_ag->data, cupdlp_float,
   //                 problem->nRows);
   ///////////////////////////////////////////////////
-  stepsize->dSumPrimalStep = 0.0;
-  stepsize->dSumDualStep = 0.0;
+  if (restart_choice == PDHG_RESTART_TO_AVERAGE)
+  {
+    cupdlp_printf("Restart to average\n");
+    resobj->dPrimalFeasLastRestart = resobj->dPrimalFeasAverage;
+    resobj->dDualFeasLastRestart = resobj->dDualFeasAverage;
+    resobj->dDualityGapLastRestart = resobj->dDualityGapAverage;
 
-  resobj->dPrimalFeasLastRestart = resobj->dPrimalFeas;
-  resobj->dDualFeasLastRestart = resobj->dDualFeas;
-  resobj->dDualityGapLastRestart = resobj->dDualityGap;
+    CUPDLP_COPY_VEC(iterates->x->data, iterates->x_ag->data, cupdlp_float,
+                    problem->nCols);
+    CUPDLP_COPY_VEC(iterates->y->data, iterates->y_ag->data, cupdlp_float,
+                    problem->nRows);
+    CUPDLP_COPY_VEC(iterates->ax->data, iterates->ax_ag->data, cupdlp_float,
+                    problem->nRows);
+    CUPDLP_COPY_VEC(iterates->aty->data, iterates->aty_ag->data,
+                    cupdlp_float, problem->nCols);
+
+    CUPDLP_COPY_VEC(iterates->x_bar->data, iterates->x_ag->data, cupdlp_float,
+                    problem->nCols);
+    CUPDLP_COPY_VEC(iterates->ax_bar->data, iterates->ax_ag->data, cupdlp_float,
+                    problem->nRows);
+  }
+  else
+  {
+    cupdlp_printf("Restart to current\n");
+    resobj->dPrimalFeasLastRestart = resobj->dPrimalFeas;
+    resobj->dDualFeasLastRestart = resobj->dDualFeas;
+    resobj->dDualityGapLastRestart = resobj->dDualityGap;
+
+    CUPDLP_COPY_VEC(iterates->x_ag->data, iterates->x->data, cupdlp_float,
+                    problem->nCols);
+    CUPDLP_COPY_VEC(iterates->y_ag->data, iterates->y->data, cupdlp_float,
+                    problem->nRows);
+    CUPDLP_COPY_VEC(iterates->ax_ag->data, iterates->ax->data, cupdlp_float,
+                    problem->nRows);
+    CUPDLP_COPY_VEC(iterates->aty_ag->data, iterates->aty->data,
+                    cupdlp_float, problem->nCols);
+
+    CUPDLP_COPY_VEC(iterates->x_bar->data, iterates->x->data, cupdlp_float,
+                    problem->nCols);
+    CUPDLP_COPY_VEC(iterates->ax_bar->data, iterates->ax->data, cupdlp_float,
+                    problem->nRows);
+  }
 
   ////////////////////////////////////////////////////////
   PDTEST_Compute_Step_Size_Ratio(pdhg);
   ////////////////////////////////////////////////////////
 
-  CUPDLP_COPY_VEC(iterates->xLastRestart, iterates->x_ag->data, cupdlp_float,
+  CUPDLP_COPY_VEC(iterates->xLastRestart, iterates->x->data, cupdlp_float,
                   problem->nCols);
-  CUPDLP_COPY_VEC(iterates->yLastRestart, iterates->y_ag->data, cupdlp_float,
+  CUPDLP_COPY_VEC(iterates->yLastRestart, iterates->y->data, cupdlp_float,
                   problem->nRows);
 
   iterates->iLastRestartIter = timers->nIter;

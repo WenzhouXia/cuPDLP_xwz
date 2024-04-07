@@ -93,6 +93,10 @@ extern "C" void cupdlp_dgrad_cuda(cupdlp_float *yUpdate, const cupdlp_float *y,
                                   const cupdlp_float dDualStep,
                                   const cupdlp_int len);
 
+extern "C" void cupdlp_dgrad_cuda_AdapTheta(cupdlp_float *yUpdate, const cupdlp_float *y, const cupdlp_float *b,
+                                            const cupdlp_float *Ax, const cupdlp_float *AxUpdate,
+                                            const cupdlp_float dDualStep, const cupdlp_int len, const cupdlp_float theta);
+
 extern "C" void pdtest_x_md_update_cuda(cupdlp_float *x_agUpdate, const cupdlp_float *x_ag, const cupdlp_float *xUpdate, const cupdlp_float beta, const cupdlp_int len);
 
 extern "C" void pdtest_x_ag_update_cuda(cupdlp_float *x_agUpdate, const cupdlp_float *x_ag, const cupdlp_float *xUpdate, const cupdlp_float beta, const cupdlp_int len);

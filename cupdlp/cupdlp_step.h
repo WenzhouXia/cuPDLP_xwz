@@ -35,6 +35,7 @@ void PDTEST_Update_Iterate_Constant_Step_Size_ReverseOrder(CUPDLPwork *pdhg, cup
 void PDHG_Update_Iterate_Malitsky_Pock(CUPDLPwork *pdhg);
 
 cupdlp_retcode PDHG_Update_Iterate_Adaptive_Step_Size(CUPDLPwork *pdhg);
+cupdlp_retcode PDHG_Update_Iterate_Adaptive_Step_Size_AdapTheta(CUPDLPwork *pdhg);
 cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
 cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag_best(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
 cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag_best2(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
@@ -45,6 +46,7 @@ cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size_ag_best6(CUPDLPwork *pdh
 cupdlp_retcode PDTEST_Update_Iterate_Adaptive_Step_Size(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
 
 cupdlp_retcode PDHG_Init_Step_Sizes(CUPDLPwork *pdhg);
+cupdlp_retcode PDHG_Init_Step_Sizes_AdapTheta(CUPDLPwork *pdhg);
 cupdlp_retcode PDTEST_Init_Step_Sizes(CUPDLPwork *pdhg);
 cupdlp_retcode PDTEST_Init_Step_Sizes_best(CUPDLPwork *pdhg);
 cupdlp_retcode PDTEST_Init_Step_Sizes_best1(CUPDLPwork *pdhg);
@@ -59,6 +61,7 @@ void PDHG_Update_Average(CUPDLPwork *work);
 void PDTEST_Update_Average(CUPDLPwork *work);
 
 cupdlp_retcode PDHG_Update_Iterate(CUPDLPwork *pdhg);
+cupdlp_retcode PDHG_Update_Iterate_AdapTheta(CUPDLPwork *pdhg);
 cupdlp_retcode PDTEST_Average_Update_Iterate(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
 cupdlp_retcode PDTEST_Update_Iterate(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
 cupdlp_retcode PDTEST_Update_Iterate_best(CUPDLPwork *pdhg, cupdlp_int *nIter_restart);
