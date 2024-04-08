@@ -16,7 +16,8 @@
 void CUPDLP_multiscale_testprint();
 
 cupdlp_float *readCSVToFloatArray(const char *filename, cupdlp_int numRows, cupdlp_int numCols);
-void *normalizeArray1D(cupdlp_float *array, cupdlp_int array_len);
+void normalizeArray1D(cupdlp_float *array, cupdlp_int array_len);
+cupdlp_float *coarsingArray1D(cupdlp_float *array, cupdlp_int array_len, const cupdlp_int coarse_degree);
 
 void print_float_array2D(cupdlp_float **array, cupdlp_int numRows, cupdlp_int numCols);
 void print_float_array1D(cupdlp_float *array, cupdlp_int num);
@@ -35,4 +36,7 @@ cupdlp_float *dualOT_colLower(cupdlp_int m, cupdlp_int n);
 cupdlp_float *dualOT_colUpper(cupdlp_int m, cupdlp_int n);
 void generate_dualOT_model_from_distribution_and_cost(void *model, const cupdlp_float *a, const cupdlp_float *b, const cupdlp_int a_len, const cupdlp_int b_len, cupdlp_float *c);
 void generate_dualOT_model_from_csv(void *model, const char *csvpath_1, const char *csvpath_2, cupdlp_int resolution);
+void generate_coarse_dualOT_model(void *model_coarse, cupdlp_float *a, cupdlp_float *b, cupdlp_int a_len, cupdlp_int b_len, cupdlp_int resolution, const cupdlp_int coarse_degree);
+void LP_Solve_Multiscale(w, w_coarse, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx);
+CUPDLPwork *createCUPDLPwork(void *model, CUPDLPscaling *scaling, cupdlp_int ifScaling, cupdlp_bool ifPresolve);
 #endif // CUPDLP_CUPDLP_MULTISCALE_H

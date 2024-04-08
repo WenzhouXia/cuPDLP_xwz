@@ -1,6 +1,5 @@
 #include "mps_lp.h"
 #include "wrapper_clp.h"
-
 /*
     min cTx
     s.t. Aeq x = b
@@ -102,7 +101,6 @@ cupdlp_retcode main(int argc, char **argv)
   CUPDLP_CALL(getUserParam(argc, argv, ifChangeIntParam, intParam,
                            ifChangeFloatParam, floatParam));
 #pragma endregion
-
   void *model = NULL;
   model = createModel();
   // loadMps(model, fname);
@@ -110,14 +108,13 @@ cupdlp_retcode main(int argc, char **argv)
 
   char basePath[] = "/home/xiawenzhou/Documents/XiaWenzhou/OptimalTransport/OT_instances/DOTmark/Data";
   char type[] = "Shapes";
-  int resolution = 32;
+  int resolution = 64;
   int fileNumber_1 = 1001;
   int fileNumber_2 = 1005;
   char csvpath_1[256]; // 确保这个缓冲区足够大，以存储完整的文件路径
   char csvpath_2[256]; // 确保这个缓冲区足够大，以存储完整的文件路径
+
   // 使用sprintf拼接字符串
-  // cupdlp_int pow_test = pow(2, 3);
-  // printf("pow_test = %d\n", pow_test);
   sprintf(csvpath_1, "%s/%s/data%d_%d.csv", basePath, type, resolution, fileNumber_1);
   sprintf(csvpath_2, "%s/%s/data%d_%d.csv", basePath, type, resolution, fileNumber_2);
   generate_dualOT_model_from_csv(model, csvpath_1, csvpath_2, resolution);
@@ -131,13 +128,23 @@ cupdlp_retcode main(int argc, char **argv)
   }
 
   cupdlp_float presolve_time = getTimeStamp();
-  // if (ifPresolve)
-  // {
-  //   presolveinfo = createPresolve();
-  //   presolvedmodel = presolvedModel(presolveinfo, model);
-  //   model2solve = presolvedmodel;
-  // }
-  // presolve_time = getTimeStamp() - presolve_time;
+  if (ifPresolve)
+  {
+    presolveinfo = createPresolve();
+    presolvedmodel = presolvedModel(presolveinfo, model);
+    model2solve = presolvedmodel;
+  }
+  presolve_time = getTimeStamp() - presolve_time;
+
+  // CUPDLP_CALL(formulateLP(model, &cost, &nCols, &nRows, &nnz, &nEqs,
+  // &csc_beg,
+  //                         &csc_idx, &csc_val, &rhs, &lower, &upper,
+  //                         &offset));
+
+  // CUPDLP_CALL(formulateLP_new(
+  //     model, &cost, &nCols, &nRows, &nnz, &nEqs, &csc_beg, &csc_idx,
+  //     &csc_val, &rhs, &lower, &upper, &offset, &nCols_origin,
+  //     &constraint_new_idx));
 
   CUPDLP_CALL(formulateLP_new(model2solve, &cost, &nCols, &nRows, &nnz, &nEqs,
                               &csc_beg, &csc_idx, &csc_val, &rhs, &lower,
@@ -183,126 +190,142 @@ cupdlp_retcode main(int argc, char **argv)
     scaling->ifPcScaling = intParam[IF_PC_SCALING];
   }
 
+  // these two handles need to be established first
+  CUPDLPwork *w = cupdlp_NULL;
+  CUPDLP_INIT_ZERO(w, 1);
+#if !(CUPDLP_CPU)
+  cupdlp_float cuda_prepare_time = getTimeStamp();
+  CHECK_CUSPARSE(cusparseCreate(&w->cusparsehandle));
+  CHECK_CUBLAS(cublasCreate(&w->cublashandle));
+  cuda_prepare_time = getTimeStamp() - cuda_prepare_time;
+#endif
+
+  CUPDLP_CALL(problem_create(&prob));
+
+  // currently, only supprot that input matrix is CSC, and store both CSC and
+  // CSR
+  CUPDLP_CALL(csc_create(&csc_cpu));
+  csc_cpu->nRows = nRows;
+  csc_cpu->nCols = nCols;
+  csc_cpu->nMatElem = nnz;
+  csc_cpu->colMatBeg = (int *)malloc((1 + nCols) * sizeof(int));
+  csc_cpu->colMatIdx = (int *)malloc(nnz * sizeof(int));
+  csc_cpu->colMatElem = (double *)malloc(nnz * sizeof(double));
+  memcpy(csc_cpu->colMatBeg, csc_beg, (nCols + 1) * sizeof(int));
+  memcpy(csc_cpu->colMatIdx, csc_idx, nnz * sizeof(int));
+  memcpy(csc_cpu->colMatElem, csc_val, nnz * sizeof(double));
+#if !(CUPDLP_CPU)
+  csc_cpu->cuda_csc = NULL;
+#endif
+
+  cupdlp_float scaling_time = getTimeStamp();
+  CUPDLP_CALL(PDHG_Scale_Data_cuda(csc_cpu, ifScaling, scaling, cost, lower,
+                                   upper, rhs));
+  scaling_time = getTimeStamp() - scaling_time;
+
+  cupdlp_float alloc_matrix_time = 0.0;
+  cupdlp_float copy_vec_time = 0.0;
+
   if (ifChangeIntParam[IF_PDTEST])
   {
     ifPDTEST = intParam[IF_PDTEST]; // 默认用PDHG不用PDTEST，ifPDTEST默认值为0
   }
+  // if (!ifPDTEST)
+  // {
+  //   CUPDLP_CALL(problem_alloc(prob, nRows, nCols, nEqs, cost, offset, sign_origin,
+  //                             csc_cpu, src_matrix_format, dst_matrix_format, rhs,
+  //                             lower, upper, &alloc_matrix_time, &copy_vec_time));
+  // }
+  // else
+  // {
+  //   /////////////////////////////////////////////////////////////////////
+  //   cupdlp_printf("--------------------------------------------------\n");
+  //   cupdlp_float sum = 0.0;
+  //   cupdlp_printf("csc_cpu->nMatElem = %d\n", csc_cpu->nMatElem);
+  //   for (cupdlp_int i = 0; i < csc_cpu->nMatElem; ++i)
+  //   {
+  //     cupdlp_float value = csc_cpu->colMatElem[i]; // 获取矩阵非零元素的值
+  //     sum += value * value;                        // 将元素的平方累加到总和中
+  //   }
+  //   cupdlp_float matrix_2norm = sqrt(sum);
+  //   cupdlp_printf("matrix_2norm = %f\n", matrix_2norm);
+  //   /////////////////////////////////////////////////////////////////////
+  //   CUPDLP_CALL(PDTEST_problem_alloc(prob, nRows, nCols, nEqs, cost, offset, sign_origin,
+  //                                    csc_cpu, src_matrix_format, dst_matrix_format, rhs,
+  //                                    lower, upper, &alloc_matrix_time, &copy_vec_time, matrix_2norm));
+  // }
+  switch (ifPDTEST)
+  {
+  case 0:
+  case 5:
+    CUPDLP_CALL(problem_alloc(prob, nRows, nCols, nEqs, cost, offset, sign_origin, csc_cpu, src_matrix_format, dst_matrix_format, rhs, lower, upper, &alloc_matrix_time, &copy_vec_time));
+    break;
+  case 1:
+  case 2:
+  case 3:
+  case 4:
+    ///////////////////////////////////////////////////////////////////
+    cupdlp_printf("--------------------------------------------------\n");
+    cupdlp_float sum = 0.0;
+    cupdlp_printf("csc_cpu->nMatElem = %d\n", csc_cpu->nMatElem);
+    for (cupdlp_int i = 0; i < csc_cpu->nMatElem; ++i)
+    {
+      cupdlp_float value = csc_cpu->colMatElem[i]; // 获取矩阵非零元素的值
+      sum += value * value;                        // 将元素的平方累加到总和中
+    }
+    cupdlp_float matrix_2norm = sqrt(sum);
+    cupdlp_printf("matrix_2norm = %f\n", matrix_2norm);
+    /////////////////////////////////////////////////////////////////////
+    CUPDLP_CALL(PDTEST_problem_alloc(prob, nRows, nCols, nEqs, cost, offset, sign_origin,
+                                     csc_cpu, src_matrix_format, dst_matrix_format, rhs,
+                                     lower, upper, &alloc_matrix_time, &copy_vec_time, matrix_2norm));
+    break;
+  default:
+    cupdlp_printf("Error: ifPDTEST = %d, 不在取值范围内", ifPDTEST);
+    break;
+  }
 
-#pragma region 创建CUPDLPwork，但是被我注释掉了
-////////////////////////////////////////////////////////////////////////////////////////
-//   // these two handles need to be established first
-//   CUPDLPwork *w = cupdlp_NULL;
-//   CUPDLP_INIT_ZERO(w, 1);
-// #if !(CUPDLP_CPU)
-//   cupdlp_float cuda_prepare_time = getTimeStamp();
-//   CHECK_CUSPARSE(cusparseCreate(&w->cusparsehandle));
-//   CHECK_CUBLAS(cublasCreate(&w->cublashandle));
-//   cuda_prepare_time = getTimeStamp() - cuda_prepare_time;
-// #endif
+  // solve
+  // cupdlp_printf("Enter main solve loop\n");
 
-//   CUPDLP_CALL(problem_create(&prob));
+  w->problem = prob;
+  w->scaling = scaling;
+  switch (ifPDTEST)
+  {
+  case 0:
+  case 5:
+    PDHG_Alloc(w);
+    break;
+  case 1:
+  case 2:
+  case 3:
+  case 4:
+    PDTEST_Alloc(w);
+    break;
+  default:
+    cupdlp_printf("Error: ifPDTEST = %d, 不在取值范围内", ifPDTEST);
+    break;
+  }
+  // // PDHG_Alloc(w);
+  // PDTEST_Alloc(w);
+  w->timers->dScalingTime = scaling_time;
+  w->timers->dPresolveTime = presolve_time;
+  CUPDLP_COPY_VEC(w->rowScale, scaling->rowScale, cupdlp_float, nRows);
+  CUPDLP_COPY_VEC(w->colScale, scaling->colScale, cupdlp_float, nCols);
 
-//   // currently, only supprot that input matrix is CSC, and store both CSC and
-//   // CSR
-//   CUPDLP_CALL(csc_create(&csc_cpu));
-//   csc_cpu->nRows = nRows;
-//   csc_cpu->nCols = nCols;
-//   csc_cpu->nMatElem = nnz;
-//   csc_cpu->colMatBeg = (int *)malloc((1 + nCols) * sizeof(int));
-//   csc_cpu->colMatIdx = (int *)malloc(nnz * sizeof(int));
-//   csc_cpu->colMatElem = (double *)malloc(nnz * sizeof(double));
-//   memcpy(csc_cpu->colMatBeg, csc_beg, (nCols + 1) * sizeof(int));
-//   memcpy(csc_cpu->colMatIdx, csc_idx, nnz * sizeof(int));
-//   memcpy(csc_cpu->colMatElem, csc_val, nnz * sizeof(double));
-// #if !(CUPDLP_CPU)
-//   csc_cpu->cuda_csc = NULL;
-// #endif
+#if !(CUPDLP_CPU)
+  w->timers->AllocMem_CopyMatToDeviceTime += alloc_matrix_time;
+  w->timers->CopyVecToDeviceTime += copy_vec_time;
+  w->timers->CudaPrepareTime = cuda_prepare_time;
+#endif
 
-//   cupdlp_float scaling_time = getTimeStamp();
-//   CUPDLP_CALL(PDHG_Scale_Data_cuda(csc_cpu, ifScaling, scaling, cost, lower,
-//                                    upper, rhs));
-//   scaling_time = getTimeStamp() - scaling_time;
+  // CUPDLP_CALL(LP_SolvePDHG(prob, cupdlp_NULL, cupdlp_NULL, cupdlp_NULL,
+  // cupdlp_NULL));
+  //   CUPDLP_CALL(LP_SolvePDHG(prob, ifChangeIntParam, intParam,
+  //                               ifChangeFloatParam, floatParam, fout));
 
-//   cupdlp_float alloc_matrix_time = 0.0;
-//   cupdlp_float copy_vec_time = 0.0;
-
-//     switch (ifPDTEST)
-//   {
-//   case 0:
-//   case 5:
-//     CUPDLP_CALL(problem_alloc(prob, nRows, nCols, nEqs, cost, offset, sign_origin, csc_cpu, src_matrix_format, dst_matrix_format, rhs, lower, upper, &alloc_matrix_time, &copy_vec_time));
-//     break;
-//   case 1:
-//   case 2:
-//   case 3:
-//   case 4:
-//     ///////////////////////////////////////////////////////////////////
-//     cupdlp_printf("--------------------------------------------------\n");
-//     cupdlp_float sum = 0.0;
-//     cupdlp_printf("csc_cpu->nMatElem = %d\n", csc_cpu->nMatElem);
-//     for (cupdlp_int i = 0; i < csc_cpu->nMatElem; ++i)
-//     {
-//       cupdlp_float value = csc_cpu->colMatElem[i]; // 获取矩阵非零元素的值
-//       sum += value * value;                        // 将元素的平方累加到总和中
-//     }
-//     cupdlp_float matrix_2norm = sqrt(sum);
-//     cupdlp_printf("matrix_2norm = %f\n", matrix_2norm);
-//     /////////////////////////////////////////////////////////////////////
-//     CUPDLP_CALL(PDTEST_problem_alloc(prob, nRows, nCols, nEqs, cost, offset, sign_origin,
-//                                      csc_cpu, src_matrix_format, dst_matrix_format, rhs,
-//                                      lower, upper, &alloc_matrix_time, &copy_vec_time, matrix_2norm));
-//     break;
-//   default:
-//     cupdlp_printf("Error: ifPDTEST = %d, 不在取值范围内", ifPDTEST);
-//     break;
-//   }
-
-//   // solve
-//   // cupdlp_printf("Enter main solve loop\n");
-
-//   w->problem = prob;
-//   w->scaling = scaling;
-//   switch (ifPDTEST)
-//   {
-//   case 0:
-//   case 5:
-//     PDHG_Alloc(w);
-//     break;
-//   case 1:
-//   case 2:
-//   case 3:
-//   case 4:
-//     PDTEST_Alloc(w);
-//     break;
-//   default:
-//     cupdlp_printf("Error: ifPDTEST = %d, 不在取值范围内", ifPDTEST);
-//     break;
-//   }
-//   // // PDHG_Alloc(w);
-//   // PDTEST_Alloc(w);
-//   w->timers->dScalingTime = scaling_time;
-//   w->timers->dPresolveTime = presolve_time;
-//   CUPDLP_COPY_VEC(w->rowScale, scaling->rowScale, cupdlp_float, nRows);
-//   CUPDLP_COPY_VEC(w->colScale, scaling->colScale, cupdlp_float, nCols);
-
-// #if !(CUPDLP_CPU)
-//   w->timers->AllocMem_CopyMatToDeviceTime += alloc_matrix_time;
-//   w->timers->CopyVecToDeviceTime += copy_vec_time;
-//   w->timers->CudaPrepareTime = cuda_prepare_time;
-// #endif
-
-//   // CUPDLP_CALL(LP_SolvePDHG(prob, cupdlp_NULL, cupdlp_NULL, cupdlp_NULL,
-//   // cupdlp_NULL));
-//   //   CUPDLP_CALL(LP_SolvePDHG(prob, ifChangeIntParam, intParam,
-//   //                               ifChangeFloatParam, floatParam, fout));
-
-//   CUPDLP_INIT(x_origin, nCols_origin);
-//   CUPDLP_INIT(y_origin, nRows);
-////////////////////////////////////////////////////////////////////////////////////////
-#pragma endregion
-
-  CUPDLPwork *w = createCUPDLPwork(model2solve, scaling, ifScaling, ifPresolve);
-  // CUPDLPwork *w_coarse = createCUPDLPwork(model2solve_coarse, scaling, ifScaling, ifPresolve);
+  CUPDLP_INIT(x_origin, nCols_origin);
+  CUPDLP_INIT(y_origin, nRows);
   switch (ifPDTEST)
   {
   case 0:

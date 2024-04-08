@@ -44,7 +44,7 @@ cupdlp_float *readCSVToFloatArray(const char *filename, cupdlp_int numRows, cupd
     return data;
 }
 
-void *normalizeArray1D(cupdlp_float *array, cupdlp_int array_len)
+void normalizeArray1D(cupdlp_float *array, cupdlp_int array_len)
 {
     cupdlp_float sum = 0.0;
     for (cupdlp_int i = 0; i < array_len; i++)
@@ -55,7 +55,22 @@ void *normalizeArray1D(cupdlp_float *array, cupdlp_int array_len)
     {
         array[i] = array[i] / sum;
     }
-    return 0;
+}
+
+cupdlp_float *coarsingArray1D(cupdlp_float *array, cupdlp_int array_len, const cupdlp_int coarse_degree)
+{
+    cupdlp_float array_coarse_len = array_len / pow(2, coarse_degree);
+    cupdlp_float *array_coarse = (cupdlp_float *)malloc(array_coarse_len * sizeof(cupdlp_float));
+    cupdlp_float sum = 0.0;
+
+    for (cupdlp_int i = 0; i < array_coarse_len; i++)
+    {
+        array_coarse[i] = 0.0;
+        for (cupdlp_int j = 0; j < array_coarse_len; j++)
+        {
+            array_coarse[i] += array[i * coarse_degree + j];
+        }
+    }
 }
 
 void print_float_array2D(cupdlp_float **array, cupdlp_int numRows, cupdlp_int numCols)
@@ -179,6 +194,7 @@ cupdlp_float *mergeTwoArrays1D_minus(const cupdlp_float *a, const cupdlp_float *
     return result;
 }
 
+// m是图片的行数，n是图片的列数，m*n是分布的长度，m*m*n*n是c的长度
 cupdlp_float *normalizedSquaredEuclideanDistance(cupdlp_int m, cupdlp_int n)
 {
     cupdlp_float *c = (cupdlp_float *)malloc(m * m * n * n * sizeof(cupdlp_float));
@@ -202,6 +218,12 @@ cupdlp_float *normalizedSquaredEuclideanDistance(cupdlp_int m, cupdlp_int n)
         }
     }
     return c;
+}
+
+cupdlp_float *coarsing_normalizedSquaredEuclideanDistance(cupdlp_int m, cupdlp_int n, const cupdlp_int coarse_degree)
+{
+    cupdlp_float *c_coarse = normalizedSquaredEuclideanDistance(m / pow(2, coarse_degree), n / pow(2, coarse_degree));
+    return c_coarse;
 }
 
 // start数组定义了每一列的起始元素在 index[] 和 value[] 数组中的位置，或者说每一列的起始元素是第几个非零元素；start数组的最后一个为非零元素个数
@@ -333,11 +355,13 @@ void generate_dualOT_model_from_distribution_and_cost(void *model, const cupdlp_
     free(colLower);
     free(colUpper);
     free(obj);
-    return 0;
 }
 
 void generate_dualOT_model_from_csv(void *model, const char *csvpath_1, const char *csvpath_2, cupdlp_int resolution)
 {
+    // void *model = NULL;
+    // model = createModel();
+    cupdlp_printf("开始读取数据\n");
     cupdlp_int a_len = resolution * resolution;
     cupdlp_int b_len = resolution * resolution;
     cupdlp_float *a = readCSVToFloatArray(csvpath_1, resolution, resolution);
@@ -345,9 +369,123 @@ void generate_dualOT_model_from_csv(void *model, const char *csvpath_1, const ch
     normalizeArray1D(a, a_len);
     normalizeArray1D(b, b_len);
     cupdlp_float *c = normalizedSquaredEuclideanDistance(resolution, resolution);
+    cupdlp_printf("开始构建模型\n");
     generate_dualOT_model_from_distribution_and_cost(model, a, b, a_len, b_len, c);
+    cupdlp_printf("模型构建完成\n");
     free(c);
     free(a);
     free(b);
-    return 0;
+}
+
+void generate_coarse_dualOT_model(void *model_coarse, cupdlp_float *a, cupdlp_float *b, cupdlp_int a_len, cupdlp_int b_len, cupdlp_int resolution, const cupdlp_int coarse_degree)
+{
+    cupdlp_int a_coarse_len = a_len / pow(2, coarse_degree);
+    cupdlp_int b_coarse_len = b_len / pow(2, coarse_degree);
+    cupdlp_float *a_coarse = coarsingArray1D(a, a_len, coarse_degree);
+    cupdlp_float *b_coarse = coarsingArray1D(b, b_len, coarse_degree);
+    cupdlp_float *c_coarse = coarsing_normalizedSquaredEuclideanDistance(resolution, resolution, coarse_degree);
+    generate_dualOT_model_from_distribution_and_cost(model_coarse, a_coarse, b_coarse, a_coarse_len, b_coarse_len, c_coarse);
+    free(a_coarse);
+    free(b_coarse);
+    free(c_coarse);
+}
+
+void LP_Solve_Multiscale(w, w_coarse, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx)
+{
+    LP_SolvePDHG(w_coarse, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx);
+    // 提取x_coarse, y_coarse, 转化为下一层的x_origin, y_origin
+    LP_SolvePDHG(w_coarse, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx);
+}
+
+CUPDLPwork *createCUPDLPwork(void *model, CUPDLPscaling *scaling, cupdlp_int ifScaling, cupdlp_bool ifPresolve)
+{
+    void *model2solve = model;
+
+    int nCols;
+    int nRows;
+    CUPDLPcsc *csc_cpu = cupdlp_NULL;
+    int nnz = 0;
+    int *csc_beg = NULL, *csc_idx = NULL;
+    double *csc_val = NULL;
+    double *cost = NULL;
+    int nEqs;
+    double *rhs = NULL;
+    cupdlp_float *lower = NULL;
+    cupdlp_float *upper = NULL;
+    double offset = 0.0;    // true objVal = sig * c'x - offset, sig = 1 (min) or -1 (max)
+    double sign_origin = 1; // 1 (min) or -1 (max)
+    int *constraint_new_idx = NULL;
+    int nCols_origin;
+    cupdlp_retcode retcode = RETCODE_OK;
+    CUPDLP_MATRIX_FORMAT src_matrix_format = CSC;     // 原矩阵格式
+    CUPDLP_MATRIX_FORMAT dst_matrix_format = CSR_CSC; // 目标矩阵格式
+    cupdlp_float alloc_matrix_time = 0.0;
+    cupdlp_float copy_vec_time = 0.0;
+
+    void *presolveinfo = NULL;
+    void *presolvedmodel = NULL;
+
+    cupdlp_float *x_origin = cupdlp_NULL;
+    cupdlp_float *y_origin = cupdlp_NULL;
+
+    cupdlp_float presolve_time = getTimeStamp();
+    if (ifPresolve)
+    {
+        presolveinfo = createPresolve();
+        presolvedmodel = presolvedModel(presolveinfo, model);
+        model2solve = presolvedmodel;
+    }
+    presolve_time = getTimeStamp() - presolve_time;
+
+    CUPDLP_CALL(formulateLP_new(model, &cost, &nCols, &nRows, &nnz, &nEqs,
+                                &csc_beg, &csc_idx, &csc_val, &rhs, &lower,
+                                &upper, &offset, &sign_origin, &nCols_origin,
+                                &constraint_new_idx));
+
+    CUPDLPwork *w = cupdlp_NULL;
+    CUPDLP_INIT_ZERO(w, 1);
+    cupdlp_float cuda_prepare_time = getTimeStamp();
+    CHECK_CUSPARSE(cusparseCreate(&w->cusparsehandle));
+    CHECK_CUBLAS(cublasCreate(&w->cublashandle));
+    cuda_prepare_time = getTimeStamp() - cuda_prepare_time;
+
+    CUPDLPproblem *prob = cupdlp_NULL;
+    CUPDLP_CALL(problem_create(&prob));
+
+    CUPDLP_CALL(csc_create(&csc_cpu));
+    csc_cpu->nRows = nRows;
+    csc_cpu->nCols = nCols;
+    csc_cpu->nMatElem = nnz;
+    csc_cpu->colMatBeg = (int *)malloc((1 + nCols) * sizeof(int));
+    csc_cpu->colMatIdx = (int *)malloc(nnz * sizeof(int));
+    csc_cpu->colMatElem = (double *)malloc(nnz * sizeof(double));
+    memcpy(csc_cpu->colMatBeg, csc_beg, (nCols + 1) * sizeof(int));
+    memcpy(csc_cpu->colMatIdx, csc_idx, nnz * sizeof(int));
+    memcpy(csc_cpu->colMatElem, csc_val, nnz * sizeof(double));
+    csc_cpu->cuda_csc = NULL;
+
+    cupdlp_float scaling_time = getTimeStamp();
+    CUPDLP_CALL(PDHG_Scale_Data_cuda(csc_cpu, ifScaling, scaling, cost, lower,
+                                     upper, rhs));
+    scaling_time = getTimeStamp() - scaling_time;
+
+    CUPDLP_CALL(problem_alloc(prob, nRows, nCols, nEqs, cost, offset, sign_origin, csc_cpu, src_matrix_format, dst_matrix_format, rhs, lower, upper, &alloc_matrix_time, &copy_vec_time));
+
+    w->problem = prob;
+    w->scaling = scaling;
+    PDHG_Alloc(w);
+    w->timers->dScalingTime = scaling_time;
+    w->timers->dPresolveTime = presolve_time;
+    CUPDLP_COPY_VEC(w->rowScale, scaling->rowScale, cupdlp_float, nRows);
+    CUPDLP_COPY_VEC(w->colScale, scaling->colScale, cupdlp_float, nCols);
+    w->timers->AllocMem_CopyMatToDeviceTime += alloc_matrix_time;
+    w->timers->CopyVecToDeviceTime += copy_vec_time;
+    w->timers->CudaPrepareTime = cuda_prepare_time;
+
+    CUPDLP_INIT(x_origin, nCols_origin);
+    CUPDLP_INIT(y_origin, nRows);
+exit_cleanup:
+    cupdlp_printf("exit_cleanup\n");
+
+    return w;
 }
