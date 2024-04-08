@@ -13,5 +13,6 @@
 #include "cupdlp_step.h"
 #include "cupdlp_utils.h"
 #include "glbopts.h"
+#include "cupdlp_multiscale.h"
 
 #endif

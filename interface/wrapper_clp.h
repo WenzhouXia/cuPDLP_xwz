@@ -33,6 +33,13 @@ int formulateLP_new(void *model, double **cost, int *nCols, int *nRows,
 
 void loadMps(void *model, const char *filename);
 
+void loadProblemWrapper(void *model, int numCols, int numRows,
+                        const int *start, const int *index,
+                        const double *value, const double *colLower,
+                        const double *colUpper, const double *obj,
+                        const double *rowLower, const double *rowUpper);
+void writeLpWrapper(void *model, const char *filename);
+
 void deleteModel(void *model);
 void *createModel();
 

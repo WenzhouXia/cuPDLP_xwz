@@ -1,6 +1,5 @@
 #include "mps_lp.h"
 #include "wrapper_clp.h"
-
 /*
     min cTx
     s.t. Aeq x = b
@@ -41,7 +40,6 @@ cupdlp_retcode main(int argc, char **argv)
   cupdlp_float *x_origin = cupdlp_NULL;
   cupdlp_float *y_origin = cupdlp_NULL;
 
-  void *model = NULL;
   void *presolvedmodel = NULL;
   void *presolveinfo = NULL;
 
@@ -103,9 +101,23 @@ cupdlp_retcode main(int argc, char **argv)
   CUPDLP_CALL(getUserParam(argc, argv, ifChangeIntParam, intParam,
                            ifChangeFloatParam, floatParam));
 #pragma endregion
-
+  void *model = NULL;
   model = createModel();
-  loadMps(model, fname);
+  // loadMps(model, fname);
+  // writeLpWrapper(model, "test_ot_load");
+
+  char basePath[] = "/home/xiawenzhou/Documents/XiaWenzhou/OptimalTransport/OT_instances/DOTmark/Data";
+  char type[] = "CauchyDensity";
+  int resolution = 32;
+  int fileNumber_1 = 1001;
+  int fileNumber_2 = 1002;
+  char csvpath_1[256]; // 确保这个缓冲区足够大，以存储完整的文件路径
+  char csvpath_2[256]; // 确保这个缓冲区足够大，以存储完整的文件路径
+  // 使用sprintf拼接字符串
+  sprintf(csvpath_1, "%s/%s/data%d_%d.csv", basePath, type, resolution, fileNumber_1);
+  sprintf(csvpath_2, "%s/%s/data%d_%d.csv", basePath, type, resolution, fileNumber_2);
+  generate_dualOT_model_from_csv(model, csvpath_1, csvpath_2, resolution);
+  ///////////////////////////////////////////////////////////////////////////
 
   void *model2solve = model;
 

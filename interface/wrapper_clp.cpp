@@ -36,6 +36,21 @@ extern "C" void loadMps(void *model, const char *filename) {
   ((ClpSimplex *)model)->readMps(filename, true);
 }
 
+extern "C" void loadProblemWrapper(void* model, int numCols, int numRows, 
+                            const int* start, const int* index, 
+                            const double* value, const double* colLower, 
+                            const double* colUpper, const double* obj, 
+                            const double* rowLower, const double* rowUpper) {
+        ClpSimplex* simplex = static_cast<ClpSimplex*>(model);
+        simplex->loadProblem(numCols, numRows, start, index, value, 
+                             colLower, colUpper, obj, rowLower, rowUpper);
+}
+
+extern "C" void writeLpWrapper(void* model, const char* filename) {
+    ClpSimplex* simplex = static_cast<ClpSimplex*>(model);
+    simplex->writeLp(filename);
+}
+
 extern "C" void *createPresolve() { return new ClpPresolve(); }
 
 extern "C" void deletePresolve(void *presolve) {
