@@ -377,8 +377,12 @@ void generate_dualOT_model_from_csv(void *model, const char *csvpath_1, const ch
     free(b);
 }
 
-void generate_coarse_dualOT_model(void *model_coarse, cupdlp_float *a, cupdlp_float *b, cupdlp_int a_len, cupdlp_int b_len, cupdlp_int resolution, const cupdlp_int coarse_degree)
+void generate_coarse_dualOT_model(void *model_coarse, const char *csvpath_1, const char *csvpath_2, cupdlp_int resolution, const cupdlp_int coarse_degree)
 {
+    cupdlp_int a_len = resolution * resolution;
+    cupdlp_int b_len = resolution * resolution;
+    cupdlp_float *a = readCSVToFloatArray(csvpath_1, resolution, resolution);
+    cupdlp_float *b = readCSVToFloatArray(csvpath_2, resolution, resolution);
     cupdlp_int a_coarse_len = a_len / pow(2, coarse_degree);
     cupdlp_int b_coarse_len = b_len / pow(2, coarse_degree);
     cupdlp_float *a_coarse = coarsingArray1D(a, a_len, coarse_degree);
@@ -397,7 +401,7 @@ void LP_Solve_Multiscale(w, w_coarse, ifChangeIntParam, intParam, ifChangeFloatP
     LP_SolvePDHG(w_coarse, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx);
 }
 
-CUPDLPwork *createCUPDLPwork(void *model, CUPDLPscaling *scaling, cupdlp_int ifScaling, cupdlp_bool ifPresolve)
+CUPDLPwork *createCUPDLPwork(void *model, cupdlp_bool *ifChangeIntParam, cupdlp_int *intParam, int *constraint_new_idx)
 {
     void *model2solve = model;
 
@@ -414,7 +418,6 @@ CUPDLPwork *createCUPDLPwork(void *model, CUPDLPscaling *scaling, cupdlp_int ifS
     cupdlp_float *upper = NULL;
     double offset = 0.0;    // true objVal = sig * c'x - offset, sig = 1 (min) or -1 (max)
     double sign_origin = 1; // 1 (min) or -1 (max)
-    int *constraint_new_idx = NULL;
     int nCols_origin;
     cupdlp_retcode retcode = RETCODE_OK;
     CUPDLP_MATRIX_FORMAT src_matrix_format = CSC;     // 原矩阵格式
@@ -429,6 +432,12 @@ CUPDLPwork *createCUPDLPwork(void *model, CUPDLPscaling *scaling, cupdlp_int ifS
     cupdlp_float *y_origin = cupdlp_NULL;
 
     cupdlp_float presolve_time = getTimeStamp();
+
+    cupdlp_bool ifPresolve = false;
+    if (ifChangeIntParam[IF_PRESOLVE])
+    {
+        ifPresolve = intParam[IF_PRESOLVE];
+    }
     if (ifPresolve)
     {
         presolveinfo = createPresolve();
@@ -464,6 +473,30 @@ CUPDLPwork *createCUPDLPwork(void *model, CUPDLPscaling *scaling, cupdlp_int ifS
     memcpy(csc_cpu->colMatElem, csc_val, nnz * sizeof(double));
     csc_cpu->cuda_csc = NULL;
 
+    CUPDLPscaling *scaling =
+        (CUPDLPscaling *)cupdlp_malloc(sizeof(CUPDLPscaling));
+    CUPDLP_CALL(Init_Scaling(scaling, nCols, nRows, cost, rhs));
+    cupdlp_int ifScaling = 1;
+
+    if (ifChangeIntParam[IF_SCALING])
+    {
+        ifScaling = intParam[IF_SCALING];
+    }
+
+    if (ifChangeIntParam[IF_RUIZ_SCALING])
+    {
+        scaling->ifRuizScaling = intParam[IF_RUIZ_SCALING];
+    }
+
+    if (ifChangeIntParam[IF_L2_SCALING])
+    {
+        scaling->ifL2Scaling = intParam[IF_L2_SCALING];
+    }
+
+    if (ifChangeIntParam[IF_PC_SCALING])
+    {
+        scaling->ifPcScaling = intParam[IF_PC_SCALING];
+    }
     cupdlp_float scaling_time = getTimeStamp();
     CUPDLP_CALL(PDHG_Scale_Data_cuda(csc_cpu, ifScaling, scaling, cost, lower,
                                      upper, rhs));
