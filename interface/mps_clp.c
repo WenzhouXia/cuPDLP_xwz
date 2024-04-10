@@ -29,8 +29,7 @@ cupdlp_retcode main(int argc, char **argv)
   double offset = 0.0;    // true objVal = sig * c'x - offset, sig = 1 (min) or -1 (max)
   double sign_origin = 1; // 1 (min) or -1 (max)
   int nCols_origin;
-  int *constraint_new_idx = NULL;
-  int *constraint_new_idx_coarse = NULL;
+
   cupdlp_bool ifSaveSol = false;
   cupdlp_bool ifPresolve = false;
   cupdlp_int ifPDTEST = 0;
@@ -38,8 +37,8 @@ cupdlp_retcode main(int argc, char **argv)
 
   // -------------------------
 
-  cupdlp_float *x_origin = cupdlp_NULL;
-  cupdlp_float *y_origin = cupdlp_NULL;
+  // cupdlp_float *x_origin = cupdlp_NULL;
+  // cupdlp_float *y_origin = cupdlp_NULL;
 
   void *presolvedmodel = NULL;
   void *presolveinfo = NULL;
@@ -108,20 +107,20 @@ cupdlp_retcode main(int argc, char **argv)
   // writeLpWrapper(model, "test_ot_load");
 
   char basePath[] = "/home/xiawenzhou/Documents/XiaWenzhou/OptimalTransport/OT_instances/DOTmark/Data";
-  char type[] = "Shapes";
-  int resolution = 32;
+  char type[] = "CauchyDensity";
+  int resolution = 8;
   int fileNumber_1 = 1001;
-  int fileNumber_2 = 1005;
-  char csvpath_1[256]; // 确保这个缓冲区足够大，以存储完整的文件路径
-  char csvpath_2[256]; // 确保这个缓冲区足够大，以存储完整的文件路径
-  // 使用sprintf拼接字符串
-  // cupdlp_int pow_test = pow(2, 3);
-  // printf("pow_test = %d\n", pow_test);
-  sprintf(csvpath_1, "%s/%s/data%d_%d.csv", basePath, type, resolution, fileNumber_1);
+  int fileNumber_2 = 1002;
+  char csvpath_1[256];
+  char csvpath_2[256];
   sprintf(csvpath_2, "%s/%s/data%d_%d.csv", basePath, type, resolution, fileNumber_2);
-  generate_dualOT_model_from_csv(model, csvpath_1, csvpath_2, resolution);
+  // generate_dualOT_model_from_csv(model, csvpath_1, csvpath_2, resolution);
+
+  // coarse_degree = 0, 精确问题
+  generate_coarse_dualOT_model_from_csv(model, csvpath_1, csvpath_2, resolution, 0);
+  // 粗糙问题
   cupdlp_int coarse_degree = 1;
-  // generate_coarse_dualOT_model(model_coarse, csvpath_1, csvpath_2, resolution, coarse_degree);
+  generate_coarse_dualOT_model_from_csv(model_coarse, csvpath_1, csvpath_2, resolution, coarse_degree);
   ///////////////////////////////////////////////////////////////////////////
 #pragma region 创建CUPDLPwork，但是被我注释掉了
 
@@ -293,69 +292,182 @@ cupdlp_retcode main(int argc, char **argv)
   //   //                               ifChangeFloatParam, floatParam, fout));
   // CUPDLP_INIT(x_origin, nCols_origin);
   // CUPDLP_INIT(y_origin, nRows);
-  nCols_origin = 2 * pow(resolution, 2);
-  nRows = pow(resolution, 4);
-  CUPDLP_INIT(x_origin, nCols_origin);
-  CUPDLP_INIT(y_origin, nRows);
+  // nCols_origin = 2 * pow(resolution, 2);
+  // nRows = pow(resolution, 4);
+  // CUPDLP_INIT(x_origin, nCols_origin);
+  // CUPDLP_INIT(y_origin, nRows);
 ////////////////////////////////////////////////////////////////////////////////////////
 #pragma endregion
-
-  CUPDLPwork *w = createCUPDLPwork(model, ifChangeIntParam, intParam, constraint_new_idx);
-  // CUPDLPwork *w_coarse = createCUPDLPwork(model_coarse, ifChangeIntParam, intParam, constraint_new_idx_coarse);
   if (ifChangeIntParam[IF_PDTEST])
   {
     ifPDTEST = intParam[IF_PDTEST]; // 默认用PDHG不用PDTEST，ifPDTEST默认值为0
   }
-  switch (ifPDTEST)
-  {
-  case 0:
-    cupdlp_printf("--------------------------------------------------\n");
-    cupdlp_printf("enter main solve loop, PDHG\n");
-    cupdlp_printf("--------------------------------------------------\n");
-    CUPDLP_CALL(LP_SolvePDHG(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
-    break;
-  case 1:
-    cupdlp_printf("--------------------------------------------------\n");
-    cupdlp_printf("enter main solve loop, PDTEST\n");
-    cupdlp_printf("--------------------------------------------------\n");
-    CUPDLP_CALL(LP_SolvePDTEST(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
-    break;
-  case 2:
-    cupdlp_printf("--------------------------------------------------\n");
-    cupdlp_printf("enter main solve loop, PDTEST_Average\n");
-    cupdlp_printf("--------------------------------------------------\n");
-    CUPDLP_CALL(LP_SolvePDTEST_Average(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
-    break;
-  case 3:
-    cupdlp_printf("--------------------------------------------------\n");
-    cupdlp_printf("enter main solve loop, PDTEST_min\n");
-    cupdlp_printf("--------------------------------------------------\n");
-    CUPDLP_CALL(LP_SolvePDTEST_min(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
-    break;
-  case 4:
-    cupdlp_printf("--------------------------------------------------\n");
-    cupdlp_printf("enter main solve loop, PDTEST_best\n");
-    cupdlp_printf("--------------------------------------------------\n");
-    CUPDLP_CALL(LP_SolvePDTEST_best(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
-    break;
-  case 5:
-    cupdlp_printf("--------------------------------------------------\n");
-    cupdlp_printf("enter main solve loop, PDHG_AdapTheta\n");
-    cupdlp_printf("--------------------------------------------------\n");
-    CUPDLP_CALL(LP_SolvePDHG_AdapTheta(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
-    break;
-  default:
-    cupdlp_printf("Error: ifPDTEST = %d, 不在取值范围内", ifPDTEST);
-    break;
-  }
+
+  int *nCols_origin_ptr = cupdlp_NULL;
+  int *nRows_ptr = cupdlp_NULL;
+  int *nCols_origin_ptr_coarse = cupdlp_NULL;
+  int *nRows_ptr_coarse = cupdlp_NULL;
+  CUPDLP_INIT_ZERO(nCols_origin_ptr, 1);
+  CUPDLP_INIT_ZERO(nRows_ptr, 1);
+  CUPDLP_INIT_ZERO(nCols_origin_ptr_coarse, 1);
+  CUPDLP_INIT_ZERO(nRows_ptr_coarse, 1);
+
+  // 定义了一个指针，想要在createCUPDLPwork中改变这个指针，就要传入指针的地址
+  int *constraint_new_idx = NULL;
+  int *constraint_new_idx_coarse = NULL;
+
+  CUPDLPwork *w = cupdlp_NULL;
+  CUPDLP_INIT_ZERO(w, 1);
+  createCUPDLPwork(w, model, ifChangeIntParam, intParam, &constraint_new_idx, nCols_origin_ptr, nRows_ptr);
+
+  CUPDLPwork *w_coarse = cupdlp_NULL;
+  CUPDLP_INIT_ZERO(w_coarse, 1);
+  createCUPDLPwork(w_coarse, model_coarse, ifChangeIntParam, intParam, &constraint_new_idx_coarse, nCols_origin_ptr_coarse, nRows_ptr_coarse);
+
+  // 接收最优解
+  cupdlp_float *x_coarse_solution = cupdlp_NULL;
+  cupdlp_float *y_coarse_solution = cupdlp_NULL;
+  CUPDLP_INIT_ZERO(x_coarse_solution, *nCols_origin_ptr_coarse);
+  CUPDLP_INIT_ZERO(y_coarse_solution, *nRows_ptr_coarse);
+  // 接受粗糙part最后的步长和权重
+  cupdlp_float *stepsize_coarse_last = cupdlp_NULL;
+  cupdlp_float *weight_coarse_last = cupdlp_NULL;
+  CUPDLP_INIT_ZERO(stepsize_coarse_last, 1);
+  CUPDLP_INIT_ZERO(weight_coarse_last, 1);
+  cupdlp_float *stepsize_coarse_init = cupdlp_NULL;
+  cupdlp_float *weight_coarse_init = cupdlp_NULL;
+  CUPDLP_INIT_ZERO(stepsize_coarse_init, 1);
+  CUPDLP_INIT_ZERO(weight_coarse_init, 1);
+  // 作为初始解
+  cupdlp_float *x_coarse_init = cupdlp_NULL;
+  cupdlp_float *y_coarse_init = cupdlp_NULL;
+  cupdlp_int nCols_coarse = w_coarse->problem->nCols;
+  cupdlp_int nRows_coarse = w_coarse->problem->nRows;
+  CUPDLP_INIT_ZERO(x_coarse_init, w_coarse->problem->nCols);
+  CUPDLP_INIT_ZERO(y_coarse_init, w_coarse->problem->nRows);
+
+  cupdlp_printf("--------------------------------------------------\n");
+  cupdlp_printf("enter main solve loop, PDHG_Multiscale\n");
+  cupdlp_printf("--------------------------------------------------\n");
+  char *fout_coarse = "./coarse_solution.txt";
+  cupdlp_bool whether_first = true;
+  CUPDLP_CALL(LP_SolvePDHG_Multiscale(w_coarse, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout_coarse, ifSaveSol, constraint_new_idx_coarse, &x_coarse_solution, &y_coarse_solution, x_coarse_init, y_coarse_init, stepsize_coarse_last, weight_coarse_last, stepsize_coarse_init, weight_coarse_init, whether_first));
+
+  cupdlp_free(x_coarse_init);
+  cupdlp_free(y_coarse_init);
+  cupdlp_free(stepsize_coarse_init);
+  cupdlp_free(weight_coarse_init);
+
+  // coarse的最优解作为fine的初始解
+  cupdlp_float *x_init = cupdlp_NULL;
+  cupdlp_float *y_init = cupdlp_NULL;
+  CUPDLP_INIT_ZERO(x_init, w->problem->nCols);
+  CUPDLP_INIT_ZERO(y_init, w->problem->nRows);
+  cupdlp_printf("x_coarse_len = %d, x_len = %d\n", nCols_coarse, w->problem->nCols);
+  cupdlp_printf("y_coarse_len = %d, y_len = %d\n", nRows_coarse, w->problem->nRows);
+  fine_dualOT_primal(x_init, x_coarse_solution, w->problem->nCols, nCols_coarse, resolution, coarse_degree);
+  fine_dualOT_dual(y_init, y_coarse_solution, w->problem->nRows, nRows_coarse, resolution, coarse_degree);
+
+  cupdlp_float *x_solution = cupdlp_NULL;
+  cupdlp_float *y_solution = cupdlp_NULL;
+  CUPDLP_INIT_ZERO(x_solution, *nCols_origin_ptr);
+  CUPDLP_INIT_ZERO(y_solution, *nRows_ptr);
+
+  cupdlp_float *stepsize_last = cupdlp_NULL;
+  cupdlp_float *weight_last = cupdlp_NULL;
+  CUPDLP_INIT_ZERO(stepsize_last, 1);
+  CUPDLP_INIT_ZERO(weight_last, 1);
+  cupdlp_float *stepsize_init = cupdlp_NULL;
+  cupdlp_float *weight_init = cupdlp_NULL;
+  CUPDLP_INIT_ZERO(stepsize_init, 1);
+  CUPDLP_INIT_ZERO(weight_init, 1);
+  cupdlp_printf("stepsize_coarse_last = %f\n", *stepsize_coarse_last);
+  cupdlp_printf("weight_coarse_last = %f\n", *weight_coarse_last);
+  *stepsize_init = *stepsize_coarse_last;
+  *weight_init = *weight_coarse_last;
+  cupdlp_printf("stepsize_init = %f\n", *stepsize_init);
+  cupdlp_printf("weight_init = %f\n", *weight_init);
+
+  fout = "./solution.txt";
+  CUPDLP_CALL(LP_SolvePDHG_Multiscale(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, ifSaveSol, constraint_new_idx, &x_solution, &y_solution, x_init, y_init, stepsize_last, weight_last, stepsize_init, weight_init, false));
+
+  analyseArray1D(x_coarse_solution, nCols_coarse, 1e-20, "./solution_x_coarse_optimal.csv");
+  cupdlp_printf("--------------------------------------------------\n");
+  analyseArray1D(x_init, w->problem->nCols, 1e-20, "./solution_x_fine_init.csv");
+  cupdlp_printf("--------------------------------------------------\n");
+  analyseArray1D(x_solution, w->problem->nCols, 1e-20, "./solution_x_fine_optimal.csv");
+  cupdlp_printf("--------------------------------------------------\n");
+  cupdlp_printf("--------------------------------------------------\n");
+  analyseArray1D(y_coarse_solution, nRows_coarse, 1e-20, "./solution_y_coarse_optimal.csv");
+  cupdlp_printf("--------------------------------------------------\n");
+  analyseArray1D(y_init, w->problem->nRows, 1e-20, "./solution_y_fine_init.csv");
+  cupdlp_printf("--------------------------------------------------\n");
+  analyseArray1D(y_solution, w->problem->nRows, 1e-20, "./solution_y_fine_optimal.csv");
+  cupdlp_printf("--------------------------------------------------\n");
+  compareTwoArray1D(y_init, w->problem->nRows, y_solution, w->problem->nRows, 1e-20);
+
+  // cupdlp_printf("测试构造矩阵\n");
+  // void *mat = cupdlp_NULL;
+  // CUPDLP_INIT_ZERO(mat, 1);
+  // constructCoinPackedMatrix(mat, 2);
+
+  // switch (ifPDTEST)
+  // {
+  // case 0:
+  //   cupdlp_printf("--------------------------------------------------\n");
+  //   cupdlp_printf("enter main solve loop, PDHG\n");
+  //   cupdlp_printf("--------------------------------------------------\n");
+  //   CUPDLP_CALL(LP_SolvePDHG_Multiscale(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, ifSaveSol, constraint_new_idx, resolution, &x_solution, &y_solution, x_init, y_init));
+  //   break;
+  // case 1:
+  //   cupdlp_printf("--------------------------------------------------\n");
+  //   cupdlp_printf("enter main solve loop, PDTEST\n");
+  //   cupdlp_printf("--------------------------------------------------\n");
+  //   CUPDLP_CALL(LP_SolvePDTEST(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
+  //   break;
+  // case 2:
+  //   cupdlp_printf("--------------------------------------------------\n");
+  //   cupdlp_printf("enter main solve loop, PDTEST_Average\n");
+  //   cupdlp_printf("--------------------------------------------------\n");
+  //   CUPDLP_CALL(LP_SolvePDTEST_Average(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
+  //   break;
+  // case 3:
+  //   cupdlp_printf("--------------------------------------------------\n");
+  //   cupdlp_printf("enter main solve loop, PDTEST_min\n");
+  //   cupdlp_printf("--------------------------------------------------\n");
+  //   CUPDLP_CALL(LP_SolvePDTEST_min(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
+  //   break;
+  // case 4:
+  //   cupdlp_printf("--------------------------------------------------\n");
+  //   cupdlp_printf("enter main solve loop, PDTEST_best\n");
+  //   cupdlp_printf("--------------------------------------------------\n");
+  //   CUPDLP_CALL(LP_SolvePDTEST_best(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
+  //   break;
+  // case 5:
+  //   cupdlp_printf("--------------------------------------------------\n");
+  //   cupdlp_printf("enter main solve loop, PDHG_AdapTheta\n");
+  //   cupdlp_printf("--------------------------------------------------\n");
+  //   CUPDLP_CALL(LP_SolvePDHG_AdapTheta(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx));
+  //   break;
+  // default:
+  //   cupdlp_printf("Error: ifPDTEST = %d, 不在取值范围内", ifPDTEST);
+  //   break;
+  // }
   //
 
   // print result
   // TODO: implement after adding IO
 
 exit_cleanup:
-  cupdlp_printf("Exit cleanup\n");
-  deleteModel(model);
+  if (retcode != RETCODE_OK)
+  {
+    cupdlp_printf("main Exit cleanup\n");
+  }
+  // deleteModel(model);
+  // PDHG_Destroy(&w_coarse);
+  // PDHG_Destroy(&w);
+  // cupdlp_free(x_origin);
+  // cupdlp_free(y_origin);
   // if (ifPresolve)
   // {
   //   deletePresolve(presolveinfo);

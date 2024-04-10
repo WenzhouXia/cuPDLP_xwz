@@ -9,7 +9,8 @@
 
 #ifdef __cplusplus
 
-extern "C" {
+extern "C"
+{
 #endif
 
 #include <math.h>
@@ -18,7 +19,7 @@ extern "C" {
 #define RETCODE_OK (0)
 #define RETCODE_FAILED (1)
 #define BOOL (1)
-// #define DLONG
+  // #define DLONG
 
 #ifndef cupdlp
 #define cupdlp(x) cupdlp_##x
@@ -64,16 +65,16 @@ extern "C" {
 // for cuda
 #if !(CUPDLP_CPU)
 
-// #define CUPDLP_FREE_VEC(x) \
+  // #define CUPDLP_FREE_VEC(x) \
 //   {                        \
 //     cudaFree(x);           \
 //     x = cupdlp_NULL;       \
 //   }
 
-// #define CUPDLP_COPY_VEC(dst, src, type, size) \
+  // #define CUPDLP_COPY_VEC(dst, src, type, size) \
 //   cudaMemcpy(dst, src, sizeof(type) * (size), cudaMemcpyDefault)
 
-// #define CUPDLP_INIT_VEC(var, size)                                             \
+  // #define CUPDLP_INIT_VEC(var, size)                                             \
 //   {                                                                            \
 //     cusparseStatus_t status =                                                  \
 //         cudaMalloc((void **)&var, (size) * sizeof(typeof(*var)));              \
@@ -83,7 +84,7 @@ extern "C" {
 //       goto exit_cleanup;                                                       \
 //     }                                                                          \
 //   }
-// #define CUPDLP_INIT_ZERO_VEC(var, size)                                        \
+  // #define CUPDLP_INIT_ZERO_VEC(var, size)                                        \
 //   {                                                                            \
 //     cusparseStatus_t status =                                                  \
 //         cudaMalloc((void **)&var, (size) * sizeof(typeof(*var)));              \
@@ -99,7 +100,7 @@ extern "C" {
 //       goto exit_cleanup;                                                       \
 //     }                                                                          \
 //   }
-// #define CUPDLP_ZERO_VEC(var, type, size) \
+  // #define CUPDLP_ZERO_VEC(var, type, size) \
 //   cudaMemset(var, 0, sizeof(type) * (size))
 
 #else
@@ -108,7 +109,8 @@ extern "C" {
 #define CUPDLP_INIT_VEC(var, size)                              \
   {                                                             \
     (var) = (typeof(var))malloc((size) * sizeof(typeof(*var))); \
-    if ((var) == cupdlp_NULL) {                                 \
+    if ((var) == cupdlp_NULL)                                   \
+    {                                                           \
       retcode = RETCODE_FAILED;                                 \
       goto exit_cleanup;                                        \
     }                                                           \
@@ -116,7 +118,8 @@ extern "C" {
 #define CUPDLP_INIT_ZERO_VEC(var, size)                      \
   {                                                          \
     (var) = (typeof(var))calloc(size, sizeof(typeof(*var))); \
-    if ((var) == cupdlp_NULL) {                              \
+    if ((var) == cupdlp_NULL)                                \
+    {                                                        \
       retcode = RETCODE_FAILED;                              \
       goto exit_cleanup;                                     \
     }                                                        \
@@ -144,7 +147,8 @@ extern "C" {
 #define CUPDLP_INIT(var, size)                                  \
   {                                                             \
     (var) = (typeof(var))malloc((size) * sizeof(typeof(*var))); \
-    if ((var) == cupdlp_NULL) {                                 \
+    if ((var) == cupdlp_NULL)                                   \
+    {                                                           \
       retcode = RETCODE_FAILED;                                 \
       goto exit_cleanup;                                        \
     }                                                           \
@@ -152,7 +156,8 @@ extern "C" {
 #define CUPDLP_INIT_ZERO(var, size)                          \
   {                                                          \
     (var) = (typeof(var))calloc(size, sizeof(typeof(*var))); \
-    if ((var) == cupdlp_NULL) {                              \
+    if ((var) == cupdlp_NULL)                                \
+    {                                                        \
       retcode = RETCODE_FAILED;                              \
       goto exit_cleanup;                                     \
     }                                                        \
@@ -160,7 +165,8 @@ extern "C" {
 #define CUPDLP_FREE(var) cupdlp_free(var)
 #define CUPDLP_CALL(func)       \
   {                             \
-    if ((func) != RETCODE_OK) { \
+    if ((func) != RETCODE_OK)   \
+    {                           \
       retcode = RETCODE_FAILED; \
       goto exit_cleanup;        \
     }                           \
@@ -168,11 +174,11 @@ extern "C" {
 
 #ifndef SFLOAT
 #ifdef DLONG
-typedef long long cupdlp_int;
+  typedef long long cupdlp_int;
 #else
-typedef int cupdlp_int;
+  typedef int cupdlp_int;
 #endif
-typedef double cupdlp_float;
+  typedef double cupdlp_float;
 #ifndef NAN
 #define NAN ((cupdlp_float)0x7ff8000000000000)
 #endif
@@ -193,7 +199,7 @@ typedef float cupdlp_float;
 
 #include <stdbool.h>
 
-typedef bool cupdlp_bool;
+  typedef bool cupdlp_bool;
 #endif
 
 #define cupdlp_NULL 0
@@ -234,16 +240,16 @@ typedef bool cupdlp_bool;
   cupdlp_printf("IN function: %s, time: %4f ms, file: %s, line: %i\n", \
                 __func__, cupdlp(tocq)(&global_timer), __FILE__, __LINE__);
 #define RETURN
-cupdlp_printf("EXIT function: %s, time: %4f ms, file: %s, line: %i\n", __func__,
-              cupdlp(tocq)(&global_timer), __FILE__, __LINE__);
-return
+  cupdlp_printf("EXIT function: %s, time: %4f ms, file: %s, line: %i\n", __func__,
+                cupdlp(tocq)(&global_timer), __FILE__, __LINE__);
+  return
 #else
 #define DEBUG_FUNC
 #define RETURN return
 #endif
 
 #define EPS_TOL (1E-18)
-#define EPS (1E-8)  // for condition number in subnp
+#define EPS (1E-8) // for condition number in subnp
 #define SAFEDIV_POS(X, Y) ((Y) < EPS_TOL ? ((X) / EPS_TOL) : (X) / (Y))
 
 #define CONVERGED_INTERVAL (1)

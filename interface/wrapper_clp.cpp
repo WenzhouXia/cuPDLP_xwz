@@ -46,6 +46,47 @@ extern "C" void loadProblemWrapper(void* model, int numCols, int numRows,
                              colLower, colUpper, obj, rowLower, rowUpper);
 }
 
+extern "C" void loadProblem_byMatrix_Wrapper(void* model, int resolution, 
+                            const double* colLower, 
+                            const double* colUpper, const double* obj, 
+                            const double* rowLower, const double* rowUpper) {
+        ClpSimplex* simplex = static_cast<ClpSimplex*>(model);
+#pragma region 构造稀疏矩阵
+        CoinPackedMatrix mat;
+        int nCols = 2 * pow(resolution,2);
+        int nRows = pow(resolution, 4);
+        printf("nCols: %d, nRows: %d\n", nCols, nRows);
+        int vec_len = pow(resolution, 2);
+        // i代表列数，j代表行数
+        // 前一半的列
+        for (int i = 0; i < nCols /2 ; i++){
+          std::vector<int> indices;
+          for (int j = i * vec_len; j < (i + 1) * vec_len; j++){
+            indices.push_back(j);
+          }
+          std::vector<double> elements;
+          for (int i = 0; i < indices.size(); i++){
+            elements.push_back(1);
+          }
+            mat.appendCol(indices.size(), &indices[0], &elements[0]);
+        }
+        // 后一半的列
+        for (int i = 0; i < nCols /2 ; i++){
+          std::vector<int> indices;
+          for (int j = 0; j < vec_len; j++){
+            indices.push_back(i + j * vec_len);
+          }
+          std::vector<double> elements;
+          for (int i = 0; i < indices.size(); i++){
+            elements.push_back(1);
+          }
+          mat.appendCol(indices.size(), &indices[0], &elements[0]);
+        }
+#pragma endregion
+        simplex->loadProblem(mat, 
+                             colLower, colUpper, obj, rowLower, rowUpper);
+}
+
 extern "C" void writeLpWrapper(void* model, const char* filename) {
     ClpSimplex* simplex = static_cast<ClpSimplex*>(model);
     simplex->writeLp(filename);
@@ -429,3 +470,93 @@ exit_cleanup:
 }
 
 // #endif
+
+extern "C" void Construct_dualOT_Matrix(void* matrix, int resolution){
+  printf("Construct_dualOT_Matrix\n");
+  CoinPackedMatrix *matrix_C = static_cast<CoinPackedMatrix*>(matrix);
+
+  CoinPackedMatrix mat;
+  #pragma region example
+  // // 由于我们是按列添加数据，indices表示行索引
+  // std::vector<int> indices;
+  // indices.push_back(0); // 第一个约束的索引
+  // indices.push_back(1); // 第二个约束的索引
+
+  // // 定义两个变量在每个约束中的系数
+  // std::vector<double> elements_x; // x的系数
+  // elements_x.push_back(2); // 第一个约束中x的系数
+  // elements_x.push_back(1); // 第二个约束中x的系数
+
+  // std::vector<double> elements_y; // y的系数
+  // elements_y.push_back(1); // 第一个约束中y的系数
+  // elements_y.push_back(3); // 第二个约束中y的系数
+
+  // // 添加第一列（x的系数）
+  // mat.appendCol(indices.size(), &indices[0], &elements_x[0]);
+
+  // // 添加第二列（y的系数）
+  // mat.appendCol(indices.size(), &indices[0], &elements_y[0]);
+  #pragma endregion
+  
+  int nCols = 2 * pow(resolution,2);
+  int nRows = pow(resolution, 4);
+  printf("nCols: %d, nRows: %d\n", nCols, nRows);
+  int vec_len = pow(resolution, 2);
+  
+  
+  // i代表列数，j代表行数
+  // 前一半的列
+  for (int i = 0; i < nCols /2 ; i++){
+    std::vector<int> indices;
+    for (int j = i * vec_len; j < (i + 1) * vec_len; j++){
+      indices.push_back(j);
+    }
+    std::vector<double> elements;
+    for (int i = 0; i < indices.size(); i++){
+      elements.push_back(1);
+    }
+      mat.appendCol(indices.size(), &indices[0], &elements[0]);
+  }
+  // 后一半的列
+  for (int i = 0; i < nCols /2 ; i++){
+    std::vector<int> indices;
+    for (int j = 0; j < vec_len; j++){
+      indices.push_back(i + j * vec_len);
+    }
+    std::vector<double> elements;
+    for (int i = 0; i < indices.size(); i++){
+      elements.push_back(1);
+    }
+    mat.appendCol(indices.size(), &indices[0], &elements[0]);
+  }
+    printf("Construct_dualOT_Matrix end\n");
+#pragma region print
+  // const int numRows = mat.getNumRows();
+  // const int numCols = mat.getNumCols();
+  // printf("numRows: %d, numCols: %d\n", numRows, numCols);
+
+  // // 获取矩阵中的元素和它们的索引
+  // const double* elements_print = mat.getElements();
+  // const int* rowIndices = mat.getIndices();
+  // const CoinBigIndex* columnStarts = mat.getVectorStarts();
+  // const int* lengths = mat.getVectorLengths();
+
+  // // 按列遍历矩阵
+  // for (int col = 0; col < numCols; ++col) {
+  //     std::cout << "Column " << col << ":" << std::endl;
+  //     // 获取这一列的起始位置和长度
+  //     CoinBigIndex start = columnStarts[col];
+  //     int length = lengths[col];
+
+  //     // 遍历这一列的每个元素
+  //     for (int i = 0; i < length; ++i) {
+  //         // 计算当前元素的索引
+  //         CoinBigIndex index = start + i;
+  //         // 输出行索引和元素的值
+  //         std::cout << "  Row " << rowIndices[index] << ": " << elements_print[index] << std::endl;
+  //     }
+  // }
+  #pragma endregion
+  matrix_C = &mat;
+}
+
