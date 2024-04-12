@@ -61,7 +61,7 @@ extern "C"
   void PDHG_Print_Iter_Average(CUPDLPwork *pdhg);
 
   void PDHG_Compute_SolvingTime(CUPDLPwork *pdhg);
-  cupdlp_retcode PDHG_Solve_Multiscale(CUPDLPwork *pdhg, cupdlp_float *x_init, cupdlp_float *y_init, cupdlp_float *stepsize_last, cupdlp_float *weight_last, cupdlp_float *stepsize_init, cupdlp_float *weight_init, cupdlp_bool whether_first);
+  cupdlp_retcode PDHG_Solve_Multiscale_withStepsize(CUPDLPwork *pdhg, cupdlp_float *x_init, cupdlp_float *y_init, cupdlp_float *stepsize_last, cupdlp_float *weight_last, cupdlp_float *stepsize_init, cupdlp_float *weight_init, cupdlp_bool whether_first);
   cupdlp_retcode PDHG_Solve(CUPDLPwork *pdhg);
   cupdlp_retcode PDHG_Solve_AdapTheta(CUPDLPwork *pdhg);
   cupdlp_retcode PDTEST_Average_Solve(CUPDLPwork *pdhg);
@@ -76,7 +76,8 @@ extern "C"
   void PDTEST_PostSolve(CUPDLPwork *pdhg, cupdlp_int nCols_origin,
                         cupdlp_int *constraint_new_idx, cupdlp_float *x_origin,
                         cupdlp_float *y_origin);
-  cupdlp_retcode LP_SolvePDHG_Multiscale(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam, cupdlp_int *intParam, cupdlp_bool *ifChangeFloatParam, cupdlp_float *floatParam, char *fp, cupdlp_bool ifSaveSol, cupdlp_int *constraint_new_idx, cupdlp_float **x_solution, cupdlp_float **y_solution, cupdlp_float *x_init, cupdlp_float *y_init, cupdlp_float *stepsize_last, cupdlp_float *weight_last, cupdlp_float *stepsize_init, cupdlp_float *weight_init, cupdlp_bool whether_first);
+  cupdlp_retcode LP_SolvePDHG_Multiscale_withStepsize(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam, cupdlp_int *intParam, cupdlp_bool *ifChangeFloatParam, cupdlp_float *floatParam, char *fp, cupdlp_bool ifSaveSol, cupdlp_int *constraint_new_idx, cupdlp_float **x_solution, cupdlp_float **y_solution, cupdlp_float *x_init, cupdlp_float *y_init, cupdlp_float *stepsize_last, cupdlp_float *weight_last, cupdlp_float *stepsize_init, cupdlp_float *weight_init, cupdlp_bool whether_first);
+  cupdlp_retcode LP_SolvePDHG_Multiscale(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam, cupdlp_int *intParam, cupdlp_bool *ifChangeFloatParam, cupdlp_float *floatParam, char *fp, cupdlp_bool ifSaveSol, cupdlp_int *constraint_new_idx, cupdlp_float **x_solution, cupdlp_float **y_solution, cupdlp_float *x_init, cupdlp_float *y_init);
   cupdlp_retcode LP_SolvePDHG(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam, cupdlp_int *intParam, cupdlp_bool *ifChangeFloatParam, cupdlp_float *floatParam, char *fp, cupdlp_bool ifSaveSol, cupdlp_int *constraint_new_idx, cupdlp_int resolution, cupdlp_float **x_solution, cupdlp_float **y_solution);
 
   cupdlp_retcode LP_SolvePDHG_AdapTheta(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam,

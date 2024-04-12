@@ -2530,7 +2530,7 @@ exit_cleanup:
   return retcode;
 }
 
-cupdlp_retcode PDHG_Init_Step_Sizes_Multiscale(CUPDLPwork *pdhg, cupdlp_float *stepsize_init, cupdlp_float *weight_init, cupdlp_bool whether_first)
+cupdlp_retcode PDHG_Init_Step_Sizes_Multiscale_withStepsize(CUPDLPwork *pdhg, cupdlp_float *stepsize_init, cupdlp_float *weight_init, cupdlp_bool whether_first)
 {
   cupdlp_retcode retcode = RETCODE_OK;
 
@@ -2609,6 +2609,85 @@ cupdlp_retcode PDHG_Init_Step_Sizes_Multiscale(CUPDLPwork *pdhg, cupdlp_float *s
 
       iterates->dLastRestartBeta = stepsize->dBeta;
     }
+  }
+
+  iterates->iLastRestartIter = 0;
+  stepsize->dSumPrimalStep = 0;
+  stepsize->dSumDualStep = 0;
+
+exit_cleanup:
+  return retcode;
+}
+
+cupdlp_retcode PDHG_Init_Step_Sizes_Multiscale(CUPDLPwork *pdhg)
+{
+  cupdlp_retcode retcode = RETCODE_OK;
+
+  CUPDLPproblem *problem = pdhg->problem;
+  CUPDLPiterates *iterates = pdhg->iterates;
+  CUPDLPstepsize *stepsize = pdhg->stepsize;
+
+  // 如果不是初始迭代，就用上一次的步长和权重，否则就用cuPDLP自带的计算方法
+
+  if (stepsize->eLineSearchMethod == PDHG_FIXED_LINESEARCH)
+  {
+    CUPDLP_CALL(PDHG_Power_Method(pdhg, &stepsize->dPrimalStep));
+    // PDLP Intial primal weight = norm(cost) / norm(rhs) = sqrt(beta)
+    // cupdlp_float a = twoNormSquared(problem->cost, problem->nCols);
+    // cupdlp_float b = twoNormSquared(problem->rhs, problem->nRows);
+    cupdlp_float a = 0.0;
+    cupdlp_float b = 0.0;
+    cupdlp_twoNormSquared(pdhg, problem->nCols, problem->cost, &a);
+    cupdlp_twoNormSquared(pdhg, problem->nRows, problem->rhs, &b);
+
+    if (fmin(a, b) > 1e-6)
+    {
+      stepsize->dBeta = a / b;
+    }
+    else
+    {
+      stepsize->dBeta = 1.0;
+    }
+
+    stepsize->dPrimalStep = 0.8 / sqrt(stepsize->dPrimalStep);
+    stepsize->dDualStep = stepsize->dPrimalStep;
+    stepsize->dPrimalStep /= sqrt(stepsize->dBeta);
+    stepsize->dDualStep *= sqrt(stepsize->dBeta);
+  }
+  else
+  {
+    stepsize->dTheta = 1.0;
+
+    // PDLP Intial primal weight = norm(cost) / norm(rhs) = sqrt(beta)
+    // cupdlp_float a = twoNormSquared(problem->cost, problem->nCols);
+    // cupdlp_float b = twoNormSquared(problem->rhs, problem->nRows);
+    cupdlp_float a = 0.0;
+    cupdlp_float b = 0.0;
+    cupdlp_twoNormSquared(pdhg, problem->nCols, problem->cost, &a);
+    cupdlp_twoNormSquared(pdhg, problem->nRows, problem->rhs, &b);
+
+    if (fmin(a, b) > 1e-6)
+    {
+      stepsize->dBeta = a / b;
+    }
+    else
+    {
+      stepsize->dBeta = 1.0;
+    }
+    // infNorm can be avoid by previously calculated infNorm of csc matrix
+    stepsize->dPrimalStep =
+        // (1.0 / infNorm(problem->data->csc_matrix->colMatElem,
+        // problem->data->csc_matrix->nMatElem)) /
+        (1.0 / problem->data->csc_matrix->MatElemNormInf) /
+        sqrt(stepsize->dBeta);
+    stepsize->dDualStep = stepsize->dPrimalStep * stepsize->dBeta;
+    // //////////////////////////////////////////////
+    // cupdlp_float dMeanStep = sqrt(stepsize->dPrimalStep * stepsize->dDualStep);
+    // stepsize->dPrimalStep = dMeanStep;
+    // stepsize->dPrimalStep = dMeanStep;
+    // ////////////////////////////////////////////////
+
+    iterates->dLastRestartBeta = stepsize->dBeta;
   }
 
   iterates->iLastRestartIter = 0;
