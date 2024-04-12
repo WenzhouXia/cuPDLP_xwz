@@ -429,6 +429,32 @@ void generate_dualOT_model_delete_byMatrix_from_distribution_and_cost(void *mode
     free(colUpper);
     free(obj);
 }
+
+void generate_dualOT_model_delete_byMatrix_from_distribution_and_cost_longlong(void *model, const cupdlp_float *a, const cupdlp_float *b, const long long a_len, const long long b_len, cupdlp_float *c_delete, int resolution, long long *zero_idx, long long *zero_idx_len)
+{
+    // obj = -q
+    cupdlp_float *obj = mergeTwoArrays1D_minus(a, b, a_len, b_len);
+    cupdlp_int numCols = a_len + b_len;
+    long long numRows = a_len * b_len;
+    // cupdlp_int *start = dualOT_startArray(a_len, b_len);
+    // cupdlp_int *index = dualOT_indexArray(a_len, b_len);
+    // cupdlp_float *value = dualOT_valueArray(a_len, b_len);
+
+    // 对x的约束(没有约束)
+    // cupdlp_float *rowLower = dualOT_rowLower(a_len, b_len);
+    cupdlp_float *rowLower = dualOT_rowLower_delete(numRows - *zero_idx_len);
+    cupdlp_float *colLower = dualOT_colLower(a_len, b_len);
+    cupdlp_float *colUpper = dualOT_colUpper(a_len, b_len);
+    loadProblem_delete_byMatrix_Wrapper_longlong(model, resolution, zero_idx, zero_idx_len, colLower, colUpper, obj, rowLower, c_delete);
+    // loadProblemWrapper(model, numCols, numRows, start, index, value, colLower, colUpper, obj, rowLower, c);
+    // free(start);
+    // free(index);
+    // free(value);
+    free(rowLower);
+    free(colLower);
+    free(colUpper);
+    free(obj);
+}
 void generate_dualOT_model_from_csv(void *model, const char *csvpath_1, const char *csvpath_2, cupdlp_int resolution)
 {
     cupdlp_retcode retcode = RETCODE_OK;
@@ -640,6 +666,72 @@ exit_cleanup:
     cupdlp_free(c_delete)
 }
 }
+
+void generate_coarse_dualOT_model_delete_from_csv_longlong(void *model, const char *csvpath_1, const char *csvpath_2, cupdlp_int resolution, long long *zero_idx, long long *zero_idx_len, long long len_after_delete, cupdlp_int coarse_degree)
+{
+    cupdlp_retcode retcode = RETCODE_OK;
+
+    cupdlp_int resolution_coarse = resolution / pow(2, coarse_degree);
+    // void *model = NULL;
+    // model = createModel();
+    cupdlp_printf("开始读取数据\n");
+    cupdlp_int a_len = resolution * resolution;
+    cupdlp_int b_len = resolution * resolution;
+
+    cupdlp_float *a = cupdlp_NULL;
+    CUPDLP_INIT(a, a_len);
+    readCSVToFloatArray(a, csvpath_1, resolution);
+
+    cupdlp_float *b = cupdlp_NULL;
+    CUPDLP_INIT(b, b_len);
+    readCSVToFloatArray(b, csvpath_2, resolution);
+
+    normalizeArray1D(a, a_len);
+    normalizeArray1D(b, b_len);
+
+    cupdlp_int a_coarse_len = a_len / pow(pow(2, coarse_degree), 2);
+    cupdlp_int b_coarse_len = b_len / pow(pow(2, coarse_degree), 2);
+    cupdlp_float *a_coarse = cupdlp_NULL;
+    CUPDLP_INIT(a_coarse, a_coarse_len);
+    coarsingArray1D(a_coarse, a, resolution, coarse_degree);
+    cupdlp_float *b_coarse = cupdlp_NULL;
+    CUPDLP_INIT(b_coarse, b_coarse_len);
+    coarsingArray1D(b_coarse, b, resolution, coarse_degree);
+
+    cupdlp_float *c_coarse = cupdlp_NULL;
+    long long c_coarse_len = a_coarse_len * b_coarse_len;
+    CUPDLP_INIT(c_coarse, c_coarse_len);
+    coarsing_normalizedSquaredEuclideanDistance(c_coarse, resolution, resolution, coarse_degree);
+
+    cupdlp_float *c_delete = cupdlp_NULL;
+    CUPDLP_INIT(c_delete, len_after_delete);
+    cupdlp_printf("c_delete_len: %d\n", len_after_delete);
+    deleteArray1DElements_longlong(c_delete, c_coarse, c_coarse_len, zero_idx, zero_idx_len);
+
+    cupdlp_printf("开始构建模型\n");
+    // 统计耗时
+    cupdlp_float time_generate = getTimeStamp();
+    // generate_dualOT_model_from_distribution_and_cost(model, a, b, a_len, b_len, c);
+    // generate_dualOT_model_byMatrix_from_distribution_and_cost(model, a, b, a_len, b_len, c_delete, resolution);
+    generate_dualOT_model_delete_byMatrix_from_distribution_and_cost_longlong(model, a_coarse, b_coarse, a_coarse_len, b_coarse_len, c_delete, resolution_coarse, zero_idx, zero_idx_len);
+    time_generate = getTimeStamp() - time_generate;
+    cupdlp_printf("模型构建完成, 耗时: %.3f 秒\n", time_generate);
+
+exit_cleanup:
+{
+    if (retcode != RETCODE_OK)
+    {
+        cupdlp_printf("generate_dualOT_model_from_csv, exit_cleanup\n");
+    }
+    cupdlp_free(a);
+    cupdlp_free(b);
+    cupdlp_free(a_coarse);
+    cupdlp_free(b_coarse);
+    cupdlp_free(c_coarse);
+    cupdlp_free(c_delete)
+}
+}
+
 // void LP_Solve_Multiscale(w, w_coarse, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx)
 // {
 //     LP_SolvePDHG(w_coarse, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx);
@@ -940,24 +1032,31 @@ void fine_dualOT_primal(cupdlp_float *x_init, cupdlp_float *x_coarse_solution, c
     cupdlp_printf("fine_dualOT_primal完成\n");
 }
 
-void fine_dualOT_dual(cupdlp_float *y_init, cupdlp_float *y_coarse_solution, cupdlp_int y_len, cupdlp_int y_coarse_len, cupdlp_int resolution, cupdlp_int coarse_degree)
+void fine_dualOT_dual(cupdlp_float *y_init, cupdlp_float *y_coarse_solution, long long y_len, long long y_coarse_len, cupdlp_int resolution, cupdlp_int coarse_degree)
 {
-    cupdlp_int scale = pow(2, coarse_degree);
-    if (y_len != y_coarse_len * pow(scale, 4))
+    long long scale = pow(2, coarse_degree);
+    long long y_len_temp = y_len;
+    long long y_coarse_len_temp = y_coarse_len;
+    long long multiple_temp = pow(scale, 4);
+    long long y_len_temp_compare = y_coarse_len_temp * multiple_temp;
+    if (y_len_temp != y_len_temp_compare)
     {
+        cupdlp_printf("y_len: %lld\n", y_len_temp);
+        cupdlp_printf("y_coarse_len: %lld\n", y_coarse_len_temp);
+        cupdlp_printf("scale: %lld\n", scale);
         cupdlp_printf("y_len != y_coarse_len * pow(scale, 4)\n");
         return;
     }
     cupdlp_printf("fine_dualOT_dual开始\n");
     cupdlp_float y_temp = 0.0;
     cupdlp_int resolution_coarse = resolution / scale;
-    cupdlp_int idx_coarse_temp = 0;
-    cupdlp_int idx_1 = 0;
-    cupdlp_int idx_2 = 0;
-    cupdlp_int idx_temp = 0;
-    cupdlp_int idx_max = 0;
+    long long idx_coarse_temp = 0;
+    long long idx_1 = 0;
+    long long idx_2 = 0;
+    long long idx_temp = 0;
     for (cupdlp_int i1 = 0; i1 < resolution_coarse; i1++)
     {
+        cupdlp_printf("i1: %d\n", i1);
         for (cupdlp_int j1 = 0; j1 < resolution_coarse; j1++)
         {
             for (cupdlp_int i2 = 0; i2 < resolution_coarse; i2++)
@@ -979,11 +1078,6 @@ void fine_dualOT_dual(cupdlp_float *y_init, cupdlp_float *y_coarse_solution, cup
                                     idx_1 = (i1 * scale + k1) * resolution + j1 * scale + l1;
                                     idx_2 = (i2 * scale + k2) * resolution + j2 * scale + l2;
                                     idx_temp = idx_1 * pow(resolution, 2) + idx_2;
-                                    // if (idx_max < idx_temp)
-                                    // {
-                                    //     idx_max = idx_temp;
-                                    //     printf("idx_init: %d\n", idx_max);
-                                    // }
 
                                     y_init[idx_temp] = y_temp;
                                 }
@@ -1001,6 +1095,16 @@ int countArray1D_Smaller_than_threshold(cupdlp_float *a, int a_len, cupdlp_float
 {
     int count = 0;
     for (int i = 0; i < a_len; i++)
+    {
+        if (fabs(a[i]) < thr)
+            count++;
+    }
+    return count;
+}
+long long countArray1D_Smaller_than_threshold_longlong(cupdlp_float *a, long long a_len, cupdlp_float thr)
+{
+    long long count = 0;
+    for (long long i = 0; i < a_len; i++)
     {
         if (fabs(a[i]) < thr)
             count++;
@@ -1031,6 +1135,30 @@ int *countArray1D_Smaller_than_threshold_with_Record(cupdlp_float *a, int a_len,
     cupdlp_printf("countArray1D_Smaller_than_threshold_with_Record完成\n");
     return record;
 }
+long long *countArray1D_Smaller_than_threshold_with_Record_longlong(cupdlp_float *a, long long a_len, long long *a_record_len, cupdlp_float thr)
+{
+
+    long long count = 0;
+    for (long long i = 0; i < a_len; i++)
+    {
+        if (fabs(a[i]) < thr)
+            count += 1;
+    }
+    cupdlp_printf("零元素个数为：%lld\n", count);
+    long long *record = (long long *)malloc(count * sizeof(long long));
+    *a_record_len = count;
+    count = 0;
+    for (long long i = 0; i < a_len; i++)
+    {
+        if (fabs(a[i]) < thr)
+        {
+            record[count] = i;
+            count++;
+        }
+    }
+    cupdlp_printf("countArray1D_Smaller_than_threshold_with_Record完成, 零元素个数为：%lld\n", count);
+    return record;
+}
 
 void saveArray1D_to_csv(cupdlp_float *a, int a_len, const char *filename)
 {
@@ -1050,10 +1178,12 @@ void saveArray1D_to_csv(cupdlp_float *a, int a_len, const char *filename)
     fclose(file);
 }
 
-void analyseArray1D(cupdlp_float *a, cupdlp_int a_len, cupdlp_float thr, const char *filename)
+void analyseArray1D(cupdlp_float *a, long long a_len, cupdlp_float thr, const char *filename)
 {
-    cupdlp_int count = countArray1D_Smaller_than_threshold(a, a_len, thr);
-    cupdlp_printf("向量总长度为：%d，小于阈值%.10f的元素个数为：%d, 稀疏元素占比为：%.2f%%\n", a_len, thr, count, 100 * count / (a_len + 0.0));
+    long long count = countArray1D_Smaller_than_threshold_longlong(a, a_len, thr);
+    cupdlp_float a_len_float = a_len + 0.0;
+    cupdlp_float propotion = 100 * count / a_len_float;
+    cupdlp_printf("向量总长度为：%lld，小于阈值%.10f的元素个数为：%lld, 稀疏元素占比为：%.2f%%\n", a_len, thr, count, propotion);
     // saveArray1D_to_csv(a, a_len, filename);
 }
 
@@ -1125,6 +1255,37 @@ void deleteArray1DElements(cupdlp_float *a_dele, cupdlp_float *a, cupdlp_int a_l
     free(keep);
 }
 
+void deleteArray1DElements_longlong(cupdlp_float *a_dele, cupdlp_float *a, long long a_len, long long *zero_idx, long long *zero_idx_len)
+{
+    // 创建一个布尔数组，用于标记哪些元素需要被保留
+    bool *keep = (bool *)malloc(a_len * sizeof(bool));
+    for (long long i = 0; i < a_len; i++)
+    {
+        keep[i] = true; // 初始时假设所有元素都保留
+    }
+
+    // 标记需要删除的元素
+    for (long long i = 0; i < *zero_idx_len; i++)
+    {
+        keep[zero_idx[i]] = false;
+        // cupdlp_printf("需要删除的元素的idx：%d\n", zero_idx[i]);
+    }
+
+    long long count = 0;
+    for (long long i = 0; i < a_len; i++)
+    {
+        if (keep[i])
+        {
+            a_dele[count] = a[i];
+            count += 1;
+            // cupdlp_printf("保留的元素：%f\n", a[i]);
+        }
+    }
+    // 释放内存
+    free(keep);
+    keep = NULL;
+}
+
 void recoverArray1DElements(cupdlp_float *a_recover, cupdlp_float *a_delete, cupdlp_int a_recover_len, cupdlp_int a_delete_len, cupdlp_int *zero_idx, cupdlp_int *zero_idx_len)
 {
     // a_delete为删除元素后的数组，a_recover为恢复元素后的数组
@@ -1132,6 +1293,27 @@ void recoverArray1DElements(cupdlp_float *a_recover, cupdlp_float *a_delete, cup
     int count1 = 0;
     int count2 = 0;
     for (int i = 0; i < a_recover_len; i++)
+    {
+        if (i == zero_idx[count1])
+        {
+            a_recover[i] = 0.0;
+            count1 += 1;
+        }
+        else
+        {
+            a_recover[i] = a_delete[count2];
+            count2 += 1;
+        }
+    }
+}
+
+void recoverArray1DElements_longlong(cupdlp_float *a_recover, cupdlp_float *a_delete, long long a_recover_len, long long a_delete_len, long long *zero_idx, long long *zero_idx_len)
+{
+    // a_delete为删除元素后的数组，a_recover为恢复元素后的数组
+    // zero_idx为被删除的元素的idx
+    long long count1 = 0;
+    long long count2 = 0;
+    for (long long i = 0; i < a_recover_len; i++)
     {
         if (i == zero_idx[count1])
         {
@@ -1162,9 +1344,10 @@ void construct_and_solve_Multiscale(void *model, const char *csvpath_1, const ch
         int resolution_now = resolution / pow(2, coarse_degree);
         int resolution_last = resolution / pow(2, coarse_degree_last);
         int x_init_len = 2 * pow(resolution_now, 2);
-        int y_init_len = pow(resolution_now, 4);
+        // int y_init_len = pow(resolution_now, 4);
+        long long y_init_len = pow(resolution_now, 4);
         int x_solution_last_len = 2 * pow(resolution_last, 2);
-        int y_solution_last_len = pow(resolution_last, 4);
+        long long y_solution_last_len = pow(resolution_last, 4);
         int coarse_degree_diff = coarse_degree_last - coarse_degree;
         cupdlp_float *x_init = cupdlp_NULL;
         cupdlp_float *y_init = cupdlp_NULL;
@@ -1173,10 +1356,266 @@ void construct_and_solve_Multiscale(void *model, const char *csvpath_1, const ch
         fine_dualOT_primal(x_init, x_solution_last, x_init_len, x_solution_last_len, resolution_now, coarse_degree_diff);
         fine_dualOT_dual(y_init, y_solution_last, y_init_len, y_solution_last_len, resolution_now, coarse_degree_diff);
         // 找出y_init中小于阈值的元素
-        cupdlp_int *y_init_zero_idx_len = cupdlp_NULL;
+        long long *y_init_zero_idx_len = cupdlp_NULL;
         CUPDLP_INIT_ZERO(y_init_zero_idx_len, 1);
-        cupdlp_int *y_init_zero_idx = countArray1D_Smaller_than_threshold_with_Record(y_init, y_init_len, y_init_zero_idx_len, 1e-20);
-        cupdlp_int y_init_delete_len = y_init_len - *y_init_zero_idx_len;
+        long long *y_init_zero_idx = countArray1D_Smaller_than_threshold_with_Record_longlong(y_init, y_init_len, y_init_zero_idx_len, 1e-20);
+        long long y_init_delete_len = y_init_len - *y_init_zero_idx_len;
+        cupdlp_printf("y_init_len: %d\n", y_init_len);
+        cupdlp_printf("y_init_zero_idx_len: %d\n", *y_init_zero_idx_len);
+        cupdlp_printf("y_init_delete_len: %d\n", y_init_delete_len);
+        cupdlp_float *y_init_delete = cupdlp_NULL;
+        CUPDLP_INIT_ZERO(y_init_delete, y_init_delete_len);
+        deleteArray1DElements_longlong(y_init_delete, y_init, y_init_len, y_init_zero_idx, y_init_zero_idx_len);
+        // 创建y_solution_delete，用于暂时储存delete过后的解
+        cupdlp_float *y_solution_delete = cupdlp_NULL;
+        CUPDLP_INIT_ZERO(y_solution_delete, y_init_delete_len);
+        // 创建模型
+        // void *model = NULL;
+        // model = createModel();
+        generate_coarse_dualOT_model_delete_from_csv_longlong(model, csvpath_1, csvpath_2, resolution, y_init_zero_idx, y_init_zero_idx_len, y_init_delete_len, coarse_degree);
+        int *nCols_origin_ptr = cupdlp_NULL;
+        int *nRows_ptr = cupdlp_NULL;
+        CUPDLP_INIT_ZERO(nCols_origin_ptr, 1);
+        CUPDLP_INIT_ZERO(nRows_ptr, 1);
+        cupdlp_int *constraint_new_idx = NULL;
+        CUPDLPwork *w = cupdlp_NULL;
+        CUPDLP_INIT_ZERO(w, 1);
+        createCUPDLPwork(w, model, ifChangeIntParam, intParam, &constraint_new_idx, nCols_origin_ptr, nRows_ptr);
+        // 求解
+        char fout[256];
+        cupdlp_printf("开始求解\n");
+        sprintf(fout, "./solution_Resolution%d_CoarseDegree%d.txt", resolution, coarse_degree);
+        cupdlp_bool whether_first_fine = true; // 默认使用cuPDLP自带的初始步长和权重
+
+        CUPDLP_CALL(LP_SolvePDHG_Multiscale(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, ifSaveSol, constraint_new_idx, x_solution, &y_solution_delete, x_init, y_init_delete));
+        cupdlp_printf("利用稀疏性构造模型求解完毕\n");
+        // 求解完后，把y_delete_solution恢复到y_solution中
+        recoverArray1DElements_longlong(*y_solution, y_solution_delete, y_init_len, y_init_delete_len, y_init_zero_idx, y_init_zero_idx_len);
+        // cupdlp_free(nCols_origin_ptr);
+        // cupdlp_free(nRows_ptr);
+        // cupdlp_free(constraint_new_idx);
+        // // PDHG_Destroy(w);
+        // cupdlp_free(x_init);
+        // cupdlp_free(y_init);
+        // cupdlp_free(y_init_zero_idx_len);
+        // cupdlp_free(y_init_zero_idx);
+        // cupdlp_free(y_init_delete);
+        // cupdlp_free(stepsize_last);
+        // cupdlp_free(weight_last);
+        // cupdlp_free(stepsize_init);
+        // cupdlp_free(weight_init);
+        // cupdlp_free(y_solution_delete);
+    }
+    else
+    {
+        cupdlp_printf("coarse_degree_last == -1, 直接构造模型\n");
+
+        // 创建模型
+        // void *model = NULL;
+        // model = createModel();
+        generate_coarse_dualOT_model_from_csv(model, csvpath_1, csvpath_2, resolution, coarse_degree);
+        int *nCols_origin_ptr = cupdlp_NULL;
+        int *nRows_ptr = cupdlp_NULL;
+        CUPDLP_INIT_ZERO(nCols_origin_ptr, 1);
+        CUPDLP_INIT_ZERO(nRows_ptr, 1);
+        cupdlp_int *constraint_new_idx = NULL;
+        CUPDLPwork *w = cupdlp_NULL;
+        CUPDLP_INIT_ZERO(w, 1);
+        printf("开始构建CUPDLPwork...\n");
+        createCUPDLPwork(w, model, ifChangeIntParam, intParam, &constraint_new_idx, nCols_origin_ptr, nRows_ptr);
+        // 直接用初始值
+        int resolution_now = resolution / pow(2, coarse_degree);
+        int x_init_len = 2 * pow(resolution_now, 2);
+        int y_init_len = pow(resolution_now, 4);
+        int coarse_degree_diff = coarse_degree_last - coarse_degree;
+        cupdlp_float *x_init = cupdlp_NULL;
+        cupdlp_float *y_init = cupdlp_NULL;
+        CUPDLP_INIT_ZERO(x_init, x_init_len);
+        CUPDLP_INIT_ZERO(y_init, y_init_len);
+        *x_init = *x_solution_last;
+        *y_init = *y_solution_last;
+        // 求解
+        char fout[256];
+        sprintf(fout, "./solution_Resolution%d_CoarseDegree%d.txt", resolution, coarse_degree);
+        cupdlp_bool whether_first_fine = true; // 默认使用cuPDLP自带的初始步长和权重
+        // 传入的x_solution和y_solution是二级指针，所以不用再写成&x_solution, &y_solution
+        CUPDLP_CALL(LP_SolvePDHG_Multiscale(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, ifSaveSol, constraint_new_idx, x_solution, y_solution, x_init, y_init));
+
+        // cupdlp_free(nCols_origin_ptr);
+        // cupdlp_free(nRows_ptr);
+        // cupdlp_free(constraint_new_idx);
+        // // PDHG_Destroy(w);
+        // cupdlp_free(x_init);
+        // cupdlp_free(y_init);
+        // cupdlp_free(stepsize_last);
+        // cupdlp_free(weight_last);
+        // cupdlp_free(stepsize_init);
+        // cupdlp_free(weight_init);
+    }
+
+exit_cleanup:
+{
+    if (retcode != RETCODE_OK)
+    {
+        cupdlp_printf("construct_and_solve_Multiscale, exit_cleanup\n");
+    }
+}
+}
+
+void construct_and_solve_Multiscale_longlong(void *model, const char *csvpath_1, const char *csvpath_2, cupdlp_int resolution, cupdlp_bool *ifChangeIntParam, cupdlp_bool *ifChangeFloatParam, cupdlp_int *intParam, cupdlp_float *floatParam, cupdlp_bool ifSaveSol, cupdlp_int coarse_degree, cupdlp_int coarse_degree_last, cupdlp_float **x_solution, cupdlp_float **y_solution, cupdlp_float *x_solution_last, cupdlp_float *y_solution_last)
+{
+    cupdlp_bool retcode = RETCODE_OK;
+    if (coarse_degree_last != -1)
+    {
+        cupdlp_printf("coarse_degree_last != -1, 利用稀疏性构造模型\n");
+        // 对上一步的解进行细化
+        int resolution_now = resolution / pow(2, coarse_degree);
+        int resolution_last = resolution / pow(2, coarse_degree_last);
+        int x_init_len = 2 * pow(resolution_now, 2);
+        // int y_init_len = pow(resolution_now, 4);
+        long long y_init_len = pow(resolution_now, 4);
+        int x_solution_last_len = 2 * pow(resolution_last, 2);
+        long long y_solution_last_len = pow(resolution_last, 4);
+        int coarse_degree_diff = coarse_degree_last - coarse_degree;
+        cupdlp_float *x_init = cupdlp_NULL;
+        cupdlp_float *y_init = cupdlp_NULL;
+        CUPDLP_INIT_ZERO(x_init, x_init_len);
+        CUPDLP_INIT_ZERO(y_init, y_init_len);
+        fine_dualOT_primal(x_init, x_solution_last, x_init_len, x_solution_last_len, resolution_now, coarse_degree_diff);
+        fine_dualOT_dual(y_init, y_solution_last, y_init_len, y_solution_last_len, resolution_now, coarse_degree_diff);
+        // 找出y_init中小于阈值的元素
+        long long *y_init_zero_idx_len = cupdlp_NULL;
+        CUPDLP_INIT_ZERO(y_init_zero_idx_len, 1);
+        long long *y_init_zero_idx = countArray1D_Smaller_than_threshold_with_Record_longlong(y_init, y_init_len, y_init_zero_idx_len, 1e-20);
+        long long y_init_delete_len = y_init_len - *y_init_zero_idx_len;
+        cupdlp_printf("y_init_len: %d\n", y_init_len);
+        cupdlp_printf("y_init_zero_idx_len: %d\n", *y_init_zero_idx_len);
+        cupdlp_printf("y_init_delete_len: %d\n", y_init_delete_len);
+        cupdlp_float *y_init_delete = cupdlp_NULL;
+        CUPDLP_INIT_ZERO(y_init_delete, y_init_delete_len);
+        deleteArray1DElements_longlong(y_init_delete, y_init, y_init_len, y_init_zero_idx, y_init_zero_idx_len);
+        // 创建y_solution_delete，用于暂时储存delete过后的解
+        cupdlp_float *y_solution_delete = cupdlp_NULL;
+        CUPDLP_INIT_ZERO(y_solution_delete, y_init_delete_len);
+        // 创建模型
+        // void *model = NULL;
+        // model = createModel();
+        generate_coarse_dualOT_model_delete_from_csv_longlong(model, csvpath_1, csvpath_2, resolution, y_init_zero_idx, y_init_zero_idx_len, y_init_delete_len, coarse_degree);
+        int *nCols_origin_ptr = cupdlp_NULL;
+        int *nRows_ptr = cupdlp_NULL;
+        CUPDLP_INIT_ZERO(nCols_origin_ptr, 1);
+        CUPDLP_INIT_ZERO(nRows_ptr, 1);
+        cupdlp_int *constraint_new_idx = NULL;
+        CUPDLPwork *w = cupdlp_NULL;
+        CUPDLP_INIT_ZERO(w, 1);
+        createCUPDLPwork(w, model, ifChangeIntParam, intParam, &constraint_new_idx, nCols_origin_ptr, nRows_ptr);
+        // 求解
+        char fout[256];
+        cupdlp_printf("开始求解\n");
+        sprintf(fout, "./solution_Resolution%d_CoarseDegree%d.txt", resolution, coarse_degree);
+        cupdlp_bool whether_first_fine = true; // 默认使用cuPDLP自带的初始步长和权重
+
+        CUPDLP_CALL(LP_SolvePDHG_Multiscale(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, ifSaveSol, constraint_new_idx, x_solution, &y_solution_delete, x_init, y_init_delete));
+        cupdlp_printf("利用稀疏性构造模型求解完毕\n");
+        // 求解完后，把y_delete_solution恢复到y_solution中
+        recoverArray1DElements_longlong(*y_solution, y_solution_delete, y_init_len, y_init_delete_len, y_init_zero_idx, y_init_zero_idx_len);
+        // cupdlp_free(nCols_origin_ptr);
+        // cupdlp_free(nRows_ptr);
+        // cupdlp_free(constraint_new_idx);
+        // // PDHG_Destroy(w);
+        // cupdlp_free(x_init);
+        // cupdlp_free(y_init);
+        // cupdlp_free(y_init_zero_idx_len);
+        // cupdlp_free(y_init_zero_idx);
+        // cupdlp_free(y_init_delete);
+        // cupdlp_free(stepsize_last);
+        // cupdlp_free(weight_last);
+        // cupdlp_free(stepsize_init);
+        // cupdlp_free(weight_init);
+        // cupdlp_free(y_solution_delete);
+    }
+    else
+    {
+        cupdlp_printf("coarse_degree_last == -1, 直接构造模型\n");
+
+        // 创建模型
+        // void *model = NULL;
+        // model = createModel();
+        generate_coarse_dualOT_model_from_csv(model, csvpath_1, csvpath_2, resolution, coarse_degree);
+        int *nCols_origin_ptr = cupdlp_NULL;
+        int *nRows_ptr = cupdlp_NULL;
+        CUPDLP_INIT_ZERO(nCols_origin_ptr, 1);
+        CUPDLP_INIT_ZERO(nRows_ptr, 1);
+        cupdlp_int *constraint_new_idx = NULL;
+        CUPDLPwork *w = cupdlp_NULL;
+        CUPDLP_INIT_ZERO(w, 1);
+        printf("开始构建CUPDLPwork...\n");
+        createCUPDLPwork(w, model, ifChangeIntParam, intParam, &constraint_new_idx, nCols_origin_ptr, nRows_ptr);
+        // 直接用初始值
+        int resolution_now = resolution / pow(2, coarse_degree);
+        int x_init_len = 2 * pow(resolution_now, 2);
+        int y_init_len = pow(resolution_now, 4);
+        int coarse_degree_diff = coarse_degree_last - coarse_degree;
+        cupdlp_float *x_init = cupdlp_NULL;
+        cupdlp_float *y_init = cupdlp_NULL;
+        CUPDLP_INIT_ZERO(x_init, x_init_len);
+        CUPDLP_INIT_ZERO(y_init, y_init_len);
+        *x_init = *x_solution_last;
+        *y_init = *y_solution_last;
+        // 求解
+        char fout[256];
+        sprintf(fout, "./solution_Resolution%d_CoarseDegree%d.txt", resolution, coarse_degree);
+        cupdlp_bool whether_first_fine = true; // 默认使用cuPDLP自带的初始步长和权重
+        // 传入的x_solution和y_solution是二级指针，所以不用再写成&x_solution, &y_solution
+        CUPDLP_CALL(LP_SolvePDHG_Multiscale(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, ifSaveSol, constraint_new_idx, x_solution, y_solution, x_init, y_init));
+
+        // cupdlp_free(nCols_origin_ptr);
+        // cupdlp_free(nRows_ptr);
+        // cupdlp_free(constraint_new_idx);
+        // // PDHG_Destroy(w);
+        // cupdlp_free(x_init);
+        // cupdlp_free(y_init);
+        // cupdlp_free(stepsize_last);
+        // cupdlp_free(weight_last);
+        // cupdlp_free(stepsize_init);
+        // cupdlp_free(weight_init);
+    }
+
+exit_cleanup:
+{
+    if (retcode != RETCODE_OK)
+    {
+        cupdlp_printf("construct_and_solve_Multiscale, exit_cleanup\n");
+    }
+}
+}
+
+void construct_and_solve_Multiscale_withoutRecover(void *model, const char *csvpath_1, const char *csvpath_2, cupdlp_int resolution, cupdlp_bool *ifChangeIntParam, cupdlp_bool *ifChangeFloatParam, cupdlp_int *intParam, cupdlp_float *floatParam, cupdlp_bool ifSaveSol, cupdlp_int coarse_degree, cupdlp_int coarse_degree_last, cupdlp_float **x_solution, cupdlp_float **y_solution, cupdlp_float *x_solution_last, cupdlp_float *y_solution_last)
+{
+    cupdlp_bool retcode = RETCODE_OK;
+    if (coarse_degree_last != -1)
+    {
+        cupdlp_printf("coarse_degree_last != -1, 利用稀疏性构造模型\n");
+        // 对上一步的解进行细化
+        int resolution_now = resolution / pow(2, coarse_degree);
+        int resolution_last = resolution / pow(2, coarse_degree_last);
+        int x_init_len = 2 * pow(resolution_now, 2);
+        // int y_init_len = pow(resolution_now, 4);
+        long long y_init_len = pow(resolution_now, 4);
+        int x_solution_last_len = 2 * pow(resolution_last, 2);
+        long long y_solution_last_len = pow(resolution_last, 4);
+        int coarse_degree_diff = coarse_degree_last - coarse_degree;
+        cupdlp_float *x_init = cupdlp_NULL;
+        cupdlp_float *y_init = cupdlp_NULL;
+        CUPDLP_INIT_ZERO(x_init, x_init_len);
+        CUPDLP_INIT_ZERO(y_init, y_init_len);
+        fine_dualOT_primal(x_init, x_solution_last, x_init_len, x_solution_last_len, resolution_now, coarse_degree_diff);
+        fine_dualOT_dual(y_init, y_solution_last, y_init_len, y_solution_last_len, resolution_now, coarse_degree_diff);
+        // 找出y_init中小于阈值的元素
+        long long *y_init_zero_idx_len = cupdlp_NULL;
+        CUPDLP_INIT_ZERO(y_init_zero_idx_len, 1);
+        long long *y_init_zero_idx = countArray1D_Smaller_than_threshold_with_Record(y_init, y_init_len, y_init_zero_idx_len, 1e-20);
+        long long y_init_delete_len = y_init_len - *y_init_zero_idx_len;
         cupdlp_printf("y_init_len: %d\n", y_init_len);
         cupdlp_printf("y_init_zero_idx_len: %d\n", *y_init_zero_idx_len);
         cupdlp_printf("y_init_delete_len: %d\n", y_init_delete_len);
@@ -1206,8 +1645,9 @@ void construct_and_solve_Multiscale(void *model, const char *csvpath_1, const ch
 
         CUPDLP_CALL(LP_SolvePDHG_Multiscale(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, ifSaveSol, constraint_new_idx, x_solution, &y_solution_delete, x_init, y_init_delete));
         cupdlp_printf("利用稀疏性构造模型求解完毕\n");
-        // 求解完后，把y_delete_solution恢复到y_solution中
-        recoverArray1DElements(*y_solution, y_solution_delete, y_init_len, y_init_delete_len, y_init_zero_idx, y_init_zero_idx_len);
+        // // 求解完后，把y_delete_solution恢复到y_solution中
+        // recoverArray1DElements(*y_solution, y_solution_delete, y_init_len, y_init_delete_len, y_init_zero_idx, y_init_zero_idx_len);
+
         // cupdlp_free(nCols_origin_ptr);
         // cupdlp_free(nRows_ptr);
         // cupdlp_free(constraint_new_idx);

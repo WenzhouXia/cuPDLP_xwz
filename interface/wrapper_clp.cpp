@@ -174,6 +174,123 @@ extern "C" void loadProblem_delete_byMatrix_Wrapper(void* model, int resolution,
                              colLower, colUpper, obj, rowLower, rowUpper);
 }
 
+extern "C" void loadProblem_delete_byMatrix_Wrapper_longlong(void* model, int resolution, long long* zero_idx, long long* zero_idx_len,
+                            const double* colLower, 
+                            const double* colUpper, const double* obj, 
+                            const double* rowLower, const double* rowUpper) {
+        ClpSimplex* simplex = static_cast<ClpSimplex*>(model);
+#pragma region 按行构造稀疏矩阵，不需要的直接不添加  
+        // // colordered = false代表行主元
+        // CoinPackedMatrix mat = CoinPackedMatrix(false, 0, 0);   
+        // int nCols = 2 * pow(resolution,2);
+        // long long nRows = pow(resolution, 4);
+        // printf("如果未修剪，矩阵尺寸为, nCols: %d, nRows: %lld\n", nCols, nRows);
+        // int vec_len = pow(resolution, 2);
+        // long long row_idx = 0;
+        // long long count = 0;
+        // // i代表该行中第一个1的列数，j代表第二个1的列数（-vec_len)
+        // for (int i = 0; i < vec_len; i++)
+        // {
+        //   if (i % 100 == 0){
+        //     printf("i: %d\n", i);
+        //   }
+        //   for (int j = 0; j < vec_len; j++)
+        //   {
+        //     row_idx = i * vec_len + j;
+        //     if (row_idx == zero_idx[count])
+        //     {
+        //       count += 1;
+        //     }
+        //     else
+        //     {
+        //       std::vector<int> indices;
+        //       indices.push_back(i);
+        //       indices.push_back(j + vec_len);
+        //       std::vector<double> elements;
+        //       elements.push_back(1.0);
+        //       elements.push_back(1.0);
+        //       mat.appendRow(indices.size(), &indices[0], &elements[0]);
+        //       // printf("添加成功：zero_idx: %d, row_idx: %d\n", zero_idx[count], row_idx);
+        //     }
+        //   }
+        // }
+#pragma endregion
+#pragma region 按列构造稀疏矩阵，每列中(不需要的行对应的元素)直接不添加  
+        // colordered = false代表行主元
+        CoinPackedMatrix mat;
+        int nCols = 2 * pow(resolution,2);
+        long long nRows = pow(resolution, 4);
+        printf("如果未修剪，矩阵尺寸为, nCols: %d, nRows: %lld\n", nCols, nRows);
+        int vec_len = pow(resolution, 2);
+        // 定义一个keep来标记每个元素是否保存
+        bool *keep = (bool *)malloc(sizeof(bool) * nRows);
+        int *keep_true_idx = (int *)malloc(sizeof(int) * nRows);
+        for (long long i = 0; i < nRows; i++){
+          keep[i] = true;
+          keep_true_idx[i] = 0;
+        }
+        for (long long i = 0; i < *zero_idx_len; i++){
+          keep[zero_idx[i]] = false;
+        }
+        int true_count = 0;
+        for (long long i = 0; i < nRows; i++)
+        {
+          if (keep[i]){
+            keep_true_idx[i] = true_count;
+            true_count += 1;
+          }
+        }
+        // 再定义一个keep_true_idx，记录keep中的true是第几个true
+        long long idx = 0;
+        for (int i = 0; i < nCols / 2; i++)
+        {
+          if (i % 1000 == 0){
+            printf("i: %d\n", i);
+          }
+          std::vector<int> indices;
+          std::vector<double> elements;
+          for (int j = 0; j < vec_len; j++)
+          {
+            idx = i * vec_len + j;
+            if (keep[idx]) 
+            {
+              // printf("idx: %lld\n", idx);
+              indices.push_back(keep_true_idx[idx]);
+              elements.push_back(1.0);
+            }
+          }
+          mat.appendCol(indices.size(), &indices[0], &elements[0]);
+          // printf("indices_len: %lld\n", indices.size());
+          // printf("修剪后的矩阵维度：nCols: %d, nRows: %d\n", mat.getNumCols(), mat.getNumRows());
+        }
+        // 后一半的列
+        for (int i = 0; i < nCols /2 ; i++){
+          if (i % 1000 == 0){
+            printf("i: %d\n", i);
+          }
+          std::vector<int> indices;
+          std::vector<double> elements;
+          for (int j = 0; j < vec_len; j++){
+            long long idx = i + j * vec_len;
+            if (keep[idx]){
+              indices.push_back(keep_true_idx[idx]);
+              elements.push_back(1.0);
+            }
+          }
+          mat.appendCol(indices.size(), &indices[0], &elements[0]);
+          // printf("indices_len: %lld\n", indices.size());
+          // printf("修剪后的矩阵维度：nCols: %d, nRows: %d\n", mat.getNumCols(), mat.getNumRows());
+        }
+        free(keep);
+        keep = NULL;
+        free(keep_true_idx);
+        keep_true_idx = NULL;
+#pragma endregion
+
+        printf("修剪后的矩阵维度：nCols: %d, nRows: %d\n", mat.getNumCols(), mat.getNumRows());
+        simplex->loadProblem(mat, colLower, colUpper, obj, rowLower, rowUpper);
+}
+
 extern "C" void writeLpWrapper(void* model, const char* filename) {
     ClpSimplex* simplex = static_cast<ClpSimplex*>(model);
     simplex->writeLp(filename);
