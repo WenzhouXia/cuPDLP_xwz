@@ -58,6 +58,10 @@ extern "C"
                                                     const double *colLower,
                                                     const double *colUpper, const double *obj,
                                                     const double *rowLower, const double *rowUpper);
+  void loadProblem_delete_by_keep_byMatrix_Wrapper_longlong(void *model, int resolution, bool *keep, long long *keep_true_idx, long long *len_after_delete,
+                                                            const double *colLower,
+                                                            const double *colUpper, const double *obj,
+                                                            const double *rowLower, const double *rowUpper);
   void writeLpWrapper(void *model, const char *filename);
 
   void deleteModel(void *model);
