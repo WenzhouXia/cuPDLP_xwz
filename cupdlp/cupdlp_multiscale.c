@@ -1926,46 +1926,6 @@ void construct_and_solve_Multiscale_longlong(void *model, const char *csvpath_1,
         CUPDLP_INIT_ZERO(x_init, x_init_len);
         fine_dualOT_primal(x_init, x_solution_last, x_init_len, x_solution_last_len, resolution_now, coarse_degree_diff);
 
-        // cupdlp_bool *keep = cupdlp_NULL;
-        // long long *keep_idx = cupdlp_NULL;
-        // CUPDLP_INIT(keep, y_init_len);
-        // CUPDLP_INIT(keep_idx, y_init_len);
-        // for (long long i = 0; i < y_init_len; i++)
-        // {
-        //     keep[i] = false;
-        //     keep_idx[i] = 0;
-        // }
-        // long long *len_after_delete = cupdlp_NULL;
-        // CUPDLP_INIT_ZERO(len_after_delete, 1);
-        // cupdlp_float *y_init_delete = fine_and_delete_dualOT_dual_longlong(len_after_delete, keep, keep_idx, y_solution_last, resolution, coarse_degree, coarse_degree_last, 1e-20);
-        // generate_coarse_dualOT_model_delete_by_keep_from_csv_longlong(model, csvpath_1, csvpath_2, resolution, keep, keep_idx, *len_after_delete, coarse_degree);
-        // cupdlp_int *constraint_new_idx = NULL;
-        // CUPDLPwork *w = cupdlp_NULL;
-        // CUPDLP_INIT_ZERO(w, 1);
-        // createCUPDLPwork_clear(w, model, ifChangeIntParam, intParam, &constraint_new_idx);
-        // // 求解
-        // char fout[256];
-        // cupdlp_printf("开始求解\n");
-        // sprintf(fout, "./solution_Resolution%d_CoarseDegree%d.txt", resolution, coarse_degree);
-        // cupdlp_bool whether_first_fine = true; // 默认使用cuPDLP自带的初始步长和权重
-
-        // // 创建y_solution_delete，用于暂时储存delete过后的解
-        // cupdlp_float *y_solution_delete = cupdlp_NULL;
-        // CUPDLP_INIT_ZERO(y_solution_delete, *len_after_delete);
-        // CUPDLP_CALL(LP_SolvePDHG_Multiscale(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, ifSaveSol, constraint_new_idx, x_solution, &y_solution_delete, x_init, y_init_delete));
-        // cupdlp_printf("利用稀疏性构造模型求解完毕\n");
-        // // 求解完后，把y_delete_solution恢复到y_solution中
-        // recoverArray1DElements_by_keep_longlong(*y_solution, y_solution_delete, y_init_len, *len_after_delete, keep, keep_idx);
-
-        // cupdlp_free(constraint_new_idx);
-        // cupdlp_free(w);
-        // // // PDHG_Destroy(w);
-        // cupdlp_free(keep);
-        // cupdlp_free(keep_idx);
-        // cupdlp_free(len_after_delete);
-        // cupdlp_free(x_init);
-        // cupdlp_free(y_init_delete);
-
         cupdlp_float *y_init = cupdlp_NULL;
         CUPDLP_INIT_ZERO(y_init, y_init_len);
         fine_dualOT_dual(y_init, y_solution_last, y_init_len, y_solution_last_len, resolution_now, coarse_degree_diff);

@@ -217,42 +217,91 @@ extern "C" void loadProblem_delete_byMatrix_Wrapper_longlong(void* model, int re
 #pragma endregion
 #pragma region 按列构造稀疏矩阵，每列中(不需要的行对应的元素)直接不添加  
         // colordered = false代表行主元
+        // CoinPackedMatrix mat;
+        // int nCols = 2 * pow(resolution,2);
+        // long long nRows = pow(resolution, 4);
+        // printf("如果未修剪，矩阵尺寸为, nCols: %d, nRows: %lld\n", nCols, nRows);
+        // int vec_len = pow(resolution, 2);
+        // // 定义一个keep来标记每个元素是否保存
+        // bool *keep = (bool *)malloc(sizeof(bool) * nRows);
+        // int *keep_true_idx = (int *)malloc(sizeof(int) * nRows);
+        // for (long long i = 0; i < nRows; i++){
+        //   keep[i] = true;
+        //   keep_true_idx[i] = 0;
+        // }
+        // for (long long i = 0; i < *zero_idx_len; i++){
+        //   keep[zero_idx[i]] = false;
+        // }
+        // int true_count = 0;
+        // for (long long i = 0; i < nRows; i++)
+        // {
+        //   if (keep[i]){
+        //     keep_true_idx[i] = true_count;
+        //     true_count += 1;
+        //   }
+        // }
+        // // 再定义一个keep_true_idx，记录keep中的true是第几个true
+        // long long idx = 0;
+        // int print_const = 1;
+        // for (int i = 0; i < nCols / 2; i++)
+        // {
+        //   if (i % print_const == 0){
+        //     printf("i: %d\n", i);
+        //   }
+        //   std::vector<int> indices;
+        //   std::vector<double> elements;
+        //   for (int j = 0; j < vec_len; j++)
+        //   {
+        //     idx = i * vec_len + j;
+        //     if (keep[idx]) 
+        //     {
+        //       // printf("idx: %lld\n", idx);
+        //       indices.push_back(keep_true_idx[idx]);
+        //       elements.push_back(1.0);
+        //     }
+        //   }
+        //   mat.appendCol(indices.size(), &indices[0], &elements[0]);
+          // printf("indices_len: %lld\n", indices.size());
+          // printf("修剪后的矩阵维度：nCols: %d, nRows: %d\n", mat.getNumCols(), mat.getNumRows());
+        // }
+        // free(keep);
+        // keep = NULL;
+        // free(keep_true_idx);
+        // keep_true_idx = NULL;
+#pragma endregion
+#pragma region 按列构造稀疏矩阵，每列中(不需要的行对应的元素)直接不添加，只用keep_true_idx不用keep
         CoinPackedMatrix mat;
         int nCols = 2 * pow(resolution,2);
         long long nRows = pow(resolution, 4);
         printf("如果未修剪，矩阵尺寸为, nCols: %d, nRows: %lld\n", nCols, nRows);
         int vec_len = pow(resolution, 2);
         // 定义一个keep来标记每个元素是否保存
-        bool *keep = (bool *)malloc(sizeof(bool) * nRows);
         int *keep_true_idx = (int *)malloc(sizeof(int) * nRows);
         for (long long i = 0; i < nRows; i++){
-          keep[i] = true;
           keep_true_idx[i] = 0;
         }
         for (long long i = 0; i < *zero_idx_len; i++){
-          keep[zero_idx[i]] = false;
+          keep_true_idx[zero_idx[i]] = -1;
         }
         int true_count = 0;
         for (long long i = 0; i < nRows; i++)
         {
-          if (keep[i]){
+          if (keep_true_idx[i] != -1){
             keep_true_idx[i] = true_count;
             true_count += 1;
           }
         }
         // 再定义一个keep_true_idx，记录keep中的true是第几个true
         long long idx = 0;
-        for (int i = 0; i < nCols / 2; i++)
+        int print_const = 1;
+        for (long long i = 0; i < nCols / 2; i++)
         {
-          if (i % 1000 == 0){
-            printf("i: %d\n", i);
-          }
           std::vector<int> indices;
           std::vector<double> elements;
-          for (int j = 0; j < vec_len; j++)
+          for (long long j = 0; j < vec_len; j++)
           {
             idx = i * vec_len + j;
-            if (keep[idx]) 
+            if (keep_true_idx[idx] != -1) 
             {
               // printf("idx: %lld\n", idx);
               indices.push_back(keep_true_idx[idx]);
@@ -260,35 +309,38 @@ extern "C" void loadProblem_delete_byMatrix_Wrapper_longlong(void* model, int re
             }
           }
           mat.appendCol(indices.size(), &indices[0], &elements[0]);
+          if (i % print_const == 0){
+            printf("i: %lld\n", i);
+          }
           // printf("indices_len: %lld\n", indices.size());
           // printf("修剪后的矩阵维度：nCols: %d, nRows: %d\n", mat.getNumCols(), mat.getNumRows());
         }
         // 后一半的列
-        for (int i = 0; i < nCols /2 ; i++){
-          if (i % 1000 == 0){
-            printf("i: %d\n", i);
-          }
+        for (long long i = 0; i < nCols / 2 ; i++){
           std::vector<int> indices;
           std::vector<double> elements;
-          for (int j = 0; j < vec_len; j++){
-            long long idx = i + j * vec_len;
-            if (keep[idx]){
+          for (long long j = 0; j < vec_len; j++){
+            idx = i + j * vec_len;
+            if (keep_true_idx[idx] != -1){
               indices.push_back(keep_true_idx[idx]);
               elements.push_back(1.0);
             }
           }
           mat.appendCol(indices.size(), &indices[0], &elements[0]);
+          if (i % print_const == 0){
+            printf("i: %lld\n", i + nCols / 2);
+          }
+
+        }
           // printf("indices_len: %lld\n", indices.size());
           // printf("修剪后的矩阵维度：nCols: %d, nRows: %d\n", mat.getNumCols(), mat.getNumRows());
-        }
-        free(keep);
-        keep = NULL;
+        // }
         free(keep_true_idx);
         keep_true_idx = NULL;
 #pragma endregion
-
         printf("修剪后的矩阵维度：nCols: %d, nRows: %d\n", mat.getNumCols(), mat.getNumRows());
         simplex->loadProblem(mat, colLower, colUpper, obj, rowLower, rowUpper);
+        printf("loadProblem_delete_byMatrix_Wrapper_longlong\n");
 }
 
 extern "C" void loadProblem_delete_by_keep_byMatrix_Wrapper_longlong(void* model, int resolution, bool *keep, long long *keep_true_idx, long long *len_after_delete,

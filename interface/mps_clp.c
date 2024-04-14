@@ -76,7 +76,7 @@ cupdlp_retcode main(int argc, char **argv)
 
   char basePath[] = "/home/xiawenzhou/Documents/XiaWenzhou/OptimalTransport/OT_instances/DOTmark/Data";
   char type[] = "CauchyDensity";
-  int resolution = 64;
+  int resolution = 256;
   int fileNumber_1 = 1001;
   int fileNumber_2 = 1002;
   char csvpath_1[256];
@@ -261,6 +261,26 @@ cupdlp_retcode main(int argc, char **argv)
   // CUPDLP_INIT(y_origin, nRows);
 ////////////////////////////////////////////////////////////////////////////////////////
 #pragma endregion
+  // void *model_3 = NULL;
+  // model_3 = createModel();
+  // int coarse_degree_3 = 0;
+  // long long y_init_delete_len = 886352;
+  // long long y_init_len = pow(resolution, 4);
+  // long long y_init_zero_idx_len = y_init_len - y_init_delete_len;
+  // long long *y_init_zero_idx = cupdlp_NULL;
+  // CUPDLP_INIT_ZERO(y_init_zero_idx, y_init_zero_idx_len);
+  // for (long long i = 0; i < y_init_zero_idx_len; ++i)
+  // {
+  //   if (i % 100000000 == 0)
+  //   {
+  //     printf("i = %lld, 百分之%f完成\n", i, 100.0 * i / y_init_zero_idx_len);
+  //   }
+  //   y_init_zero_idx[i] = i;
+  // }
+
+  // generate_coarse_dualOT_model_delete_from_csv_longlong(model_3, csvpath_1, csvpath_2, resolution, y_init_zero_idx, &y_init_zero_idx_len, y_init_delete_len, coarse_degree_3);
+  // cupdlp_free(y_init_zero_idx);
+
   // cupdlp_int coarse_degree_last = 4;
   // cupdlp_int coarse_degree_now = 3;
   // cupdlp_int coarse_degree_diff = coarse_degree_last - coarse_degree_now;
