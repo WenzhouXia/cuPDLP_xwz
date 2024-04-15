@@ -2639,6 +2639,7 @@ cupdlp_retcode PDHG_Init_Step_Sizes_Multiscale(CUPDLPwork *pdhg)
     cupdlp_float b = 0.0;
     cupdlp_twoNormSquared(pdhg, problem->nCols, problem->cost, &a);
     cupdlp_twoNormSquared(pdhg, problem->nRows, problem->rhs, &b);
+    cupdlp_printf("初始化时计算范数，cost的范数: %f, rhs的范数: %f\n", a, b);
 
     if (fmin(a, b) > 1e-6)
     {
@@ -2665,6 +2666,8 @@ cupdlp_retcode PDHG_Init_Step_Sizes_Multiscale(CUPDLPwork *pdhg)
     cupdlp_float b = 0.0;
     cupdlp_twoNormSquared(pdhg, problem->nCols, problem->cost, &a);
     cupdlp_twoNormSquared(pdhg, problem->nRows, problem->rhs, &b);
+    printf("cost长度为%d, rhs长度为%d\n", problem->nCols, problem->nRows);
+    cupdlp_printf("初始化时计算范数，cost(也就是q)的范数: %f, rhs(也就是c)的范数: %f\n", a, b);
 
     if (fmin(a, b) > 1e-6)
     {
@@ -2742,7 +2745,6 @@ cupdlp_retcode PDHG_Init_Step_Sizes_AdapTheta(CUPDLPwork *pdhg)
     cupdlp_float b = 0.0;
     cupdlp_twoNormSquared(pdhg, problem->nCols, problem->cost, &a);
     cupdlp_twoNormSquared(pdhg, problem->nRows, problem->rhs, &b);
-
     if (fmin(a, b) > 1e-6)
     {
       stepsize->dBeta = a / b;

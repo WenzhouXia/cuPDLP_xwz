@@ -5,7 +5,7 @@
 
 #include "ClpModel.hpp"
 #include "ClpSimplex.hpp"
-
+#include "omp.h"
 using namespace std;
 // extern "C" void *createModel() { return new ClpModel(); }
 
@@ -88,6 +88,92 @@ extern "C" void loadProblem_byMatrix_Wrapper(void* model, int resolution,
         simplex->loadProblem(mat, 
                              colLower, colUpper, obj, rowLower, rowUpper);
 }
+
+extern "C" void loadProblem_byMatrix_Wrapper_parallel(void* model, int resolution, 
+                            const double* colLower, 
+                            const double* colUpper, const double* obj, 
+                            const double* rowLower, const double* rowUpper) {
+        ClpSimplex* simplex = static_cast<ClpSimplex*>(model);
+#pragma region 按列构造稀疏矩阵
+        int nCols = 2 * pow(resolution, 2);
+        int nRows = pow(resolution, 4);
+        printf("nCols: %d, nRows: %d\n", nCols, nRows);
+        CoinPackedMatrix mat;
+        mat.setDimensions(nRows, 0);
+        int vec_len = pow(resolution, 2);
+        // i代表列数，j代表行数
+        // 前一半的列
+        double generate_mat_time = omp_get_wtime();
+        int num_threads = 32;
+        if (nCols / 2 < num_threads){
+          num_threads = nCols / 2;
+        }
+        printf("多线程开始，线程数为%d\n", num_threads);
+        CoinPackedMatrix *mat_array_1 = new CoinPackedMatrix[num_threads];
+        for (int i = 0; i < num_threads; i++){
+          mat_array_1[i].setDimensions(nRows, 0);
+        }
+#pragma omp parallel num_threads(num_threads)
+{
+        int thread_id = omp_get_thread_num();
+        int start = thread_id * nCols / (2 * num_threads);
+        int end = (thread_id+1) * nCols / (2 * num_threads);
+        for (long long i = start; i < end; i++)
+        {
+          long long idx = 0;
+          std::vector<int> indices;
+          std::vector<double> elements;
+          for (long long j = 0; j < vec_len; j++)
+          {
+            idx = i * vec_len + j;
+            indices.push_back(idx);
+            elements.push_back(1.0);
+          }
+          mat_array_1[thread_id].appendCol(indices.size(), &indices[0], &elements[0]);
+        }
+}
+        generate_mat_time = omp_get_wtime() - generate_mat_time;
+        printf("生成前一半矩阵时间为：%f\n", generate_mat_time);
+
+        for (int i = 0; i < num_threads; i++)
+        {
+          mat.rightAppendPackedMatrix(mat_array_1[i]);
+        }
+
+
+        CoinPackedMatrix *mat_array_2 = new CoinPackedMatrix[num_threads];
+        for (int i = 0; i < num_threads; i++){
+          mat_array_2[i].setDimensions(nRows, 0);
+        } 
+#pragma omp parallel num_threads(num_threads)
+{
+        int thread_id = omp_get_thread_num();
+        int start = thread_id * nCols / (2 * num_threads);
+        int end = (thread_id+1) * nCols / (2 * num_threads);
+        for (long long i = start; i < end ; i++)
+        {
+          long long idx = 0;
+          std::vector<int> indices;
+          std::vector<double> elements;
+          for (long long j = 0; j < vec_len; j++)
+          {
+            idx = i + j * vec_len;
+            indices.push_back(idx);
+            elements.push_back(1.0);
+          }
+          mat_array_2[thread_id].appendCol(indices.size(), &indices[0], &elements[0]);
+        }
+}        
+        for (int i = 0; i < num_threads; i++){
+          mat.rightAppendPackedMatrix(mat_array_2[i]);
+        }
+        printf("约束矩阵构造完成\n");
+#pragma endregion
+
+        simplex->loadProblem(mat, 
+                             colLower, colUpper, obj, rowLower, rowUpper);
+}
+
 
 extern "C" void loadProblem_delete_byMatrix_Wrapper(void* model, int resolution, int* zero_idx, int* zero_idx_len,
                             const double* colLower, 
@@ -293,7 +379,7 @@ extern "C" void loadProblem_delete_byMatrix_Wrapper_longlong(void* model, int re
         }
         // 再定义一个keep_true_idx，记录keep中的true是第几个true
         long long idx = 0;
-        int print_const = 1;
+        int print_const = floor(nCols / 10);
         for (long long i = 0; i < nCols / 2; i++)
         {
           std::vector<int> indices;
@@ -342,6 +428,302 @@ extern "C" void loadProblem_delete_byMatrix_Wrapper_longlong(void* model, int re
         simplex->loadProblem(mat, colLower, colUpper, obj, rowLower, rowUpper);
         printf("loadProblem_delete_byMatrix_Wrapper_longlong\n");
 }
+
+extern "C" void loadProblem_delete_byMatrix_Wrapper_longlong_parallel(void* model, int resolution, long long* zero_idx, long long* zero_idx_len,
+                            const double* colLower, 
+                            const double* colUpper, const double* obj, 
+                            const double* rowLower, const double* rowUpper) {
+        ClpSimplex* simplex = static_cast<ClpSimplex*>(model);
+#pragma region 按列构造稀疏矩阵，不用添加列的方式而是用修改列的方式，方便并行，每列中(不需要的行对应的元素)直接不添加，只用keep_true_idx不用keep
+        // CoinPackedMatrix matTest1;
+        // CoinPackedMatrix matTest2;
+        // std::vector<int> indices_test;
+        // std::vector<double> elements_test;
+        // indices_test.push_back(0);
+        // indices_test.push_back(1);
+        // elements_test.push_back(1.0);
+        // elements_test.push_back(1.0);
+        // matTest1.appendCol(indices_test.size(), &indices_test[0], &elements_test[0]);
+        // matTest1.appendCol(indices_test.size(), &indices_test[0], &elements_test[0]);
+        // matTest2.appendCol(indices_test.size(), &indices_test[0], &elements_test[0]);
+        // matTest2.appendCol(indices_test.size(), &indices_test[0], &elements_test[0]);
+        // matTest1.rightAppendPackedMatrix(matTest2);
+        // printf("matTest1: %d, %d\n", matTest1.getNumCols(), matTest1.getNumRows());
+        
+        // int sum = 0;
+        // int n_threads = 4;
+        // int range = 2500; // 每个线程计算的范围大小
+        // #pragma omp parallel num_threads(n_threads)
+        // {
+        //     int thread_id = omp_get_thread_num();
+        //     int start = thread_id * range;
+        //     int end = start + range - 1;
+        //     int thread_sum = 0;
+        //     for (int i = start; i <= end; i++) {
+        //         thread_sum += i;
+        //     }
+        //     printf("Thread %d: %d\n", thread_id, thread_sum);
+        //     #pragma omp atomic
+        //     sum += thread_sum;
+        // }
+        // printf("Total sum is %d\n", sum);
+        int nCols = 2 * pow(resolution,2);
+        long long nRows_before_delete = pow(resolution, 4);
+        int nRows = nRows_before_delete - *zero_idx_len;
+        CoinPackedMatrix mat;
+        mat.setDimensions(nRows, 0);
+        printf("loadProblem_delete_byMatrix_Wrapper_longlong_parallel开始\n");
+        printf("如果未修剪，矩阵尺寸为, nCols: %d, nRows: %lld\n", nCols, nRows_before_delete);
+        // mat.setDimensions(nRows, nCols);
+        int vec_len = pow(resolution, 2); 
+        double keep_true_idx_time = omp_get_wtime();
+        // 定义一个keep_true_idx来标记每个元素是否保存，如果保存，是第几个true
+        int *keep_true_idx = (int *)malloc(sizeof(int) * nRows_before_delete);
+        for (long long i = 0; i < nRows_before_delete; i++){
+          keep_true_idx[i] = 0;
+        }
+        for (long long i = 0; i < *zero_idx_len; i++){
+          keep_true_idx[zero_idx[i]] = -1;
+        }
+        int true_count = 0;
+        for (long long i = 0; i < nRows_before_delete; i++)
+        {
+          if (keep_true_idx[i] != -1){
+            keep_true_idx[i] = true_count;
+            true_count += 1;
+          }
+        }
+        keep_true_idx_time = omp_get_wtime() - keep_true_idx_time;
+        printf("在loadProblem内部生成keep_true_idx耗时为：%f\n", keep_true_idx_time);
+        double generate_mat_time = omp_get_wtime();
+        // 多线程构造前一半的列，并存储在子矩阵中，最后通过引用，进行合并
+        int num_threads = 32;
+        printf("多线程开始，线程数为%d\n", num_threads);
+        // 设置线程数
+        CoinPackedMatrix *mat_array_1 = new CoinPackedMatrix[num_threads];
+        for (int i = 0; i < num_threads; i++){
+          mat_array_1[i].setDimensions(nRows, 0);
+        } 
+#pragma omp parallel num_threads(num_threads)
+{
+        int thread_id = omp_get_thread_num();
+        int start = thread_id * nCols / (2 * num_threads);
+        int end = (thread_id+1) * nCols / (2 * num_threads);
+        // 前一半的列      
+        for (long long i = start; i < end; i++)
+        {
+          long long idx = 0;
+          std::vector<int> indices;
+          std::vector<double> elements;
+          for (long long j = 0; j < vec_len; j++)
+          {
+            idx = i * vec_len + j;
+            if (keep_true_idx[idx] != -1) 
+            {
+              // printf("idx: %lld\n", idx);
+              indices.push_back(keep_true_idx[idx]);
+              elements.push_back(1.0);
+            }
+          }
+          mat_array_1[thread_id].appendCol(indices.size(), &indices[0], &elements[0]);
+        }
+        generate_mat_time = omp_get_wtime() - generate_mat_time;
+        
+}
+        printf("生成前一半矩阵时间为：%f\n", generate_mat_time);  
+        printf("多线程结束，开始合并\n");
+        for (int i = 0; i < num_threads; i++)
+        {
+          // printf("第%d个线程的矩阵维度：nCols: %d, nRows: %d\n", i, mat_array_1[i].getNumCols(), mat_array_1[i].getNumRows());
+          mat.rightAppendPackedMatrix(mat_array_1[i]);
+        }
+
+        CoinPackedMatrix *mat_array_2 = new CoinPackedMatrix[num_threads];
+        for (int i = 0; i < num_threads; i++){
+          mat_array_2[i].setDimensions(nRows, 0);
+        } 
+#pragma omp parallel num_threads(num_threads)
+{
+        int thread_id = omp_get_thread_num();
+        int start = thread_id * nCols / (2 * num_threads);
+        int end = (thread_id+1) * nCols / (2 * num_threads);
+        for (long long i = start; i < end ; i++)
+        {
+          long long idx = 0;
+          std::vector<int> indices;
+          std::vector<double> elements;
+          for (long long j = 0; j < vec_len; j++)
+          {
+            idx = i + j * vec_len;
+            if (keep_true_idx[idx] != -1){
+              indices.push_back(keep_true_idx[idx]);
+              elements.push_back(1.0);
+            }
+          }
+          mat_array_2[thread_id].appendCol(indices.size(), &indices[0], &elements[0]);
+        }
+}
+        printf("多线程结束，开始合并\n");
+        for (int i = 0; i < num_threads; i++){
+          // printf("第%d个线程的矩阵维度：nCols: %d, nRows: %d\n", i, mat_array_2[i].getNumCols(), mat_array_2[i].getNumRows());
+          mat.rightAppendPackedMatrix(mat_array_2[i]);
+        }
+        
+
+        free(keep_true_idx);
+        keep_true_idx = NULL;
+
+#pragma endregion
+        printf("修剪后的矩阵维度：nCols: %d, nRows: %d\n", mat.getNumCols(), mat.getNumRows());
+        double simplex_loadProblem_time = omp_get_wtime(); 
+        simplex->loadProblem(mat, colLower, colUpper, obj, rowLower, rowUpper);
+        delete[] mat_array_1;
+        delete[] mat_array_2;
+        printf("loadProblem_delete_byMatrix_Wrapper_longlong_parallel\n");
+        simplex_loadProblem_time = omp_get_wtime() - simplex_loadProblem_time;
+        printf("simplex_loadProblem_time耗时为：%f\n", simplex_loadProblem_time);
+
+        
+}
+
+extern "C" void loadProblem_delete_byMatrix_byKeepIdx_Wrapper_longlong_parallel(void* model, int resolution, long long* keep_idx, long long *keep_nnz,
+                            const double* colLower, 
+                            const double* colUpper, const double* obj, 
+                            const double* rowLower, const double* rowUpper) {
+        ClpSimplex* simplex = static_cast<ClpSimplex*>(model);
+#pragma region 按列构造稀疏矩阵，不用添加列的方式而是用修改列的方式，方便并行，每列中(不需要的行对应的元素)直接不添加，只用keep_idx不用keep
+        int nCols = 2 * pow(resolution,2);
+        long long nRows_before_delete = pow(resolution, 4);
+        int nRows = *keep_nnz;
+        CoinPackedMatrix mat;
+        mat.setDimensions(nRows, 0);
+        printf("loadProblem_delete_byMatrix_Wrapper_longlong_parallel开始\n");
+        printf("如果未修剪，矩阵尺寸为, nCols: %d, nRows: %lld\n", nCols, nRows_before_delete);
+        // mat.setDimensions(nRows, nCols);
+        int vec_len = pow(resolution, 2); 
+
+        double generate_mat_time = omp_get_wtime();
+        // 多线程构造前一半的列，并存储在子矩阵中，最后通过引用，进行合并
+        int num_threads = 32;
+        if (nCols / 2 < num_threads){
+          num_threads = nCols / 2;
+        }
+        printf("多线程开始，线程数为%d\n", num_threads);
+        CoinPackedMatrix *mat_array_1 = new CoinPackedMatrix[num_threads];
+        for (int i = 0; i < num_threads; i++){
+          mat_array_1[i].setDimensions(nRows, 0);
+        } 
+#pragma omp parallel num_threads(num_threads)
+{
+        int thread_id = omp_get_thread_num();
+        int start = thread_id * nCols / (2 * num_threads);
+        int end = (thread_id+1) * nCols / (2 * num_threads);
+        // 前一半的列      
+        for (long long i = start; i < end; i++)
+        {
+          long long idx = 0;
+          std::vector<int> indices;
+          std::vector<double> elements;
+          for (long long j = 0; j < vec_len; j++)
+          {
+            idx = i * vec_len + j;
+            if (keep_idx[idx] != -1) 
+            {
+              // printf("idx: %lld\n", idx);
+              indices.push_back(keep_idx[idx]);
+              elements.push_back(1.0);
+            }
+          }
+          mat_array_1[thread_id].appendCol(indices.size(), &indices[0], &elements[0]);
+        }        
+}
+        generate_mat_time = omp_get_wtime() - generate_mat_time;
+        printf("生成前一半矩阵时间为：%f\n", generate_mat_time);  
+        printf("多线程结束，开始合并\n");
+        double merge_mat_time = omp_get_wtime();
+        for (int i = 0; i < num_threads; i++)
+        {
+          // printf("第%d个线程的矩阵维度：nCols: %d, nRows: %d\n", i, mat_array_1[i].getNumCols(), mat_array_1[i].getNumRows());
+          mat.rightAppendPackedMatrix(mat_array_1[i]);
+        }
+        merge_mat_time = omp_get_wtime() - merge_mat_time;
+        printf("合并前一半矩阵完成，耗时%f\n", merge_mat_time);
+
+        CoinPackedMatrix *mat_array_2 = new CoinPackedMatrix[num_threads];
+        for (int i = 0; i < num_threads; i++){
+          mat_array_2[i].setDimensions(nRows, 0);
+        } 
+#pragma omp parallel num_threads(num_threads)
+{
+        int thread_id = omp_get_thread_num();
+        int start = thread_id * nCols / (2 * num_threads);
+        int end = (thread_id+1) * nCols / (2 * num_threads);
+        for (long long i = start; i < end ; i++)
+        {
+          long long idx = 0;
+          std::vector<int> indices;
+          std::vector<double> elements;
+          for (long long j = 0; j < vec_len; j++)
+          {
+            idx = i + j * vec_len;
+            if (keep_idx[idx] != -1){
+              indices.push_back(keep_idx[idx]);
+              elements.push_back(1.0);
+            }
+          }
+          mat_array_2[thread_id].appendCol(indices.size(), &indices[0], &elements[0]);
+        }
+}
+        printf("多线程结束，开始合并\n");
+        for (int i = 0; i < num_threads; i++){
+          // printf("第%d个线程的矩阵维度：nCols: %d, nRows: %d\n", i, mat_array_2[i].getNumCols(), mat_array_2[i].getNumRows());
+          mat.rightAppendPackedMatrix(mat_array_2[i]);
+        }
+        
+
+
+#pragma endregion
+        printf("修剪后的矩阵维度：nCols: %d, nRows: %d\n", mat.getNumCols(), mat.getNumRows());
+        // 打印矩阵进行检查
+        // const int numRows = mat.getNumRows();
+        // const int numCols = mat.getNumCols();
+        // printf("numRows: %d, numCols: %d\n", numRows, numCols);
+
+        // // 获取矩阵中的元素和它们的索引
+        // const double* elements_print = mat.getElements();
+        // const int* rowIndices = mat.getIndices();
+        // const CoinBigIndex* columnStarts = mat.getVectorStarts();
+        // const int* lengths = mat.getVectorLengths();
+
+        // // 按列遍历矩阵
+        // for (int col = 0; col < numCols; ++col) {
+        //     std::cout << "Column " << col << ":" << std::endl;
+        //     // 获取这一列的起始位置和长度
+        //     CoinBigIndex start = columnStarts[col];
+        //     int length = lengths[col];
+
+        //     // 遍历这一列的每个元素
+        //     for (int i = 0; i < length; ++i) {
+        //         // 计算当前元素的索引
+        //         CoinBigIndex index = start + i;
+        //         // 输出行索引和元素的值
+        //         std::cout << "  Row " << rowIndices[index] << ": " << elements_print[index] << std::endl;
+        //     }
+        // }
+
+        double simplex_loadProblem_time = omp_get_wtime(); 
+        simplex->loadProblem(mat, colLower, colUpper, obj, rowLower, rowUpper);
+        delete[] mat_array_1;
+        delete[] mat_array_2;
+        simplex_loadProblem_time = omp_get_wtime() - simplex_loadProblem_time;
+        printf("simplex_loadProblem_time耗时为：%f\n", simplex_loadProblem_time);
+        printf("loadProblem_delete_byMatrix_Wrapper_longlong_parallel完成\n");
+
+
+        
+}
+
+
 
 extern "C" void loadProblem_delete_by_keep_byMatrix_Wrapper_longlong(void* model, int resolution, bool *keep, long long *keep_true_idx, long long *len_after_delete,
                             const double* colLower, 

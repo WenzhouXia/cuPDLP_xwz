@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.24)
 
 project(CUPDLP VERSION 0.0.1)
 
-find_package(OpenMP REQUIRED)
-
 option(BUILD_CUDA "<BUILD_CUDA_OR_NOT>" OFF)
 option(BUILD_APPS "<BUILD_APPS_OR_NOT>" OFF)
 message(NOTICE "-----------------------      cuPDLP-C      ------------------------")

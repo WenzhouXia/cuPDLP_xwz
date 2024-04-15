@@ -58,6 +58,15 @@ extern "C"
                                                     const double *colLower,
                                                     const double *colUpper, const double *obj,
                                                     const double *rowLower, const double *rowUpper);
+  void loadProblem_delete_byMatrix_Wrapper_longlong_parallel(void *model, int resolution, long long *zero_idx, long long *zero_idx_len,
+                                                             const double *colLower,
+                                                             const double *colUpper, const double *obj,
+                                                             const double *rowLower, const double *rowUpper);
+  void loadProblem_delete_byMatrix_byKeepIdx_Wrapper_longlong_parallel(void *model, int resolution, long long *keep_idx, long long *keep_nnz,
+                                                                                  const double *colLower,
+                                                                                  const double *colUpper, const double *obj,
+                                                                                  const double *rowLower, const double *rowUpper);
+
   void loadProblem_delete_by_keep_byMatrix_Wrapper_longlong(void *model, int resolution, bool *keep, long long *keep_true_idx, long long *len_after_delete,
                                                             const double *colLower,
                                                             const double *colUpper, const double *obj,

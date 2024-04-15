@@ -1,7 +1,4 @@
 enable_language(CXX)
-
-find_package(OpenMP REQUIRED)
-
 #############################################
 # enable LP parsers
 #############################################
@@ -54,7 +51,6 @@ endif()
 add_executable(plc 
         ${CLP_HEADER_FILES}
         mps_clp.c
-        ../cupdlp/cupdlp_multiscale.c
 )
 target_include_directories(
         plc PRIVATE 
@@ -70,14 +66,6 @@ target_link_libraries(
         ${CLP_LIBRARY_OSICLP}
         ${CLP_LIBRARY_COIN}
 )
-
-# Linking OpenMP
-if(OpenMP_CXX_FOUND)
-    target_link_libraries(wrapper_clp PRIVATE OpenMP::OpenMP_CXX)
-endif()
-if(OpenMP_C_FOUND)
-    target_link_libraries(plc PRIVATE OpenMP::OpenMP_C)
-endif()
 
 
 if (${CUDA_LIBRARY-NOTFOUND})
