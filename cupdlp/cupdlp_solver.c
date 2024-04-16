@@ -2309,6 +2309,7 @@ cupdlp_retcode LP_SolvePDHG_Multiscale(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIn
   *x_solution = x_origin;
   *y_solution = y_origin;
   cupdlp_printf("Begin writing!\n");
+  cupdlp_printf("约束矩阵尺寸为nRows：%d, nCols：%d\n", pdhg->problem->nRows, pdhg->problem->nCols);
   writeJson(fp, pdhg, x_origin, nCols_origin, y_origin, pdhg->problem->nRows, ifSaveSol);
 
 exit_cleanup:

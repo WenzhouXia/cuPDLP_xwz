@@ -2105,7 +2105,7 @@ long long *countArray1D_Smaller_than_threshold_with_Record_longlong(cupdlp_float
 void countArray1D_Smaller_than_threshold_with_KeepIdx_longlong_parallel(long long *keep_idx, cupdlp_float *a, long long a_len, long long *keep_nnz, cupdlp_float thr)
 {
     cupdlp_bool retcode = RETCODE_OK;
-    int num_threads = 32;
+    int num_threads = 64;
     long long *nnz_array = cupdlp_NULL;
     CUPDLP_INIT_ZERO(nnz_array, num_threads);
     long long **keep_idx_array = cupdlp_NULL;
@@ -2179,6 +2179,116 @@ exit_cleanup:
     }
     cupdlp_free(keep_idx_array);
     cupdlp_printf("countArray1D_Smaller_than_threshold_with_KeepIdx_longlong完成， 零元素个数为%lld\n", *keep_nnz);
+}
+
+void countZero_and_checkConstraint_with_KeepIdx_longlong_parallel(long long *keep_idx, cupdlp_float *y, long long y_len, cupdlp_float *x, long long x_len, long long *keep_nnz, cupdlp_float thr, cupdlp_int resolution_now, cupdlp_float violate_degree)
+{
+    // x_len = 2*vec_len, y_len = vec_len*vec_len
+    cupdlp_bool retcode = RETCODE_OK;
+    int num_threads = 64;
+    if (num_threads > resolution_now)
+    {
+        num_threads = resolution_now;
+    }
+    long long *nnz_array = cupdlp_NULL;
+    CUPDLP_INIT_ZERO(nnz_array, num_threads);
+    long long **keep_idx_array = cupdlp_NULL;
+    CUPDLP_INIT(keep_idx_array, num_threads);
+    for (int i = 0; i < num_threads; i++)
+    {
+        CUPDLP_INIT_ZERO(keep_idx_array[i], y_len / num_threads);
+    }
+    cupdlp_int pow_resolution_2 = pow(resolution_now, 2);
+    cupdlp_float scale = 2.0 * pow_resolution_2;
+    cupdlp_printf("断点1\n");
+#pragma omp parallel num_threads(num_threads)
+    {
+        int thread_id = omp_get_thread_num();
+        int start = thread_id * resolution_now / num_threads;
+        int end = (thread_id + 1) * resolution_now / num_threads;
+        nnz_array[thread_id] = 0;
+        for (int i1 = start; i1 < end; i1++)
+        {
+            long long idx_temp = 0;
+            long long idx_temp_min = 0;
+            long long idx_1 = 0;
+            long long idx_2 = 0;
+            for (int j1 = 0; j1 < resolution_now; j1++)
+            {
+                idx_1 = i1 * resolution_now + j1;
+                for (int i2 = 0; i2 < resolution_now; i2++)
+                {
+                    for (int j2 = 0; j2 < resolution_now; j2++)
+                    {
+                        idx_2 = i2 * resolution_now + j2;
+                        idx_temp = idx_1 * pow_resolution_2 + idx_2;
+                        idx_temp_min = start * resolution_now * pow_resolution_2;
+                        if (fabs(y[idx_temp]) < thr)
+                        {
+                            if (x[idx_1] + x[pow_resolution_2 + idx_2] > (1 + violate_degree) * ((i1 - i2) * (i1 - i2) + (j1 - j2) * (j1 - j2) + 1.0) / scale)
+                            {
+                                keep_idx_array[thread_id][idx_temp - idx_temp_min] = nnz_array[thread_id];
+                                nnz_array[thread_id] += 1;
+                            }
+                            else
+                            {
+                                keep_idx_array[thread_id][idx_temp - idx_temp_min] = -1;
+                            }
+                        }
+                        else
+                        {
+                            keep_idx_array[thread_id][idx_temp - idx_temp_min] = nnz_array[thread_id];
+                            nnz_array[thread_id] += 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    cupdlp_printf("断点2\n");
+    // 先前的nnz_array是每个线程的非零元素个数，现在需要计算到每个线程为止有多少个非零元素
+    for (int i = 1; i < num_threads; i++)
+    {
+        nnz_array[i] += nnz_array[i - 1];
+    }
+    *keep_nnz = nnz_array[num_threads - 1];
+    // 再合并到keep_idx中
+#pragma omp parallel num_threads(num_threads)
+    {
+        int thread_id = omp_get_thread_num();
+        long long start = thread_id * y_len / num_threads;
+        long long end = (thread_id + 1) * y_len / num_threads;
+        for (long long i = start; i < end; i++)
+        {
+            if (keep_idx_array[thread_id][i - start] != -1)
+            {
+                if (thread_id == 0)
+                {
+                    keep_idx[i] = keep_idx_array[thread_id][i - start];
+                }
+                else
+                {
+                    keep_idx[i] = keep_idx_array[thread_id][i - start] + nnz_array[thread_id - 1];
+                }
+            }
+            else
+            {
+                keep_idx[i] = -1;
+            };
+        }
+    }
+exit_cleanup:
+    if (retcode != RETCODE_OK)
+    {
+        cupdlp_printf("countZero_and_checkConstraint_with_KeepIdx_longlong_parallel exit_cleanup\n");
+    }
+    cupdlp_free(nnz_array);
+    for (int i = 0; i < num_threads; i++)
+    {
+        cupdlp_free(keep_idx_array[i]);
+    }
+    cupdlp_free(keep_idx_array);
+    cupdlp_printf("countZero_and_checkConstraint_with_KeepIdx_longlong_parallel完成， 零元素个数为%lld\n", *keep_nnz);
 }
 
 void saveArray1D_to_csv(cupdlp_float *a, int a_len, const char *filename)
@@ -2550,7 +2660,7 @@ void construct_and_solve_Multiscale_longlong(void *model, const char *csvpath_1,
         CUPDLP_INIT_ZERO(y_init, y_init_len);
         fine_dualOT_dual_parallel(y_init, y_solution_last, y_init_len, y_solution_last_len, resolution_now, coarse_degree_diff);
         fine_time = getTimeStamp() - fine_time;
-        cupdlp_printf("fine_dualOT_dual耗时：%.3f\n", fine_time);
+        cupdlp_printf("fine_dualOT_dual步骤耗时：%.3f\n", fine_time);
 
         // // 找出y_init中小于阈值的元素
         // cupdlp_float countArray1D_time = getTimeStamp();
@@ -2561,13 +2671,29 @@ void construct_and_solve_Multiscale_longlong(void *model, const char *csvpath_1,
         // cupdlp_printf("countArray1D_Smaller_than_threshold_with_Record耗时：%.3f\n", countArray1D_time);
 
         cupdlp_float countArray1D_time = getTimeStamp();
+        cupdlp_printf("开始countArray了\n");
         long long *keep_nnz = cupdlp_NULL;
         CUPDLP_INIT_ZERO(keep_nnz, 1);
         long long *keep_idx = cupdlp_NULL;
         CUPDLP_INIT(keep_idx, y_init_len);
+
         countArray1D_Smaller_than_threshold_with_KeepIdx_longlong_parallel(keep_idx, y_init, y_init_len, keep_nnz, 1e-20);
+
+        // long long *keep_nnz_compare = cupdlp_NULL;
+        // CUPDLP_INIT_ZERO(keep_nnz_compare, 1);
+        // long long *keep_idx_compare = cupdlp_NULL;
+        // CUPDLP_INIT(keep_idx_compare, y_init_len);
+        // countZero_and_checkConstraint_with_KeepIdx_longlong_parallel(keep_idx_compare, y_init, y_init_len, x_init, x_init_len, keep_nnz_compare, 1e-20, resolution_now, 100000000.0);
+        // if (resolution_now == 16)
+        // {
+        //     checkTwoArray1D_whether_equal(keep_idx, keep_idx_compare, y_init_len);
+        //     printf("无u，长度为%lld\n", *keep_nnz);
+        //     printf("有u，长度为%lld\n", *keep_nnz_compare);
+        //     cupdlp_free(keep_idx);
+        // }
+        // countZero_and_checkConstraint_with_KeepIdx_longlong_parallel(keep_idx, y_init, y_init_len, x_init, x_init_len, keep_nnz, 1e-20, resolution_now, 100000000.0);
         countArray1D_time = getTimeStamp() - countArray1D_time;
-        cupdlp_printf("countArray1D_Smaller_than_threshold_with_KeepIdx_longlong耗时：%.3f\n", countArray1D_time);
+        cupdlp_printf("countArray1D_with_KeepIdx_longlong耗时：%.3f\n", countArray1D_time);
 
         // cupdlp_float deleteArray1D_time = getTimeStamp();
         // long long y_init_delete_len = y_init_len - *y_init_zero_idx_len;
@@ -3153,7 +3279,7 @@ void computepPrimalFeas(cupdlp_float *x_solution, cupdlp_int resolution, cupdlp_
     diff_norm = sqrt(diff_norm);
     c_norm = sqrt(c_norm);
     cupdlp_float dual_gap = diff_norm / (1 + c_norm);
-    cupdlp_printf("误差如下，diff_norm: %f, c_norm: %f, dual_gap: %f\n", diff_norm, c_norm, dual_gap);
+    cupdlp_printf("误差如下，diff_norm: %.8f, c_norm: %f, dual_gap: %.8f\n", diff_norm, c_norm, dual_gap);
     computepPrimalFeas_time = getTimeStamp() - computepPrimalFeas_time;
     cupdlp_printf("computepPrimalFeas耗时：%.3f\n", computepPrimalFeas_time);
     // int x_len = 2 * pow(resolution_now, 2);
@@ -3239,4 +3365,29 @@ void compute_2norm_floatArray1D(cupdlp_float *norm, cupdlp_float *a, long long a
     cupdlp_printf("norm^2 = %f\n", norm_temp);
     *norm = sqrt(norm_temp);
     cupdlp_printf("compute_2norm_floatArray1D完成, norm = %f\n", *norm);
+}
+
+void checkTwoArray1D_whether_equal(long long *a, long long *b, long long vec_len)
+{
+    omp_set_dynamic(1);
+    cupdlp_bool whether_equal = true;
+#pragma omp parallel for reduction(&& : whether_equal)
+    for (long long i = 0; i < vec_len; i++)
+    {
+        if (a[i] != b[i])
+        {
+            cupdlp_printf("NOT EQUAL! a[%lld]: %lld, b[%lld]: %lld\n", i, a[i], i, b[i]);
+            whether_equal = false;
+        }
+    }
+
+    if (whether_equal)
+    {
+        cupdlp_printf("两个数组相等\n");
+    }
+    else
+    {
+        cupdlp_printf("两个数组不相等\n");
+    }
+    omp_set_dynamic(0);
 }

@@ -603,8 +603,9 @@ extern "C" void loadProblem_delete_byMatrix_byKeepIdx_Wrapper_longlong_parallel(
         int vec_len = pow(resolution, 2); 
 
         double generate_mat_time = omp_get_wtime();
+        double generate_mat_all_time = omp_get_wtime();
         // 多线程构造前一半的列，并存储在子矩阵中，最后通过引用，进行合并
-        int num_threads = 32;
+        int num_threads = 64;
         if (nCols / 2 < num_threads){
           num_threads = nCols / 2;
         }
@@ -621,6 +622,9 @@ extern "C" void loadProblem_delete_byMatrix_byKeepIdx_Wrapper_longlong_parallel(
         // 前一半的列      
         for (long long i = start; i < end; i++)
         {
+          if(i % 1000 == 0){
+            printf("i: %lld\n", i);
+          }
           long long idx = 0;
           std::vector<int> indices;
           std::vector<double> elements;
@@ -635,8 +639,9 @@ extern "C" void loadProblem_delete_byMatrix_byKeepIdx_Wrapper_longlong_parallel(
             }
           }
           mat_array_1[thread_id].appendCol(indices.size(), &indices[0], &elements[0]);
+          
         }        
-}
+}       
         generate_mat_time = omp_get_wtime() - generate_mat_time;
         printf("生成前一半矩阵时间为：%f\n", generate_mat_time);  
         printf("多线程结束，开始合并\n");
@@ -660,6 +665,9 @@ extern "C" void loadProblem_delete_byMatrix_byKeepIdx_Wrapper_longlong_parallel(
         int end = (thread_id+1) * nCols / (2 * num_threads);
         for (long long i = start; i < end ; i++)
         {
+          if(i % 1000 == 0){
+            printf("i: %lld\n", i);
+          }
           long long idx = 0;
           std::vector<int> indices;
           std::vector<double> elements;
@@ -679,6 +687,8 @@ extern "C" void loadProblem_delete_byMatrix_byKeepIdx_Wrapper_longlong_parallel(
           // printf("第%d个线程的矩阵维度：nCols: %d, nRows: %d\n", i, mat_array_2[i].getNumCols(), mat_array_2[i].getNumRows());
           mat.rightAppendPackedMatrix(mat_array_2[i]);
         }
+        generate_mat_all_time = omp_get_wtime() - generate_mat_all_time;
+        printf("生成矩阵完成，总共耗时%f\n", generate_mat_all_time);
         
 
 

@@ -67,6 +67,7 @@ long long countArray1D_Smaller_than_threshold_longlong(cupdlp_float *a, long lon
 int *countArray1D_Smaller_than_threshold_with_Record(cupdlp_float *a, int a_len, int *a_record_len, cupdlp_float thr);
 long long *countArray1D_Smaller_than_threshold_with_Record_longlong(cupdlp_float *a, long long a_len, long long *a_record_len, cupdlp_float thr);
 void countArray1D_Smaller_than_threshold_with_KeepIdx_longlong_parallel(long long *keep_idx, cupdlp_float *a, long long a_len, long long *keep_nnz, cupdlp_float thr);
+void countZero_and_checkConstraint_with_KeepIdx_longlong_parallel(long long *keep_idx, cupdlp_float *y, long long y_len, cupdlp_float *x, long long x_len, long long *keep_nnz, cupdlp_float thr, cupdlp_int resolution_now, cupdlp_float violate_degree);
 void saveArray1D_to_csv(cupdlp_float *a, int a_len, const char *filename);
 void analyseArray1D(cupdlp_float *a, long long a_len, cupdlp_float thr, const char *filename);
 int countArray1D_same_elements(int *a, int a_len, int *b, int b_len);
@@ -93,5 +94,5 @@ void pdbalance_dualOT_primal_forward(cupdlp_float *x_init_balance, cupdlp_float 
 void pdbalance_dualOT_primal_backward(cupdlp_float *x_solution, cupdlp_float *x_solution_balance, cupdlp_int x_len, cupdlp_float *balance_weight);
 void scale_floatArray1D(cupdlp_float *a_scaled, cupdlp_float *a, cupdlp_int a_len, cupdlp_float balance_weight);
 void compute_2norm_floatArray1D(cupdlp_float *norm, cupdlp_float *a, long long a_len);
-
+void checkTwoArray1D_whether_equal(long long *a, long long *b, long long vec_len);
 #endif // CUPDLP_CUPDLP_MULTISCALE_H

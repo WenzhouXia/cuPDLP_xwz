@@ -646,7 +646,7 @@ cupdlp_retcode main(int argc, char **argv)
   all_multiscale_time = getTimeStamp() - all_multiscale_time;
   cupdlp_printf("picType = %s, resolution = %d, 运行结束，all_multiscale_time = %fs\n", picType, resolution, all_multiscale_time);
 
-  // computepPrimalFeas(x_solution_0, resolution, coarse_degree_0);
+  computepPrimalFeas(x_solution_0, resolution, coarse_degree_0);
 
   // analyseArray1D(y_solution_0, y_solution_len_0, 1e-20, "./y_solution.txt");
   cupdlp_free(y_solution_1);
