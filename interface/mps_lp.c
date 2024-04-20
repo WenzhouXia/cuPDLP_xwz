@@ -159,6 +159,7 @@ cupdlp_retcode data_alloc(CUPDLPdata *data, cupdlp_int nRows, cupdlp_int nCols,
                                  src_matrix_format));
     break;
   case CSR_CSC:
+    cupdlp_printf("CSR_CSC\n");
     CUPDLP_CALL(csc_create(&data->csc_matrix));
     CUPDLP_CALL(csc_alloc_matrix(data->csc_matrix, nRows, nCols, matrix,
                                  src_matrix_format));
@@ -195,7 +196,7 @@ cupdlp_retcode problem_alloc(
   prob->rhs = cupdlp_NULL;
   prob->lower = cupdlp_NULL;
   prob->upper = cupdlp_NULL;
-
+  cupdlp_printf("probelm_alloc中常数赋值完毕, nCols: %d, nRows: %d\n", nCols, nRows);
   cupdlp_float begin = getTimeStamp();
 
   CUPDLP_INIT(prob->data, 1);
@@ -205,9 +206,9 @@ cupdlp_retcode problem_alloc(
   CUPDLP_INIT_VEC(prob->upper, nCols);
   CUPDLP_INIT_ZERO_VEC(prob->hasLower, nCols);
   CUPDLP_INIT_ZERO_VEC(prob->hasUpper, nCols);
-
   CUPDLP_CALL(data_alloc(prob->data, nRows, nCols, matrix, src_matrix_format,
                          dst_matrix_format));
+  cupdlp_printf("probelm_alloc中data_alloc完毕\n");
   *alloc_matrix_time = getTimeStamp() - begin;
 
   prob->data->csc_matrix->MatElemNormInf = infNorm(
@@ -218,6 +219,22 @@ cupdlp_retcode problem_alloc(
   CUPDLP_COPY_VEC(prob->rhs, rhs, cupdlp_float, nRows);
   CUPDLP_COPY_VEC(prob->lower, lower, cupdlp_float, nCols);
   CUPDLP_COPY_VEC(prob->upper, upper, cupdlp_float, nCols);
+  // for (int i = 0; i < nRows; i++)
+  // {
+  //   printf("rhs[%d]: %f\n", i, rhs[i]);
+  // }
+  // for (int i = 0; i < nCols; i++)
+  // {
+  //   printf("cost[%d]: %f\n", i, cost[i]);
+  // }
+  // for (int i = 0; i < nCols; i++)
+  // {
+  //   printf("lower[%d]: %f\n", i, lower[i]);
+  // }
+  // for (int i = 0; i < nCols; i++)
+  // {
+  //   printf("upper[%d]: %f\n", i, upper[i]);
+  // }
   *copy_vec_time = getTimeStamp() - begin;
 
   // todo, translate to cuda

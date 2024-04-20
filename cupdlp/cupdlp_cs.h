@@ -4,7 +4,8 @@
 #include "cupdlp_defs.h"
 
 /* sparse matrix in column-oriented form used in reading mps*/
-typedef struct cupdlp_cs_sparse {
+typedef struct cupdlp_cs_sparse
+{
   int nzmax;
   int m;     /* number of rows */
   int n;     /* number of columns */
@@ -24,17 +25,21 @@ void *_dcs_calloc(int n, size_t size);
 void *cupdlp_dcs_free(void *p);
 void *cupdlp_dcs_realloc(void *p, int n, size_t size, int *ok);
 cupdlp_dcs *cupdlp_dcs_spalloc(int m, int n, int nzmax, int values, int t);
+cupdlp_dcs *cupdlp_dcs_sp_csr_alloc(int m, int n, int nzmax, int values,
+                                    int triplet);
 cupdlp_dcs *cupdlp_dcs_spfree(cupdlp_dcs *A);
 int cupdlp_dcs_sprealloc(cupdlp_dcs *A, int nzmax);
 void *cupdlp_dcs_malloc(int n, size_t size);
 
 /* utilities */
 double cupdlp_dcs_cumsum(int *p, int *c, int n);
+double cupdlp_dcs_csr_cumsum(int *p, int *c, int n);
 cupdlp_dcs *cupdlp_dcs_done(cupdlp_dcs *C, void *w, void *x, int ok);
 int *cupdlp_dcs_idone(int *p, cupdlp_dcs *C, void *w, int ok);
 cupdlp_dcs *cupdlp_dcs_transpose(const cupdlp_dcs *A, int values);
-
+cupdlp_dcs *cupdlp_dcs_csr_transpose(const cupdlp_dcs *A, int values);
 #define IS_CSC(A) (A && (A->nz == -1))
+#define IS_CSR(A) (A && (A->nz == 1))
 #define IS_TRIPLET(A) (A && (A->nz >= 0))
 /*--------------------------------------------------------------------------*/
 

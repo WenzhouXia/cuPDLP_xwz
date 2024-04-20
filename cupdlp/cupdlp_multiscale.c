@@ -65,8 +65,11 @@ void coarsingArray1D(cupdlp_float *array_coarse, cupdlp_float *array, cupdlp_int
     //         array_coarse[i] += array[i * scale + j];
     //     }
     // }
+    // printf("resolution_coarse: %d\n", resolution_coarse);
+    printf("coarsing start!\n");
     for (cupdlp_int i = 0; i < resolution_coarse; i++)
     {
+        // printf("i: %d\n", i);
         for (cupdlp_int j = 0; j < resolution_coarse; j++)
         {
             array_coarse[i * resolution_coarse + j] = 0.0;
@@ -79,6 +82,7 @@ void coarsingArray1D(cupdlp_float *array_coarse, cupdlp_float *array, cupdlp_int
             }
         }
     }
+    printf("coarsing end!\n");
 }
 
 void print_float_array2D(cupdlp_float **array, cupdlp_int numRows, cupdlp_int numCols)
@@ -180,6 +184,7 @@ cupdlp_float *mergeTwoArrays1D(const cupdlp_float *a, const cupdlp_float *b, int
 cupdlp_float *mergeTwoArrays1D_minus(const cupdlp_float *a, const cupdlp_float *b, cupdlp_int a_len, cupdlp_int b_len)
 {
     cupdlp_float *result = (cupdlp_float *)malloc((a_len + b_len) * sizeof(cupdlp_float));
+    cupdlp_printf("mergeTwoArrays1D_minus\n");
 
     if (!result)
     {
@@ -198,8 +203,31 @@ cupdlp_float *mergeTwoArrays1D_minus(const cupdlp_float *a, const cupdlp_float *
     {
         result[a_len + i] = -b[i];
     }
-
+    cupdlp_printf("mergeTwoArrays1D_minus\n");
     return result;
+}
+void mergeTwoArrays1D_minus_ptr(cupdlp_float *result, const cupdlp_float *a, const cupdlp_float *b, cupdlp_int a_len, cupdlp_int b_len)
+{
+    cupdlp_printf("mergeTwoArrays1D_minus\n");
+
+    if (!result)
+    {
+        printf("内存分配失败\n");
+        return NULL;
+    }
+
+    // 先复制数组a到结果数组
+    for (int i = 0; i < a_len; i++)
+    {
+        result[i] = -a[i];
+    }
+
+    // 接着复制数组b到结果数组
+    for (int i = 0; i < b_len; i++)
+    {
+        result[a_len + i] = -b[i];
+    }
+    cupdlp_printf("mergeTwoArrays1D_minus\n");
 }
 
 // m是图片的行数，n是图片的列数，m*n是分布的长度，m*m*n*n是c的长度
@@ -347,6 +375,52 @@ void generate_c_coarse_delete_directly_byKeepIdx_parallel(cupdlp_float *c_coarse
                         // printf("c_coarse_delete_idx: %lld\n", c_coarse_delete_idx);
                         c_coarse_delete_idx = keep_idx[idx];
                         c_coarse_delete[c_coarse_delete_idx] = ((i - k) * (i - k) + (j - l) * (j - l)) / scale_const;
+                        // c_coarse_delete_idx += 1;
+                    }
+                    // c_coarse_delete[idx] = ((i - k) * (i - k) + (j - l) * (j - l)) / scale_const;
+                }
+            }
+        }
+    }
+}
+
+void generate_minus_c_coarse_delete_directly_byKeepIdx_parallel(cupdlp_float *c_coarse_delete, cupdlp_int coarse_degree, cupdlp_int m, cupdlp_int n, long long *keep_idx)
+{
+    // m_coarse和n_coarse是当前分辨率下的图片长宽
+    // keep记录了该元素是否被保留
+    // keep[i]若为true，则是第keep_idx[i]个被保留的元素
+    cupdlp_int m_coarse = m / pow(2, coarse_degree);
+    cupdlp_int n_coarse = n / pow(2, coarse_degree);
+    long long idx = 0;
+    long long idx_1 = 0;
+    long long idx_2 = 0;
+    long long c_coarse_delete_idx = 0;
+    int vec_len = m_coarse * n_coarse;
+    float scale_const = pow(m_coarse, 2) + pow(n_coarse, 2) + 0.0;
+#pragma omp parallel for private(idx, idx_1, idx_2, c_coarse_delete_idx)
+    for (cupdlp_int i = 0; i < m_coarse; i++)
+    {
+        for (cupdlp_int j = 0; j < n_coarse; j++)
+        {
+            for (cupdlp_int k = 0; k < m_coarse; k++)
+            {
+                // printf("i: %d, j: %d, k: %d\n", i, j, k);
+                for (cupdlp_int l = 0; l < n_coarse; l++)
+                {
+
+                    // 从第一张图第i行第j列，到第二张图第k行第l列，需要的cost
+                    // idx = (i * n_coarse + j) * m_coarse * n_coarse + (k * n_coarse + l);
+                    idx_1 = i * n_coarse + j;
+                    idx_1 = idx_1 * vec_len;
+                    idx_2 = k * n_coarse + l;
+                    idx = idx_1 + idx_2;
+                    if (keep_idx[idx] != -1)
+                    {
+                        // printf("keep_idx[%lld]: %lld\n", idx, keep_idx[idx]);
+                        // c_coarse_delete_idx = keep_idx[idx];
+                        // printf("c_coarse_delete_idx: %lld\n", c_coarse_delete_idx);
+                        c_coarse_delete_idx = keep_idx[idx];
+                        c_coarse_delete[c_coarse_delete_idx] = -((i - k) * (i - k) + (j - l) * (j - l)) / scale_const;
                         // c_coarse_delete_idx += 1;
                     }
                     // c_coarse_delete[idx] = ((i - k) * (i - k) + (j - l) * (j - l)) / scale_const;
@@ -1725,7 +1799,18 @@ void createCUPDLPwork_clear(CUPDLPwork *w, void *model, cupdlp_bool *ifChangeInt
     memcpy(csc_cpu->colMatIdx, csc_idx, nnz * sizeof(int));
     memcpy(csc_cpu->colMatElem, csc_val, nnz * sizeof(double));
     csc_cpu->cuda_csc = NULL;
-
+    // for (int i = 0; i < nnz; i++)
+    // {
+    //     printf("colMatIdx[%d]: %d\n", i, csc_cpu->colMatIdx[i]);
+    // }
+    // for (int i = 0; i < nnz; i++)
+    // {
+    //     printf("colMatElem[%d]: %f\n", i, csc_cpu->colMatElem[i]);
+    // }
+    // for (int i = 0; i < nCols + 1; i++)
+    // {
+    //     printf("colMatBeg[%d]: %d\n", i, csc_cpu->colMatBeg[i]);
+    // }
 #pragma region scaling
     CUPDLPscaling *scaling =
         (CUPDLPscaling *)cupdlp_malloc(sizeof(CUPDLPscaling));
@@ -2887,19 +2972,20 @@ void construct_and_solve_Multiscale_longlong(void *model, const char *csvpath_1,
         create_w_time = getTimeStamp() - create_w_time;
         cupdlp_printf("createCUPDLPwork_clear耗时：%.3f\n", create_w_time);
         construct_time = getTimeStamp() - construct_time;
+        printCUPDLPwork(w);
 
         // 求解
         char fout[256];
         cupdlp_printf("开始求解\n");
         sprintf(fout, "./solution_Resolution%d_CoarseDegree%d.txt", resolution, coarse_degree);
         cupdlp_bool whether_first_fine = true; // 默认使用cuPDLP自带的初始步长和权重
-        if (resolution_now == resolution)
-        {
-            floatParam[D_PRIMAL_TOL] = 1e-6;
-            floatParam[D_DUAL_TOL] = 1e-6;
-            floatParam[D_GAP_TOL] = 1e-6;
-            floatParam[D_FEAS_TOL] = 1e-6;
-        }
+        // if (resolution_now == resolution)
+        // {
+        //     floatParam[D_PRIMAL_TOL] = 1e-6;
+        //     floatParam[D_DUAL_TOL] = 1e-6;
+        //     floatParam[D_GAP_TOL] = 1e-6;
+        //     floatParam[D_FEAS_TOL] = 1e-6;
+        // }
         cupdlp_float solve_time = getTimeStamp();
         CUPDLP_CALL(LP_SolvePDHG_Multiscale(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, ifSaveSol, constraint_new_idx, x_solution, &y_solution_delete, x_init, y_init_delete));
         solve_time = getTimeStamp() - solve_time;
@@ -2947,6 +3033,7 @@ void construct_and_solve_Multiscale_longlong(void *model, const char *csvpath_1,
         CUPDLP_INIT_ZERO(w, 1);
         printf("开始构建CUPDLPwork...\n");
         createCUPDLPwork_clear(w, model, ifChangeIntParam, intParam, &constraint_new_idx);
+        printCUPDLPwork(w);
         // 直接用初始值
         int resolution_now = resolution / pow(2, coarse_degree);
         int x_init_len = 2 * pow(resolution_now, 2);
@@ -3008,14 +3095,6 @@ void directly_construct_and_solve_Multiscale_longlong(void *model, const char *c
         fine_time = getTimeStamp() - fine_time;
         cupdlp_printf("fine_dualOT_dual步骤耗时：%.3f\n", fine_time);
 
-        // // 找出y_init中小于阈值的元素
-        // cupdlp_float countArray1D_time = getTimeStamp();
-        // long long *y_init_zero_idx_len = cupdlp_NULL;
-        // CUPDLP_INIT_ZERO(y_init_zero_idx_len, 1);
-        // long long *y_init_zero_idx = countArray1D_Smaller_than_threshold_with_Record_longlong(y_init, y_init_len, y_init_zero_idx_len, 1e-20);
-        // countArray1D_time = getTimeStamp() - countArray1D_time;
-        // cupdlp_printf("countArray1D_Smaller_than_threshold_with_Record耗时：%.3f\n", countArray1D_time);
-
         cupdlp_float countArray1D_time = getTimeStamp();
         cupdlp_printf("开始countArray了\n");
         long long *keep_nnz = cupdlp_NULL;
@@ -3023,18 +3102,18 @@ void directly_construct_and_solve_Multiscale_longlong(void *model, const char *c
         long long *keep_idx = cupdlp_NULL;
         CUPDLP_INIT(keep_idx, y_init_len);
 
-        ///////////////////////////////////////////
-        // countArray1D_Smaller_than_threshold_with_KeepIdx_longlong_parallel(keep_idx, y_init, y_init_len, keep_nnz, 1e-20);
-        // countArray1D_time = getTimeStamp() - countArray1D_time;
-        // cupdlp_printf("countArray1D_Smaller_than_threshold_with_KeepIdx_longlong_parallel%.3f\n", countArray1D_time);
-
         countZero_and_checkConstraint_with_KeepIdx_longlong_parallel(keep_idx, y_init, y_init_len, x_init, x_init_len, keep_nnz, 1e-20, resolution_now, 0.0);
         countArray1D_time = getTimeStamp() - countArray1D_time;
         cupdlp_printf("countArray1D_with_KeepIdx_longlong耗时：%.3f\n", countArray1D_time);
 
-        cupdlp_int *keep_a_idx = cupdlp_NULL;
-        cupdlp_int *keep_b_idx = cupdlp_NULL;
-        generate_keep_a_b_idx_from_keep_idx(keep_a_idx, keep_b_idx, keep_idx, keep_nnz, resolution_now);
+        int *keep_a_idx = cupdlp_NULL;
+        int *keep_b_idx = cupdlp_NULL;
+        CUPDLP_INIT_ZERO(keep_a_idx, *keep_nnz);
+        CUPDLP_INIT(keep_b_idx, *keep_nnz);
+        cupdlp_float generate_keep_a_b_idx_time = getTimeStamp();
+        generate_keep_a_b_idx_from_keep_idx(&keep_a_idx, &keep_b_idx, keep_idx, keep_nnz, resolution_now);
+        generate_keep_a_b_idx_time = getTimeStamp() - generate_keep_a_b_idx_time;
+        cupdlp_printf("generate_keep_a_b_idx_from_keep_idx耗时：%.3f\n", generate_keep_a_b_idx_time);
 
         cupdlp_float deleteArray1D_time = getTimeStamp();
         cupdlp_float *y_init_delete = cupdlp_NULL;
@@ -3048,15 +3127,7 @@ void directly_construct_and_solve_Multiscale_longlong(void *model, const char *c
         // 创建y_solution_delete，用于暂时储存delete过后的解
         cupdlp_float *y_solution_delete = cupdlp_NULL;
         CUPDLP_INIT_ZERO(y_solution_delete, *keep_nnz);
-        generate_coarse_dualOT_model_delete_byKeepIdx_from_csv_longlong_parallel(model, csvpath_1, csvpath_2, resolution, keep_idx, keep_nnz, coarse_degree);
-        // cupdlp_int *constraint_new_idx = NULL;
-        // CUPDLPwork *w = cupdlp_NULL;
-        // CUPDLP_INIT_ZERO(w, 1);
-        // cupdlp_float create_w_time = getTimeStamp();
-        // createCUPDLPwork_clear(w, model, ifChangeIntParam, intParam, &constraint_new_idx);
-        // create_w_time = getTimeStamp() - create_w_time;
-        // cupdlp_printf("createCUPDLPwork_clear耗时：%.3f\n", create_w_time);
-        CUPDLPwork *w = cupdlp_NULL;
+
         cupdlp_printf("从csv开始读取数据\n");
         cupdlp_int a_len = resolution * resolution;
         cupdlp_int b_len = resolution * resolution;
@@ -3069,21 +3140,36 @@ void directly_construct_and_solve_Multiscale_longlong(void *model, const char *c
         normalizeArray1D(a, a_len);
         normalizeArray1D(b, b_len);
         cupdlp_int *constraint_new_idx = NULL;
+        cupdlp_printf("dualOT_formulateLP_directly开始\n");
+        cupdlp_float dualOT_formulateLP_directly_time = getTimeStamp();
+        CUPDLPwork *w = cupdlp_NULL;
+        CUPDLP_INIT_ZERO(w, 1);
         dualOT_formulateLP_directly(w, a, b, resolution, coarse_degree, keep_idx, keep_nnz, keep_a_idx, keep_b_idx, ifChangeIntParam, intParam, &constraint_new_idx);
+        dualOT_formulateLP_directly_time = getTimeStamp() - dualOT_formulateLP_directly_time;
+        cupdlp_printf("dualOT_formulateLP_directly结束, 耗时%f\n", dualOT_formulateLP_directly_time);
+
+        ///////////////////////////////////////////////////
+        w->problem->data->matrix_format = CSR;
+        ///////////////////////////////////////////////////
+
+        // 检查w
+        printCUPDLPwork(w);
         construct_time = getTimeStamp() - construct_time;
+        cupdlp_free(keep_a_idx);
+        cupdlp_free(keep_b_idx);
 
         // 求解
         char fout[256];
         cupdlp_printf("开始求解\n");
         sprintf(fout, "./solution_Resolution%d_CoarseDegree%d.txt", resolution, coarse_degree);
         cupdlp_bool whether_first_fine = true; // 默认使用cuPDLP自带的初始步长和权重
-        if (resolution_now == resolution)
-        {
-            floatParam[D_PRIMAL_TOL] = 1e-6;
-            floatParam[D_DUAL_TOL] = 1e-6;
-            floatParam[D_GAP_TOL] = 1e-6;
-            floatParam[D_FEAS_TOL] = 1e-6;
-        }
+        // if (resolution_now == resolution)
+        // {
+        //     floatParam[D_PRIMAL_TOL] = 1e-6;
+        //     floatParam[D_DUAL_TOL] = 1e-6;
+        //     floatParam[D_GAP_TOL] = 1e-6;
+        //     floatParam[D_FEAS_TOL] = 1e-6;
+        // }
         cupdlp_float solve_time = getTimeStamp();
         CUPDLP_CALL(LP_SolvePDHG_Multiscale(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, ifSaveSol, constraint_new_idx, x_solution, &y_solution_delete, x_init, y_init_delete));
         solve_time = getTimeStamp() - solve_time;
@@ -3754,7 +3840,7 @@ void checkTwoArray1D_whether_equal(long long *a, long long *b, long long vec_len
     omp_set_dynamic(0);
 }
 
-void dualOT_formulateLP_directly(CUPDLPwork *w, cupdlp_float *a, cupdlp_float *b, cupdlp_int resolution, cupdlp_int coarse_degree, long long *keep_idx, long long *keep_nnz, long long *keep_a_idx, long long *keep_b_idx, cupdlp_bool *ifChangeIntParam, cupdlp_int *intParam, cupdlp_int **constraint_new_idx)
+void dualOT_formulateLP_directly(CUPDLPwork *w, cupdlp_float *a, cupdlp_float *b, cupdlp_int resolution, cupdlp_int coarse_degree, long long *keep_idx, long long *keep_nnz, int *keep_a_idx, int *keep_b_idx, cupdlp_bool *ifChangeIntParam, cupdlp_int *intParam, cupdlp_int **constraint_new_idx)
 {
     cupdlp_bool retcode = RETCODE_OK;
     int resolution_now = resolution / pow(2, coarse_degree);
@@ -3770,43 +3856,52 @@ void dualOT_formulateLP_directly(CUPDLPwork *w, cupdlp_float *a, cupdlp_float *b
     // assert(((ClpModel *)model)->matrix()->isColOrdered());
 
     cupdlp_int vec_len = pow(resolution_now, 2);
-    cupdlp_int a_coarse_len = vec_len / pow(pow(2, coarse_degree), 2);
-    cupdlp_int b_coarse_len = vec_len / pow(pow(2, coarse_degree), 2);
+    // cupdlp_int a_coarse_len = vec_len / pow(pow(2, coarse_degree), 2);
+    // cupdlp_int b_coarse_len = vec_len / pow(pow(2, coarse_degree), 2);
     cupdlp_float *a_coarse = cupdlp_NULL;
-    CUPDLP_INIT(a_coarse, a_coarse_len);
-    coarsingArray1D(a_coarse, a, resolution, coarse_degree);
+    CUPDLP_INIT(a_coarse, vec_len);
+    cupdlp_printf("a_coarse_len: %lld\n", vec_len);
+    cupdlp_printf("b_coarse_len: %lld\n", vec_len);
     cupdlp_float *b_coarse = cupdlp_NULL;
-    CUPDLP_INIT(b_coarse, b_coarse_len);
+    CUPDLP_INIT(b_coarse, vec_len);
+
+    coarsingArray1D(a_coarse, a, resolution, coarse_degree);
     coarsingArray1D(b_coarse, b, resolution, coarse_degree);
-    cupdlp_float *cost = mergeTwoArrays1D_minus(a, b, vec_len, vec_len);
+
+    cupdlp_float *cost = cupdlp_NULL;
+    CUPDLP_INIT(cost, vec_len + vec_len);
+    mergeTwoArrays1D_minus_ptr(cost, a_coarse, b_coarse, vec_len, vec_len);
+    cupdlp_printf("cost_len: %d\n", vec_len + vec_len);
+    cupdlp_free(a_coarse);
+    cupdlp_free(b_coarse);
 
     cupdlp_float *rhs = cupdlp_NULL;
     CUPDLP_INIT(rhs, *keep_nnz);
-    // cupdlp_printf("c_delete_len: %lld\n", *keep_nnz);
-    cupdlp_float *balance_weight = cupdlp_NULL;
-    CUPDLP_INIT(balance_weight, 1);
-    *balance_weight = 1.0;
-    generate_c_coarse_delete_directly_byKeepIdx_parallel_pdbalance(rhs, coarse_degree, resolution, resolution, keep_idx, keep_nnz, balance_weight);
+    cupdlp_printf("rhs_len: %lld\n", *keep_nnz);
+    generate_minus_c_coarse_delete_directly_byKeepIdx_parallel(rhs, coarse_degree, resolution, resolution, keep_idx);
 
     // RowLower: lhs_clp, RowUpper: rhs_clp(c_coarse_deleta)
     // cupdlp_float *lhs = dualOT_rowLower_delete(*keep_nnz);
     cupdlp_float *lower = dualOT_colLower_inf(vec_len, vec_len);
     cupdlp_float *upper = dualOT_colUpper_inf(vec_len, vec_len);
+    // cupdlp_printf("lower_len: %lld\n", 2 * vec_len);
+    // cupdlp_printf("upper_len: %lld\n", 2 * vec_len);
 
-    generate_constraint_new_idxI(constraint_new_idx, nRows);
+    generate_constraint_new_idx(constraint_new_idx, nRows);
     cupdlp_float alloc_matrix_time = 0.0;
     cupdlp_float copy_vec_time = 0.0;
-    // // A_csc_beg[i] 表示第 i 列的第一个非零元素在 A_csc_val 中的位置, A_csc_beg长为nCols+1
-    // int *A_csc_beg = cupdlp_NULL;
-    // CUPDLP_INIT(A_csc_beg, *nCols + 1);
-    // // 对于每个列中的元素，A_csc_idx 给出了该元素所在的行
-    // int *A_csc_idx = cupdlp_NULL;
-    // CUPDLP_INIT(A_csc_idx, *nnz);
-    // // 对于每个列中的元素m, A_csc_val[m] 给出了该元素的值
-    // double *A_csc_val = cupdlp_NULL;
-    // CUPDLP_INIT(A_csc_val,  *nnz);
+
+    cupdlp_printf("cuda_prepare_time开始\n");
+    cupdlp_float cuda_prepare_time = getTimeStamp();
+    CHECK_CUSPARSE(cusparseCreate(&w->cusparsehandle));
+    CHECK_CUBLAS(cublasCreate(&w->cublashandle));
+    cuda_prepare_time = getTimeStamp() - cuda_prepare_time;
+    cupdlp_printf("cuda_prepare_time: %f\n", cuda_prepare_time);
+    CUPDLPproblem *prob = cupdlp_NULL;
+    CUPDLP_CALL(problem_create(&prob));
 
     // A_csr_beg[i] 表示第 i 行的第一个非零元素在 A_csr_val 中的位置, A_csr_beg长为nRows+1
+    cupdlp_printf("构建csr矩阵开始\n");
     int *A_csr_beg = cupdlp_NULL;
     CUPDLP_INIT(A_csr_beg, nRows + 1);
     // 对于每个行中的元素，A_csr_idx 给出了该元素所在的列
@@ -3815,13 +3910,18 @@ void dualOT_formulateLP_directly(CUPDLPwork *w, cupdlp_float *a, cupdlp_float *b
     // 对于每个行中的元素m, A_csr_val[m] 给出了该元素的值
     double *A_csr_val = cupdlp_NULL;
     CUPDLP_INIT(A_csr_val, nnz);
-
-    long long nRow_without_delete = pow(resolution_now, 4);
+    cupdlp_printf("矩阵初始化完毕\n");
     int pow_resolution_now_2 = pow(resolution_now, 2);
     int num_threads = 64;
-#pragma omp parallel for num_threads(16)
-    for (long long i = 0; i < *keep_nnz; i++)
+    if (num_threads > nRows)
     {
+        num_threads = nRows;
+    }
+
+#pragma omp parallel for num_threads(num_threads)
+    for (long long i = 0; i < nRows; i++)
+    {
+        // printf("第%lld行开始添加\n", i);
         // 正在处理的约束，是a的第keep_a_idx[i]个元素到b的第keep_b_idx[i]个元素对应的约束
         // 每行有两个约束
         A_csr_beg[i] = 2 * i;
@@ -3830,23 +3930,23 @@ void dualOT_formulateLP_directly(CUPDLPwork *w, cupdlp_float *a, cupdlp_float *b
         A_csr_idx[2 * i + 1] = pow_resolution_now_2 + keep_b_idx[i];
         A_csr_val[2 * i + 1] = -1.0;
     }
+    A_csr_beg[nRows] = nnz;
+
+    cupdlp_printf("构建csr矩阵完成\n");
     CUPDLPcsr *csr_cpu = cupdlp_NULL;
     CUPDLP_CALL(csr_create(&csr_cpu))
     csr_cpu->nRows = nRows;
     csr_cpu->nCols = nCols;
     csr_cpu->nMatElem = nnz;
-    csr_cpu->rowMatBeg = A_csr_beg;
-    csr_cpu->rowMatIdx = A_csr_idx;
-    csr_cpu->rowMatElem = A_csr_val;
+    csr_cpu->rowMatBeg = (int *)malloc((1 + nRows) * sizeof(int));
+    csr_cpu->rowMatIdx = (int *)malloc(nnz * sizeof(int));
+    csr_cpu->rowMatElem = (double *)malloc(nnz * sizeof(double));
     memcpy(csr_cpu->rowMatBeg, A_csr_beg, (nRows + 1) * sizeof(int));
     memcpy(csr_cpu->rowMatIdx, A_csr_idx, nnz * sizeof(int));
     memcpy(csr_cpu->rowMatElem, A_csr_val, nnz * sizeof(double));
-    csr_cpu->cuda_csr = NULL;
 
-    CUPDLPproblem *prob = cupdlp_NULL;
-    CUPDLP_CALL(problem_create(&prob));
-    prob->nCols = nCols;
-    prob->nRows = nRows;
+    csr_cpu->cuda_csr = NULL;
+    cupdlp_printf("csr_cpu构建完毕\n");
 
 #pragma region scaling
     CUPDLPscaling *scaling =
@@ -3876,18 +3976,17 @@ void dualOT_formulateLP_directly(CUPDLPwork *w, cupdlp_float *a, cupdlp_float *b
     cupdlp_float scaling_time = getTimeStamp();
     // CUPDLP_CALL(PDHG_Scale_Data_cuda(csr_cpu, ifScaling, scaling, cost, lower, upper, rhs));
     scaling_time = getTimeStamp() - scaling_time;
+    cupdlp_printf("scaling完毕\n");
 #pragma endregion
-
+    cupdlp_printf("problem_alloc开始\n");
     CUPDLP_CALL(problem_alloc(prob, nRows, nCols, nEqs, cost, offset, sign_origin, csr_cpu, src_matrix_format, dst_matrix_format, rhs, lower, upper, &alloc_matrix_time, &copy_vec_time));
-
-    cupdlp_float cuda_prepare_time = getTimeStamp();
-    CHECK_CUSPARSE(cusparseCreate(&w->cusparsehandle));
-    CHECK_CUBLAS(cublasCreate(&w->cublashandle));
-    cuda_prepare_time = getTimeStamp() - cuda_prepare_time;
-
+    cupdlp_printf("problem_alloc完毕\n");
+    cupdlp_printf("problem->data->nRows: %d\n", prob->data->nRows);
+    // 直接把prob指向的CUPDLPproblem实例的地址赋值给w->problem
     w->problem = prob;
     w->scaling = scaling;
     PDHG_Alloc(w);
+    cupdlp_printf("PDHG_Alloc完毕\n");
     w->timers->dScalingTime = scaling_time;
     w->timers->dPresolveTime = 0.0;
     CUPDLP_COPY_VEC(w->rowScale, scaling->rowScale, cupdlp_float, nRows);
@@ -3895,6 +3994,7 @@ void dualOT_formulateLP_directly(CUPDLPwork *w, cupdlp_float *a, cupdlp_float *b
     w->timers->AllocMem_CopyMatToDeviceTime += alloc_matrix_time;
     w->timers->CopyVecToDeviceTime += copy_vec_time;
     w->timers->CudaPrepareTime = cuda_prepare_time;
+
 exit_cleanup:
 {
     if (retcode != RETCODE_OK)
@@ -3906,26 +4006,42 @@ exit_cleanup:
 }
 }
 
-void *generate_keep_a_b_idx_from_keep_idx(int *keep_a_idx, int *keep_b_idx, long long *keep_idx, long long *keep_nnz, int resolution_now)
+void generate_keep_a_b_idx_from_keep_idx(int **keep_a_idx, int **keep_b_idx, long long *keep_idx, long long *keep_nnz, int resolution_now)
 {
     cupdlp_bool retcode = RETCODE_OK;
-    CUPDLP_INIT(keep_a_idx, *keep_nnz);
-    CUPDLP_INIT(keep_b_idx, *keep_nnz);
-
+    printf("generate_keep_a_b_idx_from_keep_idx开始\n");
     int vec_len = resolution_now * resolution_now;
+    // #pragma omp parallel for
+    // for (int i = 0; i < vec_len * vec_len; i++)
+    // {
+    //     printf("keep_idx[%d]: %lld\n", i, keep_idx[i]);
+    // }
 #pragma omp parallel for
     for (int i = 0; i < vec_len; i++)
     {
+        long long idx_temp = 0;
+        // printf("i: %d\n", i);
         for (int j = 0; j < vec_len; j++)
         {
-            long long idx_temp = i * vec_len + j;
+            idx_temp = vec_len;
+            idx_temp = i * idx_temp;
+            idx_temp += j;
+            // if (idx_temp % 1000 == 0)
+            // {
+            //     printf("idx_temp: %lld\n", idx_temp);
+            // }
+            // printf("idx_temp: %lld\n", idx_temp);
+            // printf("keep_idx[idx_temp]: %lld\n", keep_idx[idx_temp]);
             if (keep_idx[idx_temp] != -1)
             {
-                keep_a_idx[idx_temp] = i;
-                keep_b_idx[idx_temp] = j;
+                // 未删除行时的行号为idx_temp
+                // 删除行后的行号为keep_idx[idx_temp]
+                (*keep_a_idx)[keep_idx[idx_temp]] = i;
+                (*keep_b_idx)[keep_idx[idx_temp]] = j;
             }
         }
     }
+    printf("generate_keep_a_b_idx_from_keep_idx完成\n");
 exit_cleanup:
 {
     if (retcode != RETCODE_OK)
@@ -3935,11 +4051,32 @@ exit_cleanup:
 }
 }
 
-void *generate_constraint_new_idx(int **constraint_new_idx, int nRows)
+void generate_constraint_new_idx(int **constraint_new_idx, int nRows)
 {
+    cupdlp_bool retcode = RETCODE_OK;
+    CUPDLP_INIT(*constraint_new_idx, nRows);
 #pragma omp parallel for
     for (int i = 0; i < nRows; i++)
     {
-        constraint_new_idx[i] = i;
+        (*constraint_new_idx)[i] = i;
     }
+exit_cleanup:
+    if (retcode != RETCODE_OK)
+    {
+        cupdlp_printf("generate_constraint_new_idx, exit_cleanup\n");
+    }
+}
+
+void printCUPDLPwork(CUPDLPwork *w)
+{
+    printf("printCUPDLPwork\n");
+    CUPDLPproblem *prob = w->problem;
+    printf("nRows: %d\n", prob->data->nRows);
+    printf("nCols: %d\n", prob->data->nCols);
+    printf("matrixformat: %d\n", prob->data->matrix_format);
+    printf("csc_nMatElem: %d\n", prob->data->csc_matrix->nMatElem);
+    // for (int i = 0; i < prob->data->csc_matrix->nMatElem; i++)
+    // {
+    //     printf("%f ", prob->data->csc_matrix->colMatElem[i]);
+    // }
 }

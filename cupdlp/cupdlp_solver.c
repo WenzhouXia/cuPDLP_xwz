@@ -469,9 +469,11 @@ void PDHG_Init_Variables_Multiscale(CUPDLPwork *work, cupdlp_float *x_init, cupd
 
   // CUPDLP_ZERO_VEC(iterates->y->data, cupdlp_float, lp->nRows);
   CUPDLP_COPY_VEC(iterates->y->data, y_init, cupdlp_float, problem->nRows);
-
+  // PDTEST_printCudaDenseVecGPU(iterates->y);
   Ax(work, iterates->ax, iterates->x);
   ATy(work, iterates->aty, iterates->y);
+  // PDTEST_printCudaDenseVecGPU(iterates->ax);
+  // PDTEST_printCudaDenseVecGPU(iterates->aty);
 
   // CUPDLP_ZERO_VEC(iterates->xSum, cupdlp_float, lp->nCols);
   // CUPDLP_ZERO_VEC(iterates->ySum, cupdlp_float, lp->nRows);
@@ -2288,6 +2290,8 @@ cupdlp_retcode LP_SolvePDHG_Multiscale(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIn
   cupdlp_retcode retcode = RETCODE_OK;
 
   PDHG_PrintHugeCUPDHG();
+  printf("PDHG_SetUserParam开始！\n");
+  cupdlp_printf("PDHG_SetUserParam, w->settings->dTimeLim: %f\n", pdhg->settings->dTimeLim);
 
   CUPDLP_CALL(PDHG_SetUserParam(pdhg, ifChangeIntParam, intParam,
                                 ifChangeFloatParam, floatParam));

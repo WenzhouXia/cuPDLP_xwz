@@ -884,10 +884,14 @@ cupdlp_retcode PDHG_SetUserParam(CUPDLPwork *w, cupdlp_bool *ifChangeIntParam,
                                  cupdlp_float *floatParam)
 {
   cupdlp_retcode retcode = RETCODE_OK;
-
+  printf("PDHG_SetUserParam\n");
+  cupdlp_printf("PDHG_SetUserParam, w->settings->dTimeLim: %f\n", w->settings->dTimeLim);
   CUPDLPsettings *settings = w->settings;
+  printf("settings point!");
   CUPDLPstepsize *stepsize = w->stepsize;
+  printf("stepsize point!");
   CUPDLPresobj *resobj = w->resobj;
+  printf("resobj point!");
   CUPDLPiterates *iterates = w->iterates;
   CUPDLPscaling *scaling = w->scaling;
   CUPDLPtimers *timers = w->timers;
@@ -1419,15 +1423,33 @@ void dense_copy(CUPDLPdense *dst, CUPDLPdense *src)
 
   return;
 }
+// void csr_copy(CUPDLPcsr *dst, CUPDLPcsr *src)
+// {
+//   dst->nRows = src->nRows;
+//   dst->nCols = src->nCols;
+//   dst->nMatElem = src->nMatElem;
+//   cupdlp_copy(dst->rowMatBeg, src->rowMatBeg, cupdlp_int, src->nRows + 1);
+//   cupdlp_copy(dst->rowMatIdx, src->rowMatIdx, cupdlp_int, src->nMatElem);
+//   cupdlp_copy(dst->rowMatElem, src->rowMatElem, cupdlp_float, src->nMatElem);
 
+//   return;
+// }
 void csr_copy(CUPDLPcsr *dst, CUPDLPcsr *src)
 {
   dst->nRows = src->nRows;
   dst->nCols = src->nCols;
   dst->nMatElem = src->nMatElem;
-  cupdlp_copy(dst->rowMatBeg, src->rowMatBeg, cupdlp_int, src->nRows + 1);
-  cupdlp_copy(dst->rowMatIdx, src->rowMatIdx, cupdlp_int, src->nMatElem);
-  cupdlp_copy(dst->rowMatElem, src->rowMatElem, cupdlp_float, src->nMatElem);
+  CUPDLP_COPY_VEC(dst->rowMatBeg, src->rowMatBeg, cupdlp_int, src->nRows + 1);
+  CUPDLP_COPY_VEC(dst->rowMatIdx, src->rowMatIdx, cupdlp_int, src->nMatElem);
+  CUPDLP_COPY_VEC(dst->rowMatElem, src->rowMatElem, cupdlp_float, src->nMatElem);
+
+#if !(CUPDLP_CPU)
+  // Pointer to GPU csc matrix
+  CHECK_CUSPARSE(cusparseCreateCsr(
+      &dst->cuda_csr, src->nRows, src->nCols, src->nMatElem, dst->rowMatBeg,
+      dst->rowMatIdx, dst->rowMatElem, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
+      CUSPARSE_INDEX_BASE_ZERO, CudaComputeType));
+#endif
 
   return;
 }
@@ -1452,25 +1474,78 @@ cupdlp_int csc_copy(CUPDLPcsc *dst, CUPDLPcsc *src)
 
   return 0;
 }
+// void csr2csc(CUPDLPcsc *csc, CUPDLPcsr *csr)
+// {
+//   cupdlp_dcs *cs_csr =
+//       cupdlp_dcs_spalloc(csr->nCols, csc->nRows, csc->nMatElem, 1, 0);
+//   cupdlp_copy(cs_csr->p, csr->rowMatBeg, cupdlp_int, csr->nRows + 1);
+//   cupdlp_copy(cs_csr->i, csr->rowMatIdx, cupdlp_int, csr->nMatElem);
+//   cupdlp_copy(cs_csr->x, csr->rowMatElem, cupdlp_float, csr->nMatElem);
 
+//   cupdlp_dcs *cs_csc = cupdlp_dcs_transpose(cs_csr, 1);
+//   csc->nCols = cs_csc->m;
+//   csc->nRows = cs_csc->n;
+//   csc->nMatElem = cs_csc->nzmax;
+//   cupdlp_copy(csc->colMatBeg, cs_csc->p, cupdlp_int, cs_csc->n + 1);
+//   cupdlp_copy(csc->colMatIdx, cs_csc->i, cupdlp_int, cs_csc->nzmax);
+//   cupdlp_copy(csc->colMatElem, cs_csc->x, cupdlp_float, cs_csc->nzmax);
+
+//   cupdlp_dcs_free(cs_csc);
+//   cupdlp_dcs_free(cs_csr);
+
+//   return;
+// }
 void csr2csc(CUPDLPcsc *csc, CUPDLPcsr *csr)
 {
-  cupdlp_dcs *cs_csr =
-      cupdlp_dcs_spalloc(csr->nCols, csc->nRows, csc->nMatElem, 1, 0);
+  cupdlp_printf("csr->nRows = %d, csr->nCols = %d, csr->nMatElem = %d\n", csr->nRows, csr->nCols, csr->nMatElem);
+  // cupdlp_dcs *cs_csr = cupdlp_dcs_spalloc(csr->nCols, csr->nRows, csr->nMatElem, 1, 0);
+  cupdlp_dcs *cs_csr = cupdlp_dcs_sp_csr_alloc(csr->nRows, csr->nCols, csr->nMatElem, 1, 0);
+  cupdlp_printf("cs_csr->m = %d, cs_csr->n = %d, cs_csr->nzmax = %d\n", cs_csr->m, cs_csr->n, cs_csr->nzmax);
   cupdlp_copy(cs_csr->p, csr->rowMatBeg, cupdlp_int, csr->nRows + 1);
   cupdlp_copy(cs_csr->i, csr->rowMatIdx, cupdlp_int, csr->nMatElem);
   cupdlp_copy(cs_csr->x, csr->rowMatElem, cupdlp_float, csr->nMatElem);
 
-  cupdlp_dcs *cs_csc = cupdlp_dcs_transpose(cs_csr, 1);
+  cupdlp_dcs *cs_csc = cupdlp_dcs_csr_transpose(cs_csr, 1);
+  cupdlp_printf("cs_csc->m = %d, cs_csc->n = %d, cs_csc->nzmax = %d\n", cs_csc->m, cs_csc->n, cs_csc->nzmax);
   csc->nCols = cs_csc->m;
   csc->nRows = cs_csc->n;
   csc->nMatElem = cs_csc->nzmax;
-  cupdlp_copy(csc->colMatBeg, cs_csc->p, cupdlp_int, cs_csc->n + 1);
-  cupdlp_copy(csc->colMatIdx, cs_csc->i, cupdlp_int, cs_csc->nzmax);
-  cupdlp_copy(csc->colMatElem, cs_csc->x, cupdlp_float, cs_csc->nzmax);
+  cupdlp_printf("csc->nRows = %d, csc->nCols = %d, csc->nMatElem = %d\n", csc->nRows, csc->nCols, csc->nMatElem);
+  cupdlp_printf("cs_csc->nzmax = %d\n", cs_csc->nzmax);
+  // for (int i = 0; i < cs_csc->nzmax; i++)
+  // {
+  //   printf("colMatIdx,cs_csc->i[%d] = %d\n", i, cs_csc->i[i]);
+  // }
+  // for (int i = 0; i < cs_csc->nzmax; i++)
+  // {
+  //   printf("colMatElem,cs_csc->x[%d] = %f\n", i, cs_csc->x[i]);
+  // }
+  // for (int i = 0; i < cs_csc->m + 1; i++)
+  // {
+  //   printf("colMatBeg,cs_csc->p[%d] = %d\n", i, cs_csc->p[i]);
+  // }
+  // for (int i = 0; i < cs_csc->m + 1; i++)
+  // {
+  //   printf("cs_csc->p[%d] = %d\n", i, cs_csc->p[i]);
+  // }
+  // for (int i = 0; i < cs_csc->nzmax; i++)
+  // {
+  //   printf("cs_csc->x[%d] = %f\n", i, cs_csc->x[i]);
+  // }
+  CUPDLP_COPY_VEC(csc->colMatBeg, cs_csc->p, cupdlp_int, cs_csc->m + 1);
+  CUPDLP_COPY_VEC(csc->colMatIdx, cs_csc->i, cupdlp_int, cs_csc->nzmax);
+  CUPDLP_COPY_VEC(csc->colMatElem, cs_csc->x, cupdlp_float, cs_csc->nzmax);
 
   cupdlp_dcs_free(cs_csc);
   cupdlp_dcs_free(cs_csr);
+
+#if !(CUPDLP_CPU)
+  // Pointer to GPU csc matrix
+  CHECK_CUSPARSE(cusparseCreateCsr(
+      &csc->cuda_csc, csc->nRows, csc->nCols, csc->nMatElem, csc->colMatBeg,
+      csc->colMatIdx, csc->colMatElem, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
+      CUSPARSE_INDEX_BASE_ZERO, CudaComputeType));
+#endif
 
   return;
 }
@@ -1479,21 +1554,35 @@ cupdlp_int csc2csr(CUPDLPcsr *csr, CUPDLPcsc *csc)
 {
   // The transpose may need to be done on the GPU
   // Currently, it is done on the CPU
-
+  cupdlp_printf("csc->nRows = %d, csc->nCols = %d, csc->nMatElem = %d\n", csc->nRows, csc->nCols, csc->nMatElem);
   cupdlp_dcs *cs_csc =
       cupdlp_dcs_spalloc(csc->nRows, csc->nCols, csc->nMatElem, 1, 0);
   cupdlp_copy(cs_csc->p, csc->colMatBeg, cupdlp_int, csc->nCols + 1);
   cupdlp_copy(cs_csc->i, csc->colMatIdx, cupdlp_int, csc->nMatElem);
   cupdlp_copy(cs_csc->x, csc->colMatElem, cupdlp_float, csc->nMatElem);
-
+  cupdlp_printf("cs_csc->m = %d, cs_csc->n = %d, cs_csc->nzmax = %d\n", cs_csc->m, cs_csc->n, cs_csc->nzmax);
   cupdlp_dcs *cs_csr = cupdlp_dcs_transpose(cs_csc, 1);
+  cupdlp_printf("cs_csr->m = %d, cs_csr->n = %d, cs_csr->nzmax = %d\n", cs_csr->m, cs_csr->n, cs_csr->nzmax);
   csr->nCols = cs_csr->m;
   csr->nRows = cs_csr->n;
   csr->nMatElem = cs_csr->nzmax;
+  cupdlp_printf("csr->nRows = %d, csr->nCols = %d, csr->nMatElem = %d\n", csr->nRows, csr->nCols, csr->nMatElem);
   CUPDLP_COPY_VEC(csr->rowMatBeg, cs_csr->p, cupdlp_int, cs_csr->n + 1);
   CUPDLP_COPY_VEC(csr->rowMatIdx, cs_csr->i, cupdlp_int, cs_csr->nzmax);
   CUPDLP_COPY_VEC(csr->rowMatElem, cs_csr->x, cupdlp_float, cs_csr->nzmax);
-
+  // printf("cs_csr->p[0]: %d\n", cs_csr->p[0]);
+  // int *host_rowMatBeg = (int *)malloc((cs_csr->n + 1) * sizeof(int)); // 分配 CPU 内存
+  // if (host_rowMatBeg != NULL)
+  // {
+  //   cudaMemcpy(host_rowMatBeg, csr->rowMatBeg, (cs_csr->n + 1) * sizeof(int), cudaMemcpyDeviceToHost); // 从 GPU 复制到 CPU
+  //   printf("csr->rowMatBeg[0] = %d\n", host_rowMatBeg[0]);                                             // 在 CPU 上打印
+  //   free(host_rowMatBeg);                                                                              // 释放 CPU 内存
+  // }
+  // else
+  // {
+  //   printf("Failed to allocate host memory\n");
+  // }
+  // printf("csr->rowMatBeg[0] = %d\n", csr->rowMatBeg[0]);
   cupdlp_dcs_free(cs_csc);
   cupdlp_dcs_free(cs_csr);
 
@@ -1689,7 +1778,7 @@ cupdlp_retcode csr_alloc_matrix(CUPDLPcsr *csr, cupdlp_int nRows,
   CUPDLP_INIT_ZERO_VEC(csr->rowMatBeg, nRows + 1);
   CUPDLP_INIT_ZERO_VEC(csr->rowMatIdx, nnz);
   CUPDLP_INIT_ZERO_VEC(csr->rowMatElem, nnz);
-
+  // printf("csr->rowMatBeg[0] = %d\n", csr->rowMatBeg[0]);
   switch (src_matrix_format)
   {
   case DENSE:
@@ -1728,10 +1817,11 @@ cupdlp_retcode csc_alloc_matrix(CUPDLPcsc *csc, cupdlp_int nRows,
   default:
     break;
   }
+
   CUPDLP_INIT_ZERO_VEC(csc->colMatBeg, nCols + 1);
   CUPDLP_INIT_ZERO_VEC(csc->colMatIdx, nnz);
   CUPDLP_INIT_ZERO_VEC(csc->colMatElem, nnz);
-
+  // cupdlp_printf("csc_alloc_matrix断点2\n");
   switch (src_matrix_format)
   {
   case DENSE:
@@ -1746,6 +1836,8 @@ cupdlp_retcode csc_alloc_matrix(CUPDLPcsc *csc, cupdlp_int nRows,
   default:
     break;
   }
+  // cupdlp_printf("csc_alloc_matrix断点3\n");
+
 exit_cleanup:
   return retcode;
 }

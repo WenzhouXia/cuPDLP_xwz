@@ -1275,15 +1275,15 @@ extern "C" int formulateLP_new(void *model, double **cost, int *nCols,
   const double *A_csc_val = ((const ClpModel *)model)->matrix()->getElements();
   int has_lower, has_upper;
   // 打印三个数组
-  for (int i = 0; i < nCols_clp + 1; i++) {
-    printf("A_csc_beg[%d]: %d\n", i, A_csc_beg[i]);
-  }
-  for (int i = 0; i < nnz_clp; i++) {
-    printf("A_csc_idx[%d]: %d\n", i, A_csc_idx[i]);
-  }
-  for (int i = 0; i < nnz_clp; i++) {
-    printf("A_csc_val[%d]: %f\n", i, A_csc_val[i]);
-  }
+  // for (int i = 0; i < nCols_clp + 1; i++) {
+  //   printf("A_csc_beg[%d]: %d\n", i, A_csc_beg[i]);
+  // }
+  // for (int i = 0; i < nnz_clp; i++) {
+  //   printf("A_csc_idx[%d]: %d\n", i, A_csc_idx[i]);
+  // }
+  // for (int i = 0; i < nnz_clp; i++) {
+  //   printf("A_csc_val[%d]: %f\n", i, A_csc_val[i]);
+  // }
 
   CUPDLP_INIT(constraint_type_clp, nRows_clp);
   CUPDLP_INIT(*constraint_new_idx, *nRows);
@@ -1424,28 +1424,28 @@ extern "C" int formulateLP_new(void *model, double **cost, int *nCols,
       j++;
     }
   }
-  // 打印三个数组
-  for (int i = 0; i < *nCols + 1; i++) {
-    printf("csc_beg[%d]: %d\n", i, (*csc_beg)[i]);
-  }
-  for (int i = 0; i < *nnz; i++) {
-    printf("csc_idx[%d]: %d\n", i, (*csc_idx)[i]);
-  }
-  for (int i = 0; i < *nnz; i++) {
-    printf("csc_val[%d]: %f\n", i, (*csc_val)[i]);
-  }
-  for (int i = 0; i < *nCols; i++){
-    printf("cost[%d]: %f\n", i, (*cost)[i]);
-  }
-  for (int i = 0; i < *nRows; i++){
-    printf("rhs[%d]: %f\n", i, (*rhs)[i]);
-  }
-  for (int i = 0; i < *nCols; i++){
-    printf("lower[%d]: %f\n", i, (*lower)[i]);
-  }
-  for (int i = 0; i < *nCols; i++){
-    printf("upper[%d]: %f\n", i, (*upper)[i]);
-  }
+  // // 打印三个数组
+  // for (int i = 0; i < *nCols + 1; i++) {
+  //   printf("csc_beg[%d]: %d\n", i, (*csc_beg)[i]);
+  // }
+  // for (int i = 0; i < *nnz; i++) {
+  //   printf("csc_idx[%d]: %d\n", i, (*csc_idx)[i]);
+  // }
+  // for (int i = 0; i < *nnz; i++) {
+  //   printf("csc_val[%d]: %f\n", i, (*csc_val)[i]);
+  // }
+  // for (int i = 0; i < *nCols; i++){
+  //   printf("cost[%d]: %f\n", i, (*cost)[i]);
+  // }
+  // for (int i = 0; i < *nRows; i++){
+  //   printf("rhs[%d]: %f\n", i, (*rhs)[i]);
+  // }
+  // for (int i = 0; i < *nCols; i++){
+  //   printf("lower[%d]: %f\n", i, (*lower)[i]);
+  // }
+  // for (int i = 0; i < *nCols; i++){
+  //   printf("upper[%d]: %f\n", i, (*upper)[i]);
+  // }
   exit_cleanup:
     // free buffer memory
     if (constraint_type_clp != NULL)
