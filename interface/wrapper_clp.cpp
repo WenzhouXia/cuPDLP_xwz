@@ -605,7 +605,7 @@ extern "C" void loadProblem_delete_byMatrix_byKeepIdx_Wrapper_longlong_parallel(
         double generate_mat_time = omp_get_wtime();
         double generate_mat_all_time = omp_get_wtime();
         // 多线程构造前一半的列，并存储在子矩阵中，最后通过引用，进行合并
-        int num_threads = 64;
+        int num_threads = 128;
         if (nCols / 2 < num_threads){
           num_threads = nCols / 2;
         }
@@ -734,6 +734,185 @@ extern "C" void loadProblem_delete_byMatrix_byKeepIdx_Wrapper_longlong_parallel(
 }
 
 
+extern "C" void generate_ConstraintMatrix_byKeepIdx_Wrapper_longlong_parallel(void* model, int resolution, long long* keep_idx, long long *keep_nnz){
+        ClpSimplex* simplex = static_cast<ClpSimplex*>(model);
+#pragma region 按列构造稀疏矩阵，不用添加列的方式而是用修改列的方式，方便并行，每列中(不需要的行对应的元素)直接不添加，只用keep_idx不用keep
+        int nCols = 2 * pow(resolution,2);
+        long long nRows_before_delete = pow(resolution, 4);
+        int nRows = *keep_nnz;
+        CoinPackedMatrix mat;
+        mat.setDimensions(nRows, 0);
+        printf("loadProblem_delete_byMatrix_Wrapper_longlong_parallel开始\n");
+        printf("如果未修剪，矩阵尺寸为, nCols: %d, nRows: %lld\n", nCols, nRows_before_delete);
+        // mat.setDimensions(nRows, nCols);
+        int vec_len = pow(resolution, 2); 
+
+        double generate_mat_time = omp_get_wtime();
+        double generate_mat_all_time = omp_get_wtime();
+        // 多线程构造前一半的列，并存储在子矩阵中，最后通过引用，进行合并
+        int num_threads = 64;
+        if (nCols / 2 < num_threads){
+          num_threads = nCols / 2;
+        }
+        printf("多线程开始，线程数为%d\n", num_threads);
+        CoinPackedMatrix *mat_array_1 = new CoinPackedMatrix[num_threads];
+        for (int i = 0; i < num_threads; i++){
+          mat_array_1[i].setDimensions(nRows, 0);
+        } 
+#pragma omp parallel num_threads(num_threads)
+{
+        int thread_id = omp_get_thread_num();
+        int start = thread_id * nCols / (2 * num_threads);
+        int end = (thread_id+1) * nCols / (2 * num_threads);
+        // 前一半的列      
+        for (long long i = start; i < end; i++)
+        {
+          if(i % 1000 == 0){
+            printf("i: %lld\n", i);
+          }
+          long long idx = 0;
+          std::vector<int> indices;
+          std::vector<double> elements;
+          for (long long j = 0; j < vec_len; j++)
+          {
+            idx = i * vec_len + j;
+            if (keep_idx[idx] != -1) 
+            {
+              // printf("idx: %lld\n", idx);
+              indices.push_back(keep_idx[idx]);
+              elements.push_back(1.0);
+            }
+          }
+          mat_array_1[thread_id].appendCol(indices.size(), &indices[0], &elements[0]);
+          
+        }        
+}       
+        generate_mat_time = omp_get_wtime() - generate_mat_time;
+        printf("生成前一半矩阵时间为：%f\n", generate_mat_time);  
+        printf("多线程结束，开始合并\n");
+        double merge_mat_time = omp_get_wtime();
+        for (int i = 0; i < num_threads; i++)
+        {
+          // printf("第%d个线程的矩阵维度：nCols: %d, nRows: %d\n", i, mat_array_1[i].getNumCols(), mat_array_1[i].getNumRows());
+          mat.rightAppendPackedMatrix(mat_array_1[i]);
+        }
+        merge_mat_time = omp_get_wtime() - merge_mat_time;
+        printf("合并前一半矩阵完成，耗时%f\n", merge_mat_time);
+
+        CoinPackedMatrix *mat_array_2 = new CoinPackedMatrix[num_threads];
+        for (int i = 0; i < num_threads; i++){
+          mat_array_2[i].setDimensions(nRows, 0);
+        } 
+#pragma omp parallel num_threads(num_threads)
+{
+        int thread_id = omp_get_thread_num();
+        int start = thread_id * nCols / (2 * num_threads);
+        int end = (thread_id+1) * nCols / (2 * num_threads);
+        for (long long i = start; i < end ; i++)
+        {
+          if(i % 1000 == 0){
+            printf("i: %lld\n", i);
+          }
+          long long idx = 0;
+          std::vector<int> indices;
+          std::vector<double> elements;
+          for (long long j = 0; j < vec_len; j++)
+          {
+            idx = i + j * vec_len;
+            if (keep_idx[idx] != -1){
+              indices.push_back(keep_idx[idx]);
+              elements.push_back(1.0);
+            }
+          }
+          mat_array_2[thread_id].appendCol(indices.size(), &indices[0], &elements[0]);
+        }
+}
+        printf("多线程结束，开始合并\n");
+        for (int i = 0; i < num_threads; i++){
+          // printf("第%d个线程的矩阵维度：nCols: %d, nRows: %d\n", i, mat_array_2[i].getNumCols(), mat_array_2[i].getNumRows());
+          mat.rightAppendPackedMatrix(mat_array_2[i]);
+        }
+        generate_mat_all_time = omp_get_wtime() - generate_mat_all_time;
+        printf("生成矩阵完成，总共耗时%f\n", generate_mat_all_time);
+        
+
+
+#pragma endregion
+        printf("修剪后的矩阵维度：nCols: %d, nRows: %d\n", mat.getNumCols(), mat.getNumRows());
+        void *mat_ptr = &mat;
+        printSparseMatrix(mat_ptr);
+        free(mat_ptr);
+        mat_ptr = NULL;
+        // // 打印矩阵进行检查
+        // const int numRows = mat.getNumRows();
+        // const int numCols = mat.getNumCols();
+        // printf("numRows: %d, numCols: %d\n", numRows, numCols);
+
+        // // 获取矩阵中的元素和它们的索引
+        // const double* elements_print = mat.getElements();
+        // const int* rowIndices = mat.getIndices();
+        // const CoinBigIndex* columnStarts = mat.getVectorStarts();
+        // const int* lengths = mat.getVectorLengths();
+
+        // // 按列遍历矩阵
+        // for (int col = 0; col < numCols; ++col) {
+        //     std::cout << "Column " << col << ":" << std::endl;
+        //     // 获取这一列的起始位置和长度
+        //     CoinBigIndex start = columnStarts[col];
+        //     int length = lengths[col];
+
+        //     // 遍历这一列的每个元素
+        //     for (int i = 0; i < length; ++i) {
+        //         // 计算当前元素的索引
+        //         CoinBigIndex index = start + i;
+        //         // 输出行索引和元素的值
+        //         std::cout << "  Row " << rowIndices[index] << ": " << elements_print[index] << std::endl;
+        //     }
+        // }
+
+          delete[] mat_array_1;
+        delete[] mat_array_2;
+        printf("loadProblem_delete_byMatrix_Wrapper_longlong_parallel完成\n");
+
+
+        
+}
+
+extern "C" void printSparseMatrix(void *mat_ptr) {
+
+    CoinPackedMatrix* mat_ptr_temp = static_cast<CoinPackedMatrix*>(mat_ptr);
+    CoinPackedMatrix mat = *mat_ptr_temp;
+    const int numRows = mat.getNumRows();
+    const int numCols = mat.getNumCols();
+    const double *elements_print = mat.getElements();
+    const int *rowIndices = mat.getIndices();
+    const CoinBigIndex* columnStarts = mat.getVectorStarts();
+    const int* lengths = mat.getVectorLengths();
+
+    // 创建并初始化二维数组
+    std::vector<std::vector<double>> matrix(numRows, std::vector<double>(numCols, 0.0));
+
+    // 填充非零元素
+    for (int col = 0; col < numCols; ++col) {
+        int start = columnStarts[col];
+        int length = lengths[col];
+        for (int i = 0; i < length; ++i) {
+            int row = rowIndices[start + i];
+            double value = elements_print[start + i];
+            matrix[row][col] = value;
+        }
+    }
+
+    // 打印矩阵
+    for (const auto &row : matrix) {
+        for (double val : row) {
+            std::cout << val << " ";
+        }
+        std::cout << "\n";
+    }
+    free(mat_ptr_temp);
+    mat_ptr_temp = NULL;
+}
 
 extern "C" void loadProblem_delete_by_keep_byMatrix_Wrapper_longlong(void* model, int resolution, bool *keep, long long *keep_true_idx, long long *len_after_delete,
                             const double* colLower, 
@@ -895,6 +1074,7 @@ extern "C" int formulateLP(void *model, double **cost, int *nCols, int *nRows,
   *nEqs = nRows_clp;                                 // need not recalculate
   *nnz = nnz_clp;                                    // need recalculate
   *offset = ((ClpModel *)model)->objectiveOffset();  // need not recalculate
+  
   if (*offset != 0.0) {
     printf("Has obj offset\n");
   } else {
@@ -1068,6 +1248,13 @@ extern "C" int formulateLP_new(void *model, double **cost, int *nCols,
   *nnz = nnz_clp;                                    // need recalculate
   *offset = ((ClpModel *)model)->objectiveOffset();  // need not recalculate
   *sign_origin = ((ClpModel *)model)->getObjSense();
+
+  // printf("offset: %f\n", *offset);
+  // printf("nCols_clp: %d, nRows_clp: %d, nnz_clp: %d\n", nCols_clp, nRows_clp,
+  //        nnz_clp);
+  // printf("nCols: %d, nRows: %d, nnz: %d, nEqs: %d\n", *nCols, *nRows, *nnz,
+  //        *nEqs);
+
   if (*offset != 0.0) {
     printf("Has obj offset %f\n", *offset);
   } else {
@@ -1087,6 +1274,16 @@ extern "C" int formulateLP_new(void *model, double **cost, int *nCols,
   const int *A_csc_idx = ((const ClpModel *)model)->matrix()->getIndices();
   const double *A_csc_val = ((const ClpModel *)model)->matrix()->getElements();
   int has_lower, has_upper;
+  // 打印三个数组
+  for (int i = 0; i < nCols_clp + 1; i++) {
+    printf("A_csc_beg[%d]: %d\n", i, A_csc_beg[i]);
+  }
+  for (int i = 0; i < nnz_clp; i++) {
+    printf("A_csc_idx[%d]: %d\n", i, A_csc_idx[i]);
+  }
+  for (int i = 0; i < nnz_clp; i++) {
+    printf("A_csc_val[%d]: %f\n", i, A_csc_val[i]);
+  }
 
   CUPDLP_INIT(constraint_type_clp, nRows_clp);
   CUPDLP_INIT(*constraint_new_idx, *nRows);
@@ -1098,13 +1295,17 @@ extern "C" int formulateLP_new(void *model, double **cost, int *nCols,
 
     // count number of equations and rows
     if (has_lower && has_upper && lhs_clp[i] == rhs_clp[i]) {
+      // 既有上界又有下界，且上下界相等
       constraint_type_clp[i] = EQ;
       (*nEqs)++;
     } else if (has_lower && !has_upper) {
+      // 只有下界没有上界
       constraint_type_clp[i] = GEQ;
     } else if (!has_lower && has_upper) {
+      // 只有上界没有下界
       constraint_type_clp[i] = LEQ;
     } else if (has_lower && has_upper) {
+      // 既有上界又有下界，但是二者不相等
       constraint_type_clp[i] = BOUND;
       (*nCols)++;
       (*nnz)++;
@@ -1223,13 +1424,35 @@ extern "C" int formulateLP_new(void *model, double **cost, int *nCols,
       j++;
     }
   }
-
-exit_cleanup:
-  // free buffer memory
-  if (constraint_type_clp != NULL) {
-    free(constraint_type_clp);
-    constraint_type_clp = NULL;
+  // 打印三个数组
+  for (int i = 0; i < *nCols + 1; i++) {
+    printf("csc_beg[%d]: %d\n", i, (*csc_beg)[i]);
   }
+  for (int i = 0; i < *nnz; i++) {
+    printf("csc_idx[%d]: %d\n", i, (*csc_idx)[i]);
+  }
+  for (int i = 0; i < *nnz; i++) {
+    printf("csc_val[%d]: %f\n", i, (*csc_val)[i]);
+  }
+  for (int i = 0; i < *nCols; i++){
+    printf("cost[%d]: %f\n", i, (*cost)[i]);
+  }
+  for (int i = 0; i < *nRows; i++){
+    printf("rhs[%d]: %f\n", i, (*rhs)[i]);
+  }
+  for (int i = 0; i < *nCols; i++){
+    printf("lower[%d]: %f\n", i, (*lower)[i]);
+  }
+  for (int i = 0; i < *nCols; i++){
+    printf("upper[%d]: %f\n", i, (*upper)[i]);
+  }
+  exit_cleanup:
+    // free buffer memory
+    if (constraint_type_clp != NULL)
+    {
+      free(constraint_type_clp);
+      constraint_type_clp = NULL;
+    }
 
   return retcode;
 }

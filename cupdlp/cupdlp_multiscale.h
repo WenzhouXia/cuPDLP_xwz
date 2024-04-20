@@ -40,6 +40,8 @@ cupdlp_float *dualOT_rowLower_delete(cupdlp_int len_after_delete);
 // cupdlp_float *dualOT_rowUpper(cupdlp_int m, cupdlp_int n);
 cupdlp_float *dualOT_colLower(cupdlp_int m, cupdlp_int n);
 cupdlp_float *dualOT_colUpper(cupdlp_int m, cupdlp_int n);
+cupdlp_float *dualOT_colLower_inf(cupdlp_int m, cupdlp_int n);
+cupdlp_float *dualOT_colUpper_inf(cupdlp_int m, cupdlp_int n);
 void generate_dualOT_model_from_distribution_and_cost(void *model, const cupdlp_float *a, const cupdlp_float *b, const cupdlp_int a_len, const cupdlp_int b_len, cupdlp_float *c);
 void generate_dualOT_model_byMatrix_from_distribution_and_cost(void *model, const cupdlp_float *a, const cupdlp_float *b, const cupdlp_int a_len, const cupdlp_int b_len, cupdlp_float *c, cupdlp_int resolution);
 void generate_dualOT_model_delete_byMatrix_from_distribution_and_cost(void *model, const cupdlp_float *a, const cupdlp_float *b, const cupdlp_int a_len, const cupdlp_int b_len, cupdlp_float *c_delete, int resolution, int *zero_idx, int *zero_idx_len);
@@ -95,4 +97,6 @@ void pdbalance_dualOT_primal_backward(cupdlp_float *x_solution, cupdlp_float *x_
 void scale_floatArray1D(cupdlp_float *a_scaled, cupdlp_float *a, cupdlp_int a_len, cupdlp_float balance_weight);
 void compute_2norm_floatArray1D(cupdlp_float *norm, cupdlp_float *a, long long a_len);
 void checkTwoArray1D_whether_equal(long long *a, long long *b, long long vec_len);
+void *generate_keep_a_b_idx_from_keep_idx(int *keep_a_idx, int *keep_b_idx, long long *keep_idx, long long *keep_nnz, int resolution_now);
+void *generate_constraint_new_idx(int **constraint_new_idx, int nRows);
 #endif // CUPDLP_CUPDLP_MULTISCALE_H

@@ -768,24 +768,24 @@ cupdlp_retcode PDHG_Update_Iterate_Adaptive_Step_Size(CUPDLPwork *pdhg)
         (1.0 + pow(stepsize->nStepSizeIter + 1.0, -PDHG_STEPSIZE_GROWTH_EXP)) *
         dStepSizeUpdate;
     dStepSizeUpdate = fmin(dFirstTerm, dSecondTerm);
-#if CUPDLP_DUMP_LINESEARCH_STATS & CUPDLP_DEBUG
-    cupdlp_printf(" -- stepsize iteration %d: %f %f\n", stepIterThis,
-                  dStepSizeUpdate, dStepSizeLimit);
+    // #if CUPDLP_DUMP_LINESEARCH_STATS & CUPDLP_DEBUG
+    //     cupdlp_printf(" -- stepsize iteration %d: %f %f\n", stepIterThis,
+    //                   dStepSizeUpdate, dStepSizeLimit);
 
-    cupdlp_printf(" -- PrimalStep DualStep: %f %f\n", stepsize->dPrimalStep,
-                  stepsize->dDualStep);
-    cupdlp_printf(" -- FirstTerm SecondTerm: %f %f\n", dFirstTerm, dSecondTerm);
-    cupdlp_printf(" -- nStepSizeIter: %d\n", stepsize->nStepSizeIter);
-    cupdlp_printf(" -- RED_EXP GRO_EXP: %f %f\n", PDHG_STEPSIZE_REDUCTION_EXP,
-                  PDHG_STEPSIZE_GROWTH_EXP);
+    //     cupdlp_printf(" -- PrimalStep DualStep: %f %f\n", stepsize->dPrimalStep,
+    //                   stepsize->dDualStep);
+    //     cupdlp_printf(" -- FirstTerm SecondTerm: %f %f\n", dFirstTerm, dSecondTerm);
+    //     cupdlp_printf(" -- nStepSizeIter: %d\n", stepsize->nStepSizeIter);
+    //     cupdlp_printf(" -- RED_EXP GRO_EXP: %f %f\n", PDHG_STEPSIZE_REDUCTION_EXP,
+    //                   PDHG_STEPSIZE_GROWTH_EXP);
 
-    cupdlp_printf("     -- iteraction(x) interaction(y): %f %f\n", dInteraction,
-                  dInteractiony);
-    cupdlp_printf("     -- movement (scaled norm)  : %f\n", dMovement);
-    cupdlp_printf("     -- movement (scaled norm)  : %f\n", dMovement);
-    if (stepIterThis > 200)
-      break; // avoid unlimited runs due to bugs.
-#endif
+    //     cupdlp_printf("     -- iteraction(x) interaction(y): %f %f\n", dInteraction,
+    //                   dInteractiony);
+    //     cupdlp_printf("     -- movement (scaled norm)  : %f\n", dMovement);
+    //     cupdlp_printf("     -- movement (scaled norm)  : %f\n", dMovement);
+    //     if (stepIterThis > 200)
+    //       break; // avoid unlimited runs due to bugs.
+    // #endif
   }
 
   stepsize->dPrimalStep = dStepSizeUpdate / sqrt(stepsize->dBeta);

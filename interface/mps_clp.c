@@ -568,12 +568,44 @@ cupdlp_retcode main(int argc, char **argv)
   // compute_2norm_floatArray1D(norm, a, a_len);
 
 #pragma endregion
+#pragma region 测试生成约束矩阵的函数
+//   void *model = cupdlp_NULL;
+//   resolution = 2;
+//   long long len = pow(resolution, 4);
+//   long long *keep_idx;
+//   CUPDLP_INIT(keep_idx, len)
+//   long long *keep_nnz;
+//   CUPDLP_INIT(keep_nnz, 1);
+//   for (long long i = 0; i < len; i++)
+//   {
+//     keep_idx[i] = -1;
+//   }
+//   keep_idx[2] = 0;
+//   keep_idx[5] = 1;
+//   keep_idx[6] = 2;
+//   keep_idx[14] = 3;
+//   *keep_nnz = 4;
+//   generate_ConstraintMatrix_byKeepIdx_Wrapper_longlong_parallel(model, resolution, keep_idx, keep_nnz);
+// #pragma endregion
 #pragma endregion
+#pragma region 测试大整数连乘溢出的情况
+  // long long result_1 = 0;
+  // long long result_2 = 0;
+  // int a = 168;
+  // int b = 256;
+  // int c = 256 * 256;
+  // result_1 = a * b * c;
+  // result_2 = a * b;
+  // result_2 = result_2 * c;
+  // printf("result_1 = %lld\n", result_1);
+  // printf("result_2 = %lld\n", result_2);
 
+#pragma endregion
+#pragma endregion
 #pragma region 自动Multiscale with Recover
   cupdlp_float all_multiscale_time = getTimeStamp();
   cupdlp_int coarse_degree_4 = -1;
-  cupdlp_int coarse_degree_3 = 3;
+  cupdlp_int coarse_degree_3 = 0;
   cupdlp_int coarse_degree_2 = 2;
   cupdlp_int coarse_degree_1 = 1;
   cupdlp_int coarse_degree_0 = 0;
@@ -595,64 +627,169 @@ cupdlp_retcode main(int argc, char **argv)
   construct_and_solve_Multiscale_longlong(model_3, csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree_3, coarse_degree_4, &x_solution_3, &y_solution_3, x_init_3, y_init_3);
   // computepPrimalFeas(x_solution_3, resolution, coarse_degree_3);
 
-  // analyseArray1D(y_solution_3, y_solution_len_3, 1e-20, "./y_solution.txt");
-  cupdlp_free(y_init_3);
-  cupdlp_free(x_init_3);
-  // 第2层级
-  void *model_2 = NULL;
-  model_2 = createModel();
-  cupdlp_int resolution_coarse_2 = resolution / pow(2, coarse_degree_2);
-  cupdlp_float *x_solution_2 = cupdlp_NULL;
-  cupdlp_int x_solution_len_2 = 2 * pow(resolution_coarse_2, 2);
-  CUPDLP_INIT(x_solution_2, x_solution_len_2);
-  cupdlp_float *y_solution_2 = cupdlp_NULL;
-  long long y_solution_len_2 = pow(resolution_coarse_2, 4);
-  CUPDLP_INIT(y_solution_2, y_solution_len_2);
-  construct_and_solve_Multiscale_longlong(model_2, csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree_2, coarse_degree_3, &x_solution_2, &y_solution_2, x_solution_3, y_solution_3);
-  // computepPrimalFeas(x_solution_2, resolution, coarse_degree_2);
-  // analyseArray1D(y_solution_2, y_solution_len_2, 1e-20, "./y_solution.txt");
-  cupdlp_free(y_solution_3);
-  cupdlp_free(x_solution_3);
+  // // analyseArray1D(y_solution_3, y_solution_len_3, 1e-20, "./y_solution.txt");
+  // cupdlp_free(y_init_3);
+  // cupdlp_free(x_init_3);
+  // // 第2层级
+  // void *model_2 = NULL;
+  // model_2 = createModel();
+  // cupdlp_int resolution_coarse_2 = resolution / pow(2, coarse_degree_2);
+  // cupdlp_float *x_solution_2 = cupdlp_NULL;
+  // cupdlp_int x_solution_len_2 = 2 * pow(resolution_coarse_2, 2);
+  // CUPDLP_INIT(x_solution_2, x_solution_len_2);
+  // cupdlp_float *y_solution_2 = cupdlp_NULL;
+  // long long y_solution_len_2 = pow(resolution_coarse_2, 4);
+  // CUPDLP_INIT(y_solution_2, y_solution_len_2);
+  // construct_and_solve_Multiscale_longlong(model_2, csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree_2, coarse_degree_3, &x_solution_2, &y_solution_2, x_solution_3, y_solution_3);
+  // // computepPrimalFeas(x_solution_2, resolution, coarse_degree_2);
+  // // analyseArray1D(y_solution_2, y_solution_len_2, 1e-20, "./y_solution.txt");
+  // cupdlp_free(y_solution_3);
+  // cupdlp_free(x_solution_3);
 
-  // 第1层级
-  void *model_1 = NULL;
-  model_1 = createModel();
-  cupdlp_int resolution_coarse_1 = resolution / pow(2, coarse_degree_1);
-  cupdlp_float *x_solution_1 = cupdlp_NULL;
-  cupdlp_int x_solution_len_1 = 2 * pow(resolution_coarse_1, 2);
-  CUPDLP_INIT(x_solution_1, x_solution_len_1);
-  cupdlp_float *y_solution_1 = cupdlp_NULL;
-  long long y_solution_len_1 = pow(resolution_coarse_1, 4);
-  CUPDLP_INIT(y_solution_1, y_solution_len_1);
-  construct_and_solve_Multiscale_longlong(model_1, csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree_1, coarse_degree_2, &x_solution_1, &y_solution_1, x_solution_2, y_solution_2);
-  // computepPrimalFeas(x_solution_1, resolution, coarse_degree_1);
-  // analyseArray1D(y_solution_1, y_solution_len_1, 1e-20, "./y_solution.txt");
-  cupdlp_free(y_solution_2);
-  cupdlp_free(x_solution_2);
+  // // 第1层级
+  // void *model_1 = NULL;
+  // model_1 = createModel();
+  // cupdlp_int resolution_coarse_1 = resolution / pow(2, coarse_degree_1);
+  // cupdlp_float *x_solution_1 = cupdlp_NULL;
+  // cupdlp_int x_solution_len_1 = 2 * pow(resolution_coarse_1, 2);
+  // CUPDLP_INIT(x_solution_1, x_solution_len_1);
+  // cupdlp_float *y_solution_1 = cupdlp_NULL;
+  // long long y_solution_len_1 = pow(resolution_coarse_1, 4);
+  // CUPDLP_INIT(y_solution_1, y_solution_len_1);
+  // construct_and_solve_Multiscale_longlong(model_1, csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree_1, coarse_degree_2, &x_solution_1, &y_solution_1, x_solution_2, y_solution_2);
+  // // computepPrimalFeas(x_solution_1, resolution, coarse_degree_1);
+  // // analyseArray1D(y_solution_1, y_solution_len_1, 1e-20, "./y_solution.txt");
+  // cupdlp_free(y_solution_2);
+  // cupdlp_free(x_solution_2);
 
-  // 第0层级
-  void *model_0 = NULL;
-  model_0 = createModel();
-  cupdlp_int resolution_coarse_0 = resolution / pow(2, coarse_degree_0);
-  cupdlp_float *x_solution_0 = cupdlp_NULL;
-  cupdlp_int x_solution_len_0 = 2 * pow(resolution_coarse_0, 2);
-  CUPDLP_INIT(x_solution_0, x_solution_len_0);
-  cupdlp_printf("x_solution_0初始化成功\n");
-  cupdlp_float *y_solution_0 = cupdlp_NULL;
-  long long y_solution_len_0 = pow(resolution_coarse_0, 4);
-  CUPDLP_INIT(y_solution_0, y_solution_len_0);
-  cupdlp_printf("y_solution_0初始化成功\n");
-  construct_and_solve_Multiscale_longlong(model_0, csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree_0, coarse_degree_1, &x_solution_0, &y_solution_0, x_solution_1, y_solution_1);
-  all_multiscale_time = getTimeStamp() - all_multiscale_time;
-  cupdlp_printf("picType = %s, resolution = %d, 运行结束，all_multiscale_time = %fs\n", picType, resolution, all_multiscale_time);
+  // // 第0层级
+  // void *model_0 = NULL;
+  // model_0 = createModel();
+  // cupdlp_int resolution_coarse_0 = resolution / pow(2, coarse_degree_0);
+  // cupdlp_float *x_solution_0 = cupdlp_NULL;
+  // cupdlp_int x_solution_len_0 = 2 * pow(resolution_coarse_0, 2);
+  // CUPDLP_INIT(x_solution_0, x_solution_len_0);
+  // cupdlp_printf("x_solution_0初始化成功\n");
+  // cupdlp_float *y_solution_0 = cupdlp_NULL;
+  // long long y_solution_len_0 = pow(resolution_coarse_0, 4);
+  // CUPDLP_INIT(y_solution_0, y_solution_len_0);
+  // cupdlp_printf("y_solution_0初始化成功\n");
+  // construct_and_solve_Multiscale_longlong(model_0, csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree_0, coarse_degree_1, &x_solution_0, &y_solution_0, x_solution_1, y_solution_1);
+  // all_multiscale_time = getTimeStamp() - all_multiscale_time;
+  // cupdlp_printf("picType = %s, resolution = %d, 运行结束，all_multiscale_time = %fs\n", picType, resolution, all_multiscale_time);
 
-  computepPrimalFeas(x_solution_0, resolution, coarse_degree_0);
+  // computepPrimalFeas(x_solution_0, resolution, coarse_degree_0);
 
-  // analyseArray1D(y_solution_0, y_solution_len_0, 1e-20, "./y_solution.txt");
-  cupdlp_free(y_solution_1);
-  cupdlp_free(x_solution_1);
-  cupdlp_free(y_solution_0);
-  cupdlp_free(x_solution_0);
+  // // analyseArray1D(y_solution_0, y_solution_len_0, 1e-20, "./y_solution.txt");
+  // cupdlp_free(y_solution_1);
+  // cupdlp_free(x_solution_1);
+  // cupdlp_free(y_solution_0);
+  // cupdlp_free(x_solution_0);
+#pragma endregion
+
+#pragma region 测试，外部Multiscale，内部也解多次
+  // cupdlp_float all_multiscale_time = getTimeStamp();
+  // cupdlp_int coarse_degree_4 = -1;
+  // cupdlp_int coarse_degree_3 = 3;
+  // cupdlp_int coarse_degree_2 = 2;
+  // cupdlp_int coarse_degree_1 = 1;
+  // cupdlp_int coarse_degree_0 = 0;
+  // cupdlp_printf("测试是否成功编译\n");
+  // // 第3层级
+  // void *model_3 = NULL;
+  // model_3 = createModel();
+  // cupdlp_int resolution_coarse_3 = resolution / pow(2, coarse_degree_3);
+  // cupdlp_float *x_solution_3 = cupdlp_NULL;
+  // cupdlp_int x_solution_len_3 = 2 * pow(resolution_coarse_3, 2);
+  // CUPDLP_INIT(x_solution_3, x_solution_len_3);
+  // cupdlp_float *y_solution_3 = cupdlp_NULL;
+  // long long y_solution_len_3 = pow(resolution_coarse_3, 4);
+  // CUPDLP_INIT(y_solution_3, y_solution_len_3);
+  // cupdlp_float *x_init_3 = cupdlp_NULL;
+  // CUPDLP_INIT(x_init_3, x_solution_len_3);
+  // cupdlp_float *y_init_3 = cupdlp_NULL;
+  // CUPDLP_INIT(y_init_3, y_solution_len_3);
+  // construct_and_solve_Multiscale_longlong(model_3, csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree_3, coarse_degree_4, &x_solution_3, &y_solution_3, x_init_3, y_init_3);
+  // // computepPrimalFeas(x_solution_3, resolution, coarse_degree_3);
+
+  // // analyseArray1D(y_solution_3, y_solution_len_3, 1e-20, "./y_solution.txt");
+  // cupdlp_free(y_init_3);
+  // cupdlp_free(x_init_3);
+  // // 第2层级
+  // void *model_2 = NULL;
+  // model_2 = createModel();
+  // cupdlp_int resolution_coarse_2 = resolution / pow(2, coarse_degree_2);
+  // cupdlp_float *x_solution_2 = cupdlp_NULL;
+  // cupdlp_int x_solution_len_2 = 2 * pow(resolution_coarse_2, 2);
+  // CUPDLP_INIT(x_solution_2, x_solution_len_2);
+  // cupdlp_float *y_solution_2 = cupdlp_NULL;
+  // long long y_solution_len_2 = pow(resolution_coarse_2, 4);
+  // CUPDLP_INIT(y_solution_2, y_solution_len_2);
+  // construct_and_solve_Multiscale_longlong(model_2, csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree_2, coarse_degree_3, &x_solution_2, &y_solution_2, x_solution_3, y_solution_3);
+  // // computepPrimalFeas(x_solution_2, resolution, coarse_degree_2);
+  // // analyseArray1D(y_solution_2, y_solution_len_2, 1e-20, "./y_solution.txt");
+  // cupdlp_free(y_solution_3);
+  // cupdlp_free(x_solution_3);
+
+  // // 第1层级
+  // void *model_1 = NULL;
+  // model_1 = createModel();
+  // cupdlp_int resolution_coarse_1 = resolution / pow(2, coarse_degree_1);
+  // cupdlp_float *x_solution_1 = cupdlp_NULL;
+  // cupdlp_int x_solution_len_1 = 2 * pow(resolution_coarse_1, 2);
+  // CUPDLP_INIT(x_solution_1, x_solution_len_1);
+  // cupdlp_float *y_solution_1 = cupdlp_NULL;
+  // long long y_solution_len_1 = pow(resolution_coarse_1, 4);
+  // CUPDLP_INIT(y_solution_1, y_solution_len_1);
+  // construct_and_solve_Multiscale_longlong(model_1, csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree_1, coarse_degree_2, &x_solution_1, &y_solution_1, x_solution_2, y_solution_2);
+  // // computepPrimalFeas(x_solution_1, resolution, coarse_degree_1);
+  // // analyseArray1D(y_solution_1, y_solution_len_1, 1e-20, "./y_solution.txt");
+  // cupdlp_free(y_solution_2);
+  // cupdlp_free(x_solution_2);
+
+  // // 第0层级
+  // void *model_0 = NULL;
+  // model_0 = createModel();
+  // cupdlp_int resolution_coarse_0 = resolution / pow(2, coarse_degree_0);
+  // cupdlp_float *x_solution_0 = cupdlp_NULL;
+  // cupdlp_int x_solution_len_0 = 2 * pow(resolution_coarse_0, 2);
+  // CUPDLP_INIT(x_solution_0, x_solution_len_0);
+  // cupdlp_printf("x_solution_0初始化成功\n");
+  // cupdlp_float *y_solution_0 = cupdlp_NULL;
+  // long long y_solution_len_0 = pow(resolution_coarse_0, 4);
+  // CUPDLP_INIT(y_solution_0, y_solution_len_0);
+  // cupdlp_printf("y_solution_0初始化成功\n");
+  // construct_and_solve_Multiscale_longlong(model_0, csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree_0, coarse_degree_1, &x_solution_0, &y_solution_0, x_solution_1, y_solution_1);
+  // cupdlp_free(y_solution_1);
+  // cupdlp_free(x_solution_1);
+
+  // // 第0_1层级
+  // void *model_0_1 = NULL;
+  // model_0_1 = createModel();
+  // resolution_coarse_0 = resolution / pow(2, coarse_degree_0);
+  // cupdlp_float *x_solution_0_1 = cupdlp_NULL;
+  // cupdlp_int x_solution_len_0_1 = 2 * pow(resolution_coarse_0, 2);
+  // CUPDLP_INIT(x_solution_0_1, x_solution_len_0_1);
+  // cupdlp_printf("x_solution_0_1初始化成功\n");
+  // cupdlp_float *y_solution_0_1 = cupdlp_NULL;
+  // long long y_solution_len_0_1 = pow(resolution_coarse_0, 4);
+  // CUPDLP_INIT(y_solution_0_1, y_solution_len_0_1);
+  // cupdlp_printf("y_solution_0_1初始化成功\n");
+  // construct_and_solve_Multiscale_longlong(model_0_1, csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree_0, coarse_degree_0, &x_solution_0_1, &y_solution_0_1, x_solution_0, y_solution_0);
+  // all_multiscale_time = getTimeStamp() - all_multiscale_time;
+  // cupdlp_printf("picType = %s, resolution = %d, 运行结束，all_multiscale_time = %fs\n", picType, resolution, all_multiscale_time);
+  // cupdlp_printf("x_solution_0_1对应的误差\n");
+  // computepPrimalFeas(x_solution_0_1, resolution, coarse_degree_0);
+  // cupdlp_printf("x_solution_0对应的误差\n");
+  // computepPrimalFeas(x_solution_0, resolution, coarse_degree_0);
+
+  // // analyseArray1D(y_solution_0, y_solution_len_0, 1e-20, "./y_solution.txt");
+
+  // cupdlp_free(y_solution_0);
+  // cupdlp_free(x_solution_0);
+  // cupdlp_free(y_solution_0_1);
+  // cupdlp_free(x_solution_0_1);
+
 #pragma endregion
 
 #pragma region 自动Multiscale with Recover, 不过Multiscale只有0蹭
