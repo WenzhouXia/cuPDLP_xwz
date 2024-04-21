@@ -3070,6 +3070,7 @@ exit_cleanup:
 
 void directly_construct_and_solve_Multiscale_longlong(void *model, const char *csvpath_1, const char *csvpath_2, cupdlp_int resolution, cupdlp_bool *ifChangeIntParam, cupdlp_bool *ifChangeFloatParam, cupdlp_int *intParam, cupdlp_float *floatParam, cupdlp_bool ifSaveSol, cupdlp_int coarse_degree, cupdlp_int coarse_degree_last, cupdlp_float **x_solution, cupdlp_float **y_solution, cupdlp_float *x_solution_last, cupdlp_float *y_solution_last)
 {
+    cupdlp_printf("directly_construct_and_solve_Multiscale_longlong\n");
     cupdlp_bool retcode = RETCODE_OK;
     if (coarse_degree_last != -1)
     {
@@ -3149,7 +3150,7 @@ void directly_construct_and_solve_Multiscale_longlong(void *model, const char *c
         cupdlp_printf("dualOT_formulateLP_directly结束, 耗时%f\n", dualOT_formulateLP_directly_time);
 
         ///////////////////////////////////////////////////
-        w->problem->data->matrix_format = CSR;
+        // w->problem->data->matrix_format = CSR;
         ///////////////////////////////////////////////////
 
         // 检查w
@@ -3850,7 +3851,7 @@ void dualOT_formulateLP_directly(CUPDLPwork *w, cupdlp_float *a, cupdlp_float *b
     int nnz = 2 * *keep_nnz;
     double offset = 0.0;                              // true objVal = sig * c'x - offset, sig = 1 (min) or -1 (max)
     double sign_origin = 1.0;                         // 1 (min) or -1 (max)
-    CUPDLP_MATRIX_FORMAT src_matrix_format = CSR;     // 原矩阵格式
+    CUPDLP_MATRIX_FORMAT src_matrix_format = CSC;     // 原矩阵格式
     CUPDLP_MATRIX_FORMAT dst_matrix_format = CSR_CSC; // 目标矩阵格式
     // 确保矩阵是ColOrdered
     // assert(((ClpModel *)model)->matrix()->isColOrdered());
@@ -3901,7 +3902,6 @@ void dualOT_formulateLP_directly(CUPDLPwork *w, cupdlp_float *a, cupdlp_float *b
     CUPDLP_CALL(problem_create(&prob));
 
     // A_csr_beg[i] 表示第 i 行的第一个非零元素在 A_csr_val 中的位置, A_csr_beg长为nRows+1
-    cupdlp_printf("构建csr矩阵开始\n");
     int *A_csr_beg = cupdlp_NULL;
     CUPDLP_INIT(A_csr_beg, nRows + 1);
     // 对于每个行中的元素，A_csr_idx 给出了该元素所在的列
@@ -3932,21 +3932,48 @@ void dualOT_formulateLP_directly(CUPDLPwork *w, cupdlp_float *a, cupdlp_float *b
     }
     A_csr_beg[nRows] = nnz;
 
+    double csr_to_csc_time = getTimeStamp();
+    int *A_csc_beg = cupdlp_NULL;
+    int *A_csc_idx = cupdlp_NULL;
+    double *A_csc_val = cupdlp_NULL;
+    csr_to_csc(&A_csc_beg, &A_csc_idx, &A_csc_val, A_csr_beg, A_csr_idx, A_csr_val, nRows, nCols, nnz);
+    csr_to_csc_time = getTimeStamp() - csr_to_csc_time;
+    cupdlp_printf("csr_to_csc_time: %f\n", csr_to_csc_time);
     cupdlp_printf("构建csr矩阵完成\n");
-    CUPDLPcsr *csr_cpu = cupdlp_NULL;
-    CUPDLP_CALL(csr_create(&csr_cpu))
-    csr_cpu->nRows = nRows;
-    csr_cpu->nCols = nCols;
-    csr_cpu->nMatElem = nnz;
-    csr_cpu->rowMatBeg = (int *)malloc((1 + nRows) * sizeof(int));
-    csr_cpu->rowMatIdx = (int *)malloc(nnz * sizeof(int));
-    csr_cpu->rowMatElem = (double *)malloc(nnz * sizeof(double));
-    memcpy(csr_cpu->rowMatBeg, A_csr_beg, (nRows + 1) * sizeof(int));
-    memcpy(csr_cpu->rowMatIdx, A_csr_idx, nnz * sizeof(int));
-    memcpy(csr_cpu->rowMatElem, A_csr_val, nnz * sizeof(double));
 
-    csr_cpu->cuda_csr = NULL;
-    cupdlp_printf("csr_cpu构建完毕\n");
+    // CUPDLPcsr *csr_cpu = cupdlp_NULL;
+    // CUPDLP_CALL(csr_create(&csr_cpu))
+    // csr_cpu->nRows = nRows;
+    // csr_cpu->nCols = nCols;
+    // csr_cpu->nMatElem = nnz;
+    // csr_cpu->rowMatBeg = (int *)malloc((1 + nRows) * sizeof(int));
+    // csr_cpu->rowMatIdx = (int *)malloc(nnz * sizeof(int));
+    // csr_cpu->rowMatElem = (double *)malloc(nnz * sizeof(double));
+    // memcpy(csr_cpu->rowMatBeg, A_csr_beg, (nRows + 1) * sizeof(int));
+    // memcpy(csr_cpu->rowMatIdx, A_csr_idx, nnz * sizeof(int));
+    // memcpy(csr_cpu->rowMatElem, A_csr_val, nnz * sizeof(double));
+    // csr_cpu->cuda_csr = NULL;
+    // cupdlp_printf("csr_cpu构建完毕\n");
+    cupdlp_free(A_csr_beg);
+    cupdlp_free(A_csr_idx);
+    cupdlp_free(A_csr_val);
+
+    CUPDLPcsc *csc_cpu = cupdlp_NULL;
+    CUPDLP_CALL(csc_create(&csc_cpu))
+    csc_cpu->nRows = nRows;
+    csc_cpu->nCols = nCols;
+    csc_cpu->nMatElem = nnz;
+    csc_cpu->colMatBeg = (int *)malloc((1 + nCols) * sizeof(int));
+    csc_cpu->colMatIdx = (int *)malloc(nnz * sizeof(int));
+    csc_cpu->colMatElem = (double *)malloc(nnz * sizeof(double));
+    memcpy(csc_cpu->colMatBeg, A_csc_beg, (nCols + 1) * sizeof(int));
+    memcpy(csc_cpu->colMatIdx, A_csc_idx, nnz * sizeof(int));
+    memcpy(csc_cpu->colMatElem, A_csc_val, nnz * sizeof(double));
+    csc_cpu->cuda_csc = NULL;
+    cupdlp_printf("csc_cpu构建完毕\n");
+    cupdlp_free(A_csc_beg);
+    cupdlp_free(A_csc_idx);
+    cupdlp_free(A_csc_val);
 
 #pragma region scaling
     CUPDLPscaling *scaling =
@@ -3979,7 +4006,7 @@ void dualOT_formulateLP_directly(CUPDLPwork *w, cupdlp_float *a, cupdlp_float *b
     cupdlp_printf("scaling完毕\n");
 #pragma endregion
     cupdlp_printf("problem_alloc开始\n");
-    CUPDLP_CALL(problem_alloc(prob, nRows, nCols, nEqs, cost, offset, sign_origin, csr_cpu, src_matrix_format, dst_matrix_format, rhs, lower, upper, &alloc_matrix_time, &copy_vec_time));
+    CUPDLP_CALL(problem_alloc(prob, nRows, nCols, nEqs, cost, offset, sign_origin, csc_cpu, src_matrix_format, dst_matrix_format, rhs, lower, upper, &alloc_matrix_time, &copy_vec_time));
     cupdlp_printf("problem_alloc完毕\n");
     cupdlp_printf("problem->data->nRows: %d\n", prob->data->nRows);
     // 直接把prob指向的CUPDLPproblem实例的地址赋值给w->problem
@@ -4079,4 +4106,85 @@ void printCUPDLPwork(CUPDLPwork *w)
     // {
     //     printf("%f ", prob->data->csc_matrix->colMatElem[i]);
     // }
+}
+
+void csr_to_csc(int **A_csc_beg, int **A_csc_idx, double **A_csc_val, int *A_csr_beg, int *A_csr_idx, double *A_csr_val, int nRows, int nCols, int nnz)
+{
+    printf("nRows: %d, nCols: %d, nnz: %d\n", nRows, nCols, nnz);
+    cupdlp_bool retcode = RETCODE_OK;
+    CUPDLP_INIT_ZERO(*A_csc_beg, nCols + 1);
+    CUPDLP_INIT_ZERO(*A_csc_idx, nnz);
+    CUPDLP_INIT_ZERO(*A_csc_val, nnz);
+    int *col_counts = cupdlp_NULL;
+    CUPDLP_INIT_ZERO(col_counts, nCols);
+    printf("计算col_count\n");
+    // 自增操作 (++): col_counts[A_csr_idx[i]]++ 将 col_counts 数组中对应于第 i 个非零元素列索引的位置的值加1
+    // for (int i = 0; i < nnz; i++)
+    // {
+    //     printf("A_csr_idx[%d]: %d\n", i, A_csr_idx[i]);
+    // }
+    for (int i = 0; i < nnz; i++)
+    {
+        col_counts[A_csr_idx[i]] += 1;
+    }
+    // for (int i = 0; i < nCols; i++)
+    // {
+    //     printf("col_counts[%d]: %d\n", i, col_counts[i]);
+    // }
+    // printf("计算A_csc_beg\n");
+    // 确定每列的起始索引
+    (*A_csc_beg)[0] = 0;
+    for (int i = 1; i <= nCols; i++)
+    {
+        (*A_csc_beg)[i] = (*A_csc_beg)[i - 1] + col_counts[i - 1];
+    }
+    // for (int i = 0; i < nCols; i++)
+    // {
+    //     printf("A_csc_beg[%d]: %d\n", i, (*A_csc_beg)[i]);
+    // }
+    // printf("计算current_pos\n");
+    // 用来记录每列当前填充到哪个索引
+    int *current_pos = cupdlp_NULL;
+    CUPDLP_INIT(current_pos, nCols);
+    for (int i = 0; i < nCols; i++)
+    {
+        current_pos[i] = (*A_csc_beg)[i];
+    }
+    // for (int i = 0; i < nCols; i++)
+    // {
+    //     printf("current_pos[%d]: %d\n", i, current_pos[i]);
+    // }
+    // printf("填充CSC数组\n");
+    // 填充CSC数组
+    // 处理csr第i行的元素，总共有A_csr_beg[i+1]-A_csr_beg[i]个元素
+    // j是他们在A_csr_idx中的索引，col=A_csr_idx[j]是他们的列索引
+    // 当前处理的列col的元素是所有元素中的第current_pos[col]个
+    for (int i = 0; i < nRows; i++)
+    {
+        // printf("i: %d\n", i);
+        // printf("A_csr_beg[i]: %d\n", A_csr_beg[i]);
+        // printf("A_csr_beg[i+1]: %d\n", A_csr_beg[i + 1]);
+        for (int j = A_csr_beg[i]; j < A_csr_beg[i + 1]; j++)
+        {
+            // printf("j: %d\n", j);
+            int col = A_csr_idx[j];
+            int pos = current_pos[col];
+            // printf("A_csr_idx[%d]: %d\n", j, col);
+            // printf("pos: %d\n", pos);
+            (*A_csc_idx)[pos] = i;
+            (*A_csc_val)[pos] = A_csr_val[j];
+            current_pos[col]++;
+        }
+    }
+    // printf("free开始\n");
+    cupdlp_free(col_counts);
+    cupdlp_free(current_pos);
+    printf("csr_to_csc完成\n");
+exit_cleanup:
+{
+    if (retcode != RETCODE_OK)
+    {
+        cupdlp_printf("csr2csc, exit_cleanup\n");
+    }
+}
 }

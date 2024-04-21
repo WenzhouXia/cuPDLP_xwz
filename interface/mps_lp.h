@@ -18,7 +18,13 @@ extern "C"
         CUPDLP_MATRIX_FORMAT dst_matrix_format, cupdlp_float *rhs,
         cupdlp_float *lower, cupdlp_float *upper, cupdlp_float *alloc_matrix_time,
         cupdlp_float *copy_vec_time);
-
+    cupdlp_retcode problem_alloc_CSR(
+        CUPDLPproblem *prob, cupdlp_int nRows, cupdlp_int nCols, cupdlp_int nEqs,
+        cupdlp_float *cost, cupdlp_float offset, cupdlp_float sign_origin,
+        void *csr_matrix, void *csc_matrix, CUPDLP_MATRIX_FORMAT src_matrix_format_csr, CUPDLP_MATRIX_FORMAT src_matrix_format_csc,
+        CUPDLP_MATRIX_FORMAT dst_matrix_format, cupdlp_float *rhs,
+        cupdlp_float *lower, cupdlp_float *upper, cupdlp_float *alloc_matrix_time,
+        cupdlp_float *copy_vec_time);
     cupdlp_retcode PDTEST_problem_alloc(
         CUPDLPproblem *prob, cupdlp_int nRows, cupdlp_int nCols, cupdlp_int nEqs,
         cupdlp_float *cost, cupdlp_float offset, cupdlp_float sign_origin,

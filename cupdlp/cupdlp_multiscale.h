@@ -104,4 +104,5 @@ void dualOT_formulateLP_directly(CUPDLPwork *w, cupdlp_float *a, cupdlp_float *b
 void generate_keep_a_b_idx_from_keep_idx(int **keep_a_idx, int **keep_b_idx, long long *keep_idx, long long *keep_nnz, int resolution_now);
 void generate_constraint_new_idx(int **constraint_new_idx, int nRows);
 void printCUPDLPwork(CUPDLPwork *w);
+void csr_to_csc(int **A_csc_beg, int **A_csc_idx, double **A_csc_val, int *A_csr_beg, int *A_csr_idx, double *A_csr_val, int nRows, int nCols, int nnz);
 #endif // CUPDLP_CUPDLP_MULTISCALE_H
