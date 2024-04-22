@@ -19,7 +19,8 @@ typedef double cupdlp_float;
 #define CHECK_CUDA(func)                                               \
   {                                                                    \
     cudaError_t status = (func);                                       \
-    if (status != cudaSuccess) {                                       \
+    if (status != cudaSuccess)                                         \
+    {                                                                  \
       printf("CUDA API failed at line %d of %s with error: %s (%d)\n", \
              __LINE__, __FILE__, cudaGetErrorString(status), status);  \
       return EXIT_FAILURE;                                             \
@@ -29,7 +30,8 @@ typedef double cupdlp_float;
 #define CHECK_CUSPARSE(func)                                               \
   {                                                                        \
     cusparseStatus_t status = (func);                                      \
-    if (status != CUSPARSE_STATUS_SUCCESS) {                               \
+    if (status != CUSPARSE_STATUS_SUCCESS)                                 \
+    {                                                                      \
       printf("CUSPARSE API failed at line %d of %s with error: %s (%d)\n", \
              __LINE__, __FILE__, cusparseGetErrorString(status), status);  \
       return EXIT_FAILURE;                                                 \
@@ -39,7 +41,8 @@ typedef double cupdlp_float;
 #define CHECK_CUBLAS(func)                                               \
   {                                                                      \
     cublasStatus_t status = (func);                                      \
-    if (status != CUBLAS_STATUS_SUCCESS) {                               \
+    if (status != CUBLAS_STATUS_SUCCESS)                                 \
+    {                                                                    \
       printf("CUBLAS API failed at line %d of %s with error: %s (%d)\n", \
              __LINE__, __FILE__, cublasGetStatusString(status), status); \
       return EXIT_FAILURE;                                               \
@@ -59,7 +62,8 @@ typedef double cupdlp_float;
   {                                                                            \
     cusparseStatus_t status =                                                  \
         cudaMalloc((void **)&var, (size) * sizeof(typeof(*var)));              \
-    if (status != CUSPARSE_STATUS_SUCCESS) {                                   \
+    if (status != CUSPARSE_STATUS_SUCCESS)                                     \
+    {                                                                          \
       printf("CUSPARSE API failed at line %d with error: %s (%d)\n", __LINE__, \
              cusparseGetErrorString(status), status);                          \
       goto exit_cleanup;                                                       \
@@ -69,13 +73,15 @@ typedef double cupdlp_float;
   {                                                                            \
     cusparseStatus_t status =                                                  \
         cudaMalloc((void **)&var, (size) * sizeof(typeof(*var)));              \
-    if (status != CUSPARSE_STATUS_SUCCESS) {                                   \
+    if (status != CUSPARSE_STATUS_SUCCESS)                                     \
+    {                                                                          \
       printf("CUSPARSE API failed at line %d with error: %s (%d)\n", __LINE__, \
              cusparseGetErrorString(status), status);                          \
       goto exit_cleanup;                                                       \
     }                                                                          \
     status = cudaMemset(var, 0, (size) * sizeof(typeof(*var)));                \
-    if (status != CUSPARSE_STATUS_SUCCESS) {                                   \
+    if (status != CUSPARSE_STATUS_SUCCESS)                                     \
+    {                                                                          \
       printf("CUSPARSE API failed at line %d with error: %s (%d)\n", __LINE__, \
              cusparseGetErrorString(status), status);                          \
       goto exit_cleanup;                                                       \
@@ -143,16 +149,16 @@ __global__ void dual_grad_step_kernal(
     const cupdlp_float *Ax, const cupdlp_float *AxUpdate,
     const cupdlp_float dDualStep, const cupdlp_int len);
 
-    __global__ void dual_grad_step_kernal_AdapTheta(
+__global__ void dual_grad_step_kernal_AdapTheta(
     cupdlp_float *yUpdate, const cupdlp_float *y, const cupdlp_float *b,
     const cupdlp_float *Ax, const cupdlp_float *AxUpdate,
     const cupdlp_float dDualStep, const cupdlp_int len, const cupdlp_float theta);
 
 __global__ void pdtest_x_update_with_beta_kernal(cupdlp_float *x_new,
-                                             const cupdlp_float *x_1,
-                                             const cupdlp_float *x_2,
-                                             const cupdlp_float beta,
-                                             const cupdlp_int len);
+                                                 const cupdlp_float *x_1,
+                                                 const cupdlp_float *x_2,
+                                                 const cupdlp_float beta,
+                                                 const cupdlp_int len);
 
 __global__ void pdtest_y_update_with_beta_kernal(cupdlp_float *y_new,
                                                  const cupdlp_float *y_1,
@@ -167,11 +173,11 @@ __global__ void pdtest_x_update_with_theta_kernal(cupdlp_float *x_barUpdate,
                                                   const cupdlp_int len);
 
 __global__ void pdtest_primal_grad_step_kernal(cupdlp_float *xUpdate,
-                                        const cupdlp_float *x,
-                                        const cupdlp_float *cost,
-                                        const cupdlp_float *ATy,
-                                        const cupdlp_float dPrimalStep,
-                                        const cupdlp_int len);
+                                               const cupdlp_float *x,
+                                               const cupdlp_float *cost,
+                                               const cupdlp_float *ATy,
+                                               const cupdlp_float dPrimalStep,
+                                               const cupdlp_int len);
 
 __global__ void pdtest_dual_grad_step_kernal(
     cupdlp_float *yUpdate, const cupdlp_float *y, const cupdlp_float *b,
@@ -180,4 +186,9 @@ __global__ void pdtest_dual_grad_step_kernal(
 
 __global__ void naive_sub_kernal(cupdlp_float *z, const cupdlp_float *x,
                                  const cupdlp_float *y, const cupdlp_int len);
+
+__device__ double atomicAddDouble(double *address, double val);
+__global__ void compute_dualOT_inf_kernal(const double *x, int vec_len, int n_coarse, double scale_const, double *d_c_norm, double *d_diff_norm);
+// __global__ void compute_dualOT_inf_kernal(const double *x_solution, int vec_len, int n_coarse, double scale_const, double *block_c_norm, double *block_diff_norm);
+// __global__ void reduceFinal_kernal(double *block_results, double *final_result, int num_blocks);
 #endif

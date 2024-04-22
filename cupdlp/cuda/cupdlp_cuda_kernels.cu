@@ -180,3 +180,130 @@ __global__ void naive_sub_kernal(cupdlp_float *z, const cupdlp_float *x,
   cupdlp_int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < len) z[i] = x[i] - y[i];
 }
+
+__device__ double atomicAddDouble(double* address, double val) {
+    unsigned long long int* address_as_ull = (unsigned long long int*)address;
+    unsigned long long int old = *address_as_ull, assumed;
+    do {
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed,
+            __double_as_longlong(val + __longlong_as_double(assumed)));
+    } while (assumed != old);
+    return __longlong_as_double(old);
+}
+
+__global__ void compute_dualOT_inf_kernal(const double *x, int vec_len, int n_coarse, double scale_const, double *d_c_norm, double *d_diff_norm) {
+  // 总共有gridDim.x * gridDim.y个block，每个block有blockDim.x * blockDim.y个线程
+  // n_coarse = resolution_now，是当前处理的图片的分辨率
+  // 总共要计算resolution^4个数据的求和，相当于每个块的每个线程负责resolution^4/(gridDim.x * gridDim.y * blockDim.x * blockDim.y)个数据
+  // 记int x_num = (resolution * resolution) / (gridDim.x * blockDim.x), y_num同理定义
+  //  x方向上的第thread_idx_x = blockIdx.x * blockDim.x + threadIdx.x个线程，y方向上的第blockIdx.y * blockDim.y + threadIdx.y个线程，负责计算的数据索引为：
+  // i = thread_idx_x * x_num; i < (thread_idx_x + 1) * x_num
+  // j同理
+  int thread_idx_x = blockIdx.x * blockDim.x + threadIdx.x;
+  int thread_idx_y = blockIdx.y * blockDim.y + threadIdx.y;
+  int x_num = vec_len / (gridDim.x * blockDim.x);
+  int y_num = vec_len / (gridDim.y * blockDim.y);
+  double c_norm = 0;
+  double diff_norm = 0;
+  for (int i = thread_idx_x * x_num; i < (thread_idx_x + 1) * x_num; i++){
+    for (int j = thread_idx_y * y_num; j < (thread_idx_y + 1) * y_num; j++){
+      int idx1 = i / n_coarse;
+      int idx2 = i % n_coarse;
+      int idx3 = j / n_coarse;
+      int idx4 = j % n_coarse;
+
+      double c = ((idx1 - idx3) * (idx1 - idx3) + (idx2 - idx4) * (idx2 - idx4)) / scale_const;
+      double temp = (x[i] + x[vec_len + j]) - c;
+      temp = temp > 0 ? temp : 0; // 使用条件运算符替代 fmax
+
+      c_norm += c * c;
+      diff_norm += temp * temp;
+    }
+  }
+  atomicAddDouble(d_c_norm, c_norm);
+  atomicAddDouble(d_diff_norm, diff_norm);
+  // int i = blockIdx.x * blockDim.x + threadIdx.x;
+  // int j = blockIdx.y * blockDim.y + threadIdx.y;
+
+  // if (i < vec_len && j < vec_len)
+  // {
+  //   int idx1 = i / n_coarse;
+  //   int idx2 = i % n_coarse;
+  //   int idx3 = j / n_coarse;
+  //   int idx4 = j % n_coarse;
+
+  //   double c = ((idx1 - idx3) * (idx1 - idx3) + (idx2 - idx4) * (idx2 - idx4)) / scale_const;
+  //   double temp = (x[i] + x[vec_len + j]) - c;
+  //   temp = temp > 0 ? temp : 0; // 使用条件运算符替代 fmax
+
+  //   atomicAddDouble(d_c_norm, c * c);
+  //   atomicAddDouble(d_diff_norm, temp * temp);
+  //   }
+}
+
+// __global__ void compute_dualOT_inf_kernal(const double *x_solution, int vec_len, int n_coarse, double scale_const, double *block_c_norm, double *block_diff_norm) {
+//     extern __shared__ double shared_data[];
+//     int i = blockIdx.x * blockDim.x + threadIdx.x;
+//     int j = blockIdx.y * blockDim.y + threadIdx.y;
+//     int local_tid = threadIdx.x + blockDim.x * threadIdx.y;
+//     int block_tid = threadIdx.x;
+
+//     // Initialize shared memory
+//     shared_data[local_tid] = 0;
+//     shared_data[blockDim.x * blockDim.y + local_tid] = 0;
+//     __syncthreads();
+
+//     if (i < vec_len && j < vec_len) {
+//         int idx1 = i / n_coarse;
+//         int idx2 = i % n_coarse;
+//         int idx3 = j / n_coarse;
+//         int idx4 = j % n_coarse;
+        
+//         double c = ((idx1 - idx3) * (idx1 - idx3) + (idx2 - idx4) * (idx2 - idx4)) / scale_const;
+//         // double temp = fmax((x_solution[i] + x_solution[vec_len + j]) - c, 0);
+//         double temp = (x_solution[i] + x_solution[vec_len + j]) - c;
+//         temp = temp > 0 ? temp : 0;  // 使用条件运算符替代 fmax
+//         // Local reduction in shared memory
+//         shared_data[local_tid] += c * c;
+//         shared_data[blockDim.x * blockDim.y + local_tid] += temp * temp;
+//     }
+//     __syncthreads();
+
+//     // Reduction within the block
+//     int num_threads = blockDim.x * blockDim.y;
+//     while (num_threads > 1) {
+//         int half_point = (num_threads + 1) / 2;
+//         if (local_tid < half_point && (local_tid + half_point) < num_threads) {
+//             shared_data[local_tid] += shared_data[local_tid + half_point];
+//             shared_data[blockDim.x * blockDim.y + local_tid] += shared_data[blockDim.x * blockDim.y + local_tid + half_point];
+//         }
+//         __syncthreads();
+//         num_threads = half_point;
+//     }
+
+//     // Write result for this block to global memory
+//     if (block_tid == 0) {
+//         block_c_norm[blockIdx.x + gridDim.x * blockIdx.y] = shared_data[0];
+//         block_diff_norm[blockIdx.x + gridDim.x * blockIdx.y] = shared_data[blockDim.x * blockDim.y];
+//     }
+// }
+
+// __global__ void reduceFinal_kernal(double *block_results, double *final_result, int num_blocks) {
+//     extern __shared__ double shared_data[];
+//     int tid = threadIdx.x;
+
+//     shared_data[tid] = (tid < num_blocks) ? block_results[tid] : 0;
+//     __syncthreads();
+
+//     for (int s = blockDim.x / 2; s > 0; s >>= 1) {
+//         if (tid < s) {
+//             shared_data[tid] += shared_data[tid + s];
+//         }
+//         __syncthreads();
+//     }
+
+//     if (tid == 0) {
+//         *final_result = shared_data[0];
+//     }
+// }

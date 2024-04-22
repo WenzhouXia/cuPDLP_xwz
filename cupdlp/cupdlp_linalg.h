@@ -175,4 +175,5 @@ void cupdlp_compute_interaction_and_movement(CUPDLPwork *w,
 void PDTEST_compute_interaction_and_movement(CUPDLPwork *w,
                                              cupdlp_float *dMovement,
                                              cupdlp_float *dIteraction);
+void cudplp_compute_dualOT_inf(cupdlp_float *x_data, cupdlp_int x_len);
 #endif // CUPDLP_CUPDLP_LINALG_H

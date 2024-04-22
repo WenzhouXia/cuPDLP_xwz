@@ -117,5 +117,6 @@ extern "C" void pdtest_dgrad_cuda(cupdlp_float *yUpdate, const cupdlp_float *y, 
 
 extern "C" void cupdlp_sub_cuda(cupdlp_float *z, const cupdlp_float *x,
                                 const cupdlp_float *y, const cupdlp_int len);
+extern "C" void compute_dualOT_inf_cuda(cupdlp_float *h_c_norm, cupdlp_float *h_diff_norm, cupdlp_float *x, int vec_len, int n_coarse, double scale_const);
 #endif
 #endif

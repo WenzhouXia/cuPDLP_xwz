@@ -633,6 +633,113 @@ cupdlp_retcode main(int argc, char **argv)
   //   csr_cpu->rowMatIdx = A_csr_idx;
   //   csr_cpu->rowMatElem = A_csr_val;
 #pragma endregion
+#pragma region 测试对Coord的排序
+
+  // // Coord *keep_coord_test = cupdlp_NULL;
+  // // CUPDLP_INIT(keep_coord_test, 3);
+  // // printf("keep_coord_test分配内存完毕！\n");
+  // // keep_coord_test[0].idx = 1;
+  // // keep_coord_test[1].idx = 5;
+  // // keep_coord_test[2].idx = 3;
+  // // qsort(keep_coord_test, 3, sizeof(Coord), compare_Coord);
+  // // printf("排序完毕！\n");
+  // // printf("keep_coord_test[0].idx = %d\n", keep_coord_test[0].idx);
+  // // printf("keep_coord_test[1].idx = %d\n", keep_coord_test[1].idx);
+  // // printf("keep_coord_test[2].idx = %d\n", keep_coord_test[2].idx);
+
+  // // double *y_coarse = cupdlp_NULL;
+  // // int y_len = 16;
+  // // CUPDLP_INIT(y_coarse, y_len);
+  // // y_coarse[0] = 0.0;
+  // // y_coarse[1] = 1.0;
+  // // y_coarse[2] = 2.0;
+  // // y_coarse[3] = 0.0;
+  // // for (int i = 4; i <= 12; i++)
+  // // {
+  // //   y_coarse[i] = 0.0;
+  // // }
+  // // y_coarse[13] = 3.0;
+  // // y_coarse[14] = 5.0;
+  // // y_coarse[15] = 5.0;
+
+  // // long long *keep_coarse = cupdlp_NULL;
+  // // CUPDLP_INIT(keep_coarse, nnz_coarse);
+  // // keep_coarse[0] = 1;
+  // // keep_coarse[1] = 2;
+  // // keep_coarse[2] = 13;
+  // // keep_coarse[3] = 14;
+  // // keep_coarse[4] = 15;
+  // // for (int i = 0; i < nnz_coarse; i++)
+  // // {
+  // //   printf("keep_coarse[%d] = %lld\n", i, keep_coarse[i]);
+  // // }
+  // int nnz_coarse = 5;
+  // Coord *keep_coord_coarse = cupdlp_NULL;
+  // CUPDLP_INIT(keep_coord_coarse, nnz_coarse);
+  // keep_coord_coarse[0].idx = 1;
+  // keep_coord_coarse[1].idx = 2;
+  // keep_coord_coarse[2].idx = 3;
+  // keep_coord_coarse[3].idx = 4;
+  // keep_coord_coarse[4].idx = 5;
+  // for (int i = 0; i < nnz_coarse; i++)
+  // {
+  //   keep_coord_coarse[i].idx1 = keep_coord_coarse[i].idx / 4;
+  //   keep_coord_coarse[i].idx2 = keep_coord_coarse[i].idx % 4;
+  //   keep_coord_coarse[i].idx_i1 = keep_coord_coarse[i].idx1 / 2;
+  //   keep_coord_coarse[i].idx_j1 = keep_coord_coarse[i].idx1 % 2;
+  //   keep_coord_coarse[i].idx_i2 = keep_coord_coarse[i].idx2 / 2;
+  //   keep_coord_coarse[i].idx_j2 = keep_coord_coarse[i].idx2 % 2;
+  // }
+  // int resolution_now = 4;
+  // int coarse_degree_diff = 1;
+  // int s = pow(2, coarse_degree_diff); // 2
+  // int t = resolution_now / s;         // 2
+  // int nnz = pow(s, 4) * nnz_coarse;   // 80
+  // printf("nnz: %d\n", nnz);
+
+  // Coord *keep_coord = cupdlp_NULL;
+  // fine_KeepCoord_mallocIncide(&keep_coord, keep_coord_coarse, nnz_coarse, resolution_now, coarse_degree_diff);
+  // qsort(keep_coord, nnz, sizeof(Coord), compare_Coord);
+  // for (int i = 0; i < nnz; i++)
+  // {
+  //   printf("keep_coord[%d].idx_coarse: %lld\n", i, keep_coord[i].idx_coarse);
+  // }
+  // for (int i = 0; i < nnz; i++)
+  // {
+  //   printf("keep_coord[%d].idx: %lld\n", i, keep_coord[i].idx);
+  // }
+  // printf("排序完毕！\n");
+  // cupdlp_free(keep_coord);
+
+  // Coord *keep_coord = cupdlp_NULL;
+  // CUPDLP_INIT(keep_coord, nnz);
+  // printf("分配内存成功！\n");
+  // fine_KeepCoord(keep_coord, keep_coord_coarse, nnz_coarse, resolution_now, coarse_degree_diff);
+  // qsort(keep_coord, nnz, sizeof(Coord), compare_Coord);
+  // for (int i = 0; i < nnz; i++)
+  // {
+  //   printf("keep_coord[%d].idx_coarse: %lld\n", i, keep_coord[i].idx_coarse);
+  // }
+  // for (int i = 0; i < nnz; i++)
+  // {
+  //   printf("keep_coord[%d].idx: %lld\n", i, keep_coord[i].idx);
+  // }
+  // printf("排序完毕！\n");
+  // cupdlp_free(keep_coord);
+
+#pragma endregion
+#pragma region 测试函数内修改数组
+  // int *a = cupdlp_NULL;
+  // CUPDLP_INIT_ZERO(a, 3);
+  // for (int i = 0; i < 3; i++)
+  // {
+  //   printf("a[%d] = %d\n", i, a[i]);
+  // }
+  // modificationArray1D(&a);
+  // for (int i = 0; i < 3; i++)
+  // {
+  //   printf("a[%d] = %d\n", i, a[i]);
+  // }
 #pragma endregion
 #pragma region 自动Multiscale with Recover
   cupdlp_float all_multiscale_time = getTimeStamp();
@@ -651,14 +758,13 @@ cupdlp_retcode main(int argc, char **argv)
   CUPDLP_INIT(x_solution_3, x_solution_len_3);
   cupdlp_float *y_solution_3 = cupdlp_NULL;
   long long y_solution_len_3 = pow(resolution_coarse_3, 4);
-  CUPDLP_INIT(y_solution_3, y_solution_len_3);
+  CUPDLP_INIT_ZERO(y_solution_3, y_solution_len_3);
   cupdlp_float *x_init_3 = cupdlp_NULL;
   CUPDLP_INIT(x_init_3, x_solution_len_3);
   cupdlp_float *y_init_3 = cupdlp_NULL;
   CUPDLP_INIT(y_init_3, y_solution_len_3);
   construct_and_solve_Multiscale_longlong(model_3, csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree_3, coarse_degree_4, &x_solution_3, &y_solution_3, x_init_3, y_init_3);
-  computepPrimalFeas(x_solution_3, resolution, coarse_degree_3);
-
+  // computepPrimalFeas(x_solution_3, resolution, coarse_degree_3);
   // analyseArray1D(y_solution_3, y_solution_len_3, 1e-20, "./y_solution.txt");
   cupdlp_free(y_init_3);
   cupdlp_free(x_init_3);
@@ -671,7 +777,7 @@ cupdlp_retcode main(int argc, char **argv)
   CUPDLP_INIT(x_solution_2, x_solution_len_2);
   cupdlp_float *y_solution_2 = cupdlp_NULL;
   long long y_solution_len_2 = pow(resolution_coarse_2, 4);
-  CUPDLP_INIT(y_solution_2, y_solution_len_2);
+  CUPDLP_INIT_ZERO(y_solution_2, y_solution_len_2);
   directly_construct_and_solve_Multiscale_longlong(model_2, csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree_2, coarse_degree_3, &x_solution_2, &y_solution_2, x_solution_3, y_solution_3);
   // computepPrimalFeas(x_solution_2, resolution, coarse_degree_2);
   // analyseArray1D(y_solution_2, y_solution_len_2, 1e-20, "./y_solution.txt");
@@ -687,7 +793,7 @@ cupdlp_retcode main(int argc, char **argv)
   CUPDLP_INIT(x_solution_1, x_solution_len_1);
   cupdlp_float *y_solution_1 = cupdlp_NULL;
   long long y_solution_len_1 = pow(resolution_coarse_1, 4);
-  CUPDLP_INIT(y_solution_1, y_solution_len_1);
+  CUPDLP_INIT_ZERO(y_solution_1, y_solution_len_1);
   directly_construct_and_solve_Multiscale_longlong(model_1, csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree_1, coarse_degree_2, &x_solution_1, &y_solution_1, x_solution_2, y_solution_2);
   // computepPrimalFeas(x_solution_1, resolution, coarse_degree_1);
   // analyseArray1D(y_solution_1, y_solution_len_1, 1e-20, "./y_solution.txt");
@@ -704,14 +810,13 @@ cupdlp_retcode main(int argc, char **argv)
   cupdlp_printf("x_solution_0初始化成功\n");
   cupdlp_float *y_solution_0 = cupdlp_NULL;
   long long y_solution_len_0 = pow(resolution_coarse_0, 4);
-  CUPDLP_INIT(y_solution_0, y_solution_len_0);
+  CUPDLP_INIT_ZERO(y_solution_0, y_solution_len_0);
   cupdlp_printf("y_solution_0初始化成功\n");
   directly_construct_and_solve_Multiscale_longlong(model_0, csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree_0, coarse_degree_1, &x_solution_0, &y_solution_0, x_solution_1, y_solution_1);
   all_multiscale_time = getTimeStamp() - all_multiscale_time;
   cupdlp_printf("picType = %s, resolution = %d, 运行结束，all_multiscale_time = %fs\n", picType, resolution, all_multiscale_time);
 
-  computepPrimalFeas(x_solution_0, resolution, coarse_degree_0);
-
+  // computepPrimalFeas(x_solution_0, resolution, coarse_degree_0);
   // analyseArray1D(y_solution_0, y_solution_len_0, 1e-20, "./y_solution.txt");
   cupdlp_free(y_solution_1);
   cupdlp_free(x_solution_1);
@@ -823,7 +928,6 @@ cupdlp_retcode main(int argc, char **argv)
   // cupdlp_free(x_solution_0_1);
 
 #pragma endregion
-
 #pragma region 自动Multiscale with Recover, 不过Multiscale只有0蹭
   // cupdlp_float all_multiscale_time = getTimeStamp();
   // cupdlp_int coarse_degree_4 = -1;
@@ -855,7 +959,6 @@ cupdlp_retcode main(int argc, char **argv)
   // all_multiscale_time = getTimeStamp() - all_multiscale_time;
   // cupdlp_printf("picType = %s, resolution = %d, 运行结束，all_multiscale_time = %fs\n", picType, resolution, all_multiscale_time);
 #pragma endregion
-
 #pragma region 自动Multiscale
 //   cupdlp_int coarse_degree_4 = -1;
 //   cupdlp_int coarse_degree_3 = 3;
@@ -933,7 +1036,6 @@ cupdlp_retcode main(int argc, char **argv)
 // // cupdlp_free(x_solution_2);
 // // cupdlp_free(y_solution_2);
 #pragma endregion
-
 #pragma region 手动Multiscale
 //   void *model = NULL;
 //   model = createModel();
@@ -1034,7 +1136,6 @@ cupdlp_retcode main(int argc, char **argv)
 //   analyseArray1D(y_solution, w_delete->problem->nRows, 1e-20, "./solution_y_fine_optimal.csv");
 //   compareTwoArray1D(y_init, w_delete->problem->nRows, y_solution, w_delete->problem->nRows, 1e-20);
 #pragma endregion
-
 #pragma region 未考虑稀疏性的版本
   // cupdlp_printf("--------------------------------------------------\n");
   // cupdlp_printf("--------------------------------------------------\n");

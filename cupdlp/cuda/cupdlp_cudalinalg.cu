@@ -252,3 +252,78 @@ extern "C" void cupdlp_sub_cuda(cupdlp_float *z, const cupdlp_float *x,
 {
    naive_sub_kernal<<<cuda_gridsize(len), CUPDLP_BLOCK_SIZE>>>(z, x, y, len);
 }
+
+// extern "C" void compute_dualOT_inf_cuda(cupdlp_float *h_c_norm, cupdlp_float *h_diff_norm, cupdlp_float *x, int vec_len, int n_coarse, double scale_const){
+//   int blocks_x = 16;
+//   int blocks_y = 16;
+//   dim3 blocks(blocks_x, blocks_y);
+//   dim3 threads(16, 16);
+//   int num_blocks = blocks_x * blocks_y;
+//   double *d_block_c_norm = NULL;
+//   double *d_block_diff_norm = NULL;
+//   double *d_c_norm = NULL;
+//   double *d_diff_norm = NULL;
+//   cudaMalloc(&d_block_c_norm, num_blocks * sizeof(double));
+//   cudaMalloc(&d_block_diff_norm, num_blocks * sizeof(double));
+//   cudaMalloc(&d_c_norm, sizeof(double));
+//   cudaMalloc(&d_diff_norm, sizeof(double));
+//   cudaMemset(d_block_c_norm, 0, num_blocks * sizeof(double));
+//   cudaMemset(d_block_diff_norm, 0, num_blocks * sizeof(double));
+//   cudaMemset(d_c_norm, 0, sizeof(double));
+//   cudaMemset(d_diff_norm, 0, sizeof(double));
+//   // <<<cuda_gridsize(vec_len), CUPDLP_BLOCK_SIZE>>>(x, vec_len, n_coarse, scale_const, block_c_norm, block_diff_norm);
+//   compute_dualOT_inf_kernal<<<blocks, threads>>>(x, vec_len, n_coarse, scale_const, d_block_c_norm, d_block_diff_norm);
+
+// // Call the reduction kernel to summarize the blocks' results
+//   int reduce_threads = 256; // Make sure this is a power of 2
+//   reduceFinal_kernal<<<1, reduce_threads, reduce_threads * sizeof(double)>>>(d_block_c_norm, d_c_norm, num_blocks);
+//   reduceFinal_kernal<<<1, reduce_threads, reduce_threads * sizeof(double)>>>(d_block_diff_norm, d_diff_norm, num_blocks);
+
+//   cudaMemcpy(h_c_norm, d_c_norm, sizeof(double), cudaMemcpyDeviceToHost);
+//   cudaMemcpy(h_diff_norm, d_diff_norm, sizeof(double), cudaMemcpyDeviceToHost);
+//   printf("compute_dualOT_inf_cuda, c_norm: %f, diff_norm: %f\n", *h_c_norm, *h_diff_norm);
+//   cudaFree(d_block_c_norm);
+//   cudaFree(d_block_diff_norm);
+//   cudaFree(d_c_norm);
+//   cudaFree(d_diff_norm);
+
+// }
+
+extern "C" void compute_dualOT_inf_cuda(cupdlp_float *h_c_norm, cupdlp_float *h_diff_norm, cupdlp_float *x, int vec_len, int n_coarse, double scale_const){
+    // int grid_size = 16;
+    // int block_size = 16;
+    // if (n_coarse < block_size){
+    //   block_size = n_coarse;
+    // }
+    // if (n_coarse < grid_size){
+    //   grid_size = n_coarse;
+    // }
+    int grid_size = 0;
+    if (n_coarse < 16)
+    {
+      grid_size = 1;
+    }
+    else
+    {
+      grid_size = n_coarse / 16;
+    }
+    int block_size = 16;
+    int blocks_x = grid_size;
+    int blocks_y = grid_size;
+    dim3 blocks(blocks_x, blocks_y);
+    dim3 threads(block_size, block_size);
+
+    double *d_c_norm = NULL;
+    double *d_diff_norm = NULL;
+    cudaMalloc(&d_c_norm, sizeof(double));
+    cudaMalloc(&d_diff_norm, sizeof(double));
+    cudaMemset(d_c_norm, 0, sizeof(double));
+    cudaMemset(d_diff_norm, 0, sizeof(double));
+
+    compute_dualOT_inf_kernal<<<blocks, threads>>>(x, vec_len, n_coarse, scale_const, d_c_norm, d_diff_norm);
+
+    cudaMemcpy(h_c_norm, d_c_norm, sizeof(double), cudaMemcpyDeviceToHost);
+    cudaMemcpy(h_diff_norm, d_diff_norm, sizeof(double), cudaMemcpyDeviceToHost);
+    cudaFree(d_c_norm);
+    cudaFree(d_diff_norm);
+}

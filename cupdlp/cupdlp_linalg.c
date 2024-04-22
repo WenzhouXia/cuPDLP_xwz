@@ -435,7 +435,36 @@ void cupdlp_init_vector(cupdlp_float *x, const cupdlp_float val,
 }
 
 #if !(CUPDLP_CPU)
+void cudplp_compute_dualOT_inf(cupdlp_float *x_data, cupdlp_int x_len)
+{
+  // x_len = 2 * pow(resolution_now, 2)
+  // vec_len = pow(resolution_now, 2)
+  // scale_const = x_len
 
+  cupdlp_bool retcode = RETCODE_OK;
+  double inf_time = getTimeStamp();
+  // printf("cudplp_compute_dualOT_inf, x_len: %d\n", x_len);
+  cupdlp_float *h_c_norm = cupdlp_NULL;
+  cupdlp_float *h_diff_norm = cupdlp_NULL;
+  CUPDLP_INIT(h_c_norm, 1);
+  CUPDLP_INIT(h_diff_norm, 1);
+  int vec_len = x_len / 2;
+  int n_coarse = sqrt(vec_len);
+  double scale_const = x_len;
+  cupdlp_printf("vec_len: %d, n_coarse: %d, scale_const: %f\n", vec_len, n_coarse, scale_const);
+  compute_dualOT_inf_cuda(h_c_norm, h_diff_norm, x_data, vec_len, n_coarse, scale_const);
+  double inf = sqrt(*h_diff_norm / (1 + *h_c_norm));
+  inf_time = getTimeStamp() - inf_time;
+  printf("cudplp_compute_dualOT_inf\n");
+  printf("h_diff_norm: %.8f, h_c_norm: %f, infeasibility%.8f, 耗时%fs\n", sqrt(*h_diff_norm), sqrt(*h_c_norm), inf, inf_time);
+exit_cleanup:
+  if (retcode != RETCODE_OK)
+  {
+    printf("Error in cudplp_compute_dualOT_inf\n");
+  }
+  cupdlp_free(h_c_norm);
+  cupdlp_free(h_diff_norm);
+}
 void Ax_single_gpu(CUPDLPwork *w, cusparseDnVecDescr_t vecX,
                    cusparseDnVecDescr_t vecAx)
 {

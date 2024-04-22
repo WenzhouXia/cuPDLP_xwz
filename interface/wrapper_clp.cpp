@@ -1577,3 +1577,116 @@ extern "C" void Construct_dualOT_Matrix(void* matrix, int resolution){
   matrix_C = &mat;
 }
 
+extern "C" void countZero_and_CheckConstraint_Keep_Wrapper(long long **keep, long long *keep_nnz, double *y, double *x, int resolution_y, double thr, double violate_degree){
+  printf("countZero_and_CheckConstraint_Keep_Wrapper开始\n");
+  int num_threads = 128;
+  if (num_threads > resolution_y)
+  {
+      num_threads = resolution_y;
+  }
+  std::vector<long long> nnz_array(num_threads);
+
+  std::vector<std::vector<long long>> keep_array;
+  for (int i = 0; i < num_threads; i++){
+    std::vector<long long> keep_sub;
+    keep_array.push_back(keep_sub);
+  }
+  
+  int pow_resolution_2 = pow(resolution_y, 2);
+  double scale = 2.0 * pow_resolution_2;
+printf("countZero_and_CheckConstraint_Keep_Wrapper omp parallel开始\n");
+#pragma omp parallel num_threads(num_threads)
+{
+  int thread_id = omp_get_thread_num();
+  int start = thread_id * resolution_y / num_threads;
+  int end = (thread_id + 1) * resolution_y / num_threads;
+  nnz_array[thread_id] = 0;
+  for (int i1 = start; i1 < end; i1++)
+  {
+    long long idx_temp = 0;
+    long long idx_temp_min = 0;
+    long long idx_1 = 0;
+    long long idx_2 = 0;
+    for (int j1 = 0; j1 < resolution_y; j1++)
+    {
+      idx_1 = i1 * resolution_y + j1;
+      for (int i2 = 0; i2 < resolution_y; i2++)
+      {
+        for (int j2 = 0; j2 < resolution_y; j2++)
+        {
+          idx_2 = i2 * resolution_y + j2;
+          idx_temp = idx_1 * pow_resolution_2 + idx_2;
+          idx_temp_min = start * pow_resolution_2 + idx_2;
+          idx_temp_min = idx_temp_min * resolution_y;
+          if (fabs(y[idx_temp]) < thr)
+          {
+            if (x[idx_1] + x[pow_resolution_2 + idx_2] > (1+violate_degree) * ((i1 - i2) * (i1 - i2) + (j1 - j2) * (j1 - j2) + 1e-8) / scale)
+            {
+              keep_array[thread_id].push_back(idx_temp);
+              nnz_array[thread_id] += 1;
+            }
+          }
+          else
+          {
+            keep_array[thread_id].push_back(idx_temp);
+            nnz_array[thread_id] += 1;
+          }
+        }
+      }
+    }
+  }
+}
+  // 先前的nnz_array是每个线程的非零元素个数，现在需要计算到每个线程为止有多少个非零元素
+  for (int i = 1; i < num_threads; i++)
+  {
+    nnz_array[i] += nnz_array[i - 1];
+  }
+  *keep_nnz = nnz_array[num_threads - 1];
+  for (int i = 0; i < num_threads; i++){
+    printf("nnz_array[%d]: %lld\n", i, nnz_array[i]);
+  }
+  for (int i = 0; i < num_threads; i++){
+    for (int j = 0; j < keep_array[i].size(); j++){
+      printf("keep_array[%d][%d]: %lld\n", i, j, keep_array[i][j]);
+    }
+  }
+  // 再合并到keep中
+  // keep的第i个元素值为idx，这对应着y中的第idx个元素是第i个被保留的元素
+  // bool *keep = (bool *)malloc(sizeof(bool) * nRows);
+  printf("countZero_and_CheckConstraint_Keep_Wrapper合并开始\n");
+  printf("keep_nnz: %lld\n", *keep_nnz);
+  *keep = (long long *)malloc(sizeof(long long) * *keep_nnz);
+  if (*keep == NULL)
+  {
+    printf("keep malloc失败\n");
+  }
+  else
+  {
+    printf("keep malloc成功\n");
+  }
+#pragma omp parallel num_threads(num_threads)
+{
+  int thread_id = omp_get_thread_num();
+  if (thread_id == 0){
+    for (int i = 0; i < keep_array[thread_id].size(); i++)
+    {
+      (*keep)[i] = keep_array[thread_id][i];
+    }
+  }
+  else
+  {
+    for (int i = 0; i < keep_array[thread_id].size(); i++)
+    {
+      (*keep)[nnz_array[thread_id-1] + i] = keep_array[thread_id][i];
+    }
+  }
+  
+}
+  // for (int i = 0; i < *keep_nnz; i++)
+  // {
+  // printf("keep[%d]: %lld\n", i, (*keep)[i]);
+  // }
+  printf("countZero_and_CheckConstraint_Keep_Wrapper结束\n");
+}
+
+
