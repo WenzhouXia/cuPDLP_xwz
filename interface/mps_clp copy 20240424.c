@@ -1,4 +1,3 @@
-#pragma region 目前的mps_clp.c
 #include "mps_lp.h"
 #include "wrapper_clp.h"
 #include "omp.h"
@@ -18,7 +17,7 @@ cupdlp_retcode main(int argc, char **argv)
   char *fname = "./example/afiro.mps.gz";
   char *fout = "./solution.json";
   char *picType = "CauchyDensity";
-  cupdlp_int resolution_input = 16;
+  cupdlp_int resolution_input = 32;
   cupdlp_bool ifSaveSol = false;
   cupdlp_bool ifPresolve = false;
   cupdlp_int ifPDTEST = 0;
@@ -271,7 +270,6 @@ cupdlp_retcode main(int argc, char **argv)
   // CUPDLP_INIT(y_origin, nRows);
 ////////////////////////////////////////////////////////////////////////////////////////
 #pragma endregion
-
 #pragma region 测试区
 #pragma region 测试简单的并行计算
   // int max_threads = omp_get_max_threads();
@@ -743,117 +741,96 @@ cupdlp_retcode main(int argc, char **argv)
   //   printf("a[%d] = %d\n", i, a[i]);
   // }
 #pragma endregion
-#pragma endregion
-
-#pragma region MultiScaleOT_cuPDLP
-  int num_scale = 3;
-  double *inf_thrs = cupdlp_NULL;
-  CUPDLP_INIT(inf_thrs, num_scale + 1);
-  inf_thrs[0] = 1e-6;
-  for (int i = 1; i <= num_scale; i++)
-  {
-    inf_thrs[i] = 1e-6;
-  }
-  MultiScaleOT_cuPDLP(csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, num_scale, inf_thrs);
-  cupdlp_free(inf_thrs);
-#pragma endregion
-
 #pragma region 自动Multiscale with Recover
-  // cupdlp_float all_multiscale_time = getTimeStamp();
-  // cupdlp_int coarse_degree_4 = -1;
-  // cupdlp_int coarse_degree_3 = 1;
-  // cupdlp_int coarse_degree_2 = 0;
-  // cupdlp_int coarse_degree_1 = 1;
-  // cupdlp_int coarse_degree_0 = 0;
-  // cupdlp_printf("测试是否成功编译\n");
-  // // 第3层级
-  // // void *model_3 = NULL;
-  // // model_3 = createModel();
-  // cupdlp_int resolution_coarse_3 = resolution / pow(2, coarse_degree_3);
-  // cupdlp_float *x_solution_3 = cupdlp_NULL;
-  // cupdlp_int x_solution_len_3 = 2 * pow(resolution_coarse_3, 2);
-  // CUPDLP_INIT(x_solution_3, x_solution_len_3);
-  // cupdlp_float *y_solution_3 = cupdlp_NULL;
-  // long long y_solution_len_3 = pow(resolution_coarse_3, 4);
-  // CUPDLP_INIT_ZERO(y_solution_3, y_solution_len_3);
-  // cupdlp_float *x_init_3 = cupdlp_NULL;
-  // CUPDLP_INIT(x_init_3, x_solution_len_3);
-  // cupdlp_float *y_init_3 = cupdlp_NULL;
-  // CUPDLP_INIT(y_init_3, y_solution_len_3);
-  // double *infeasibility_3 = cupdlp_NULL;
-  // CUPDLP_INIT_ZERO(infeasibility_3, 1);
-  // directly_construct_and_solve_Multiscale_longlong(csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree_3, coarse_degree_4, &x_solution_3, &y_solution_3, x_init_3, y_init_3, infeasibility_3);
-  // printf("infeasibility_3 = %f\n", *infeasibility_3);
-  // // computepPrimalFeas(x_solution_3, resolution, coarse_degree_3);
-  // // char y_solution_3_path[100];
-  // // int resolution_3 = resolution / pow(2, coarse_degree_3);
-  // // sprintf(y_solution_3_path, "./y_solution_%d.txt", resolution_3);
-  // // analyseArray1D(y_solution_3, y_solution_len_3, 1e-20, y_solution_3_path);
-  // cupdlp_free(y_init_3);
-  // cupdlp_free(x_init_3);
-  // // 第2层级
-  // // void *model_2 = NULL;
-  // // model_2 = createModel();
-  // cupdlp_int resolution_coarse_2 = resolution / pow(2, coarse_degree_2);
-  // cupdlp_float *x_solution_2 = cupdlp_NULL;
-  // cupdlp_int x_solution_len_2 = 2 * pow(resolution_coarse_2, 2);
-  // CUPDLP_INIT(x_solution_2, x_solution_len_2);
-  // cupdlp_float *y_solution_2 = cupdlp_NULL;
-  // long long y_solution_len_2 = pow(resolution_coarse_2, 4);
-  // CUPDLP_INIT_ZERO(y_solution_2, y_solution_len_2);
-  // double *infeasibility_2 = cupdlp_NULL;
-  // CUPDLP_INIT_ZERO(infeasibility_2, 1);
-  // directly_construct_and_solve_Multiscale_longlong(csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree_2, coarse_degree_3, &x_solution_2, &y_solution_2, x_solution_3, y_solution_3, infeasibility_2);
-  // printf("infeasibility_2 = %f\n", *infeasibility_2);
-  // // computepPrimalFeas(x_solution_2, resolution, coarse_degree_2);
-  // // char y_solution_2_path[100];
-  // // int resolution_2 = resolution / pow(2, coarse_degree_2);
-  // // sprintf(y_solution_2_path, "./y_solution_%d.txt", resolution_2);
-  // // analyseArray1D(y_solution_2, y_solution_len_2, 1e-20, y_solution_2_path);
-  // cupdlp_free(y_solution_3);
-  // cupdlp_free(x_solution_3);
+  cupdlp_float all_multiscale_time = getTimeStamp();
+  cupdlp_int coarse_degree_4 = -1;
+  cupdlp_int coarse_degree_3 = 3;
+  cupdlp_int coarse_degree_2 = 2;
+  cupdlp_int coarse_degree_1 = 1;
+  cupdlp_int coarse_degree_0 = 0;
+  cupdlp_printf("测试是否成功编译\n");
+  // 第3层级
+  void *model_3 = NULL;
+  model_3 = createModel();
+  cupdlp_int resolution_coarse_3 = resolution / pow(2, coarse_degree_3);
+  cupdlp_float *x_solution_3 = cupdlp_NULL;
+  cupdlp_int x_solution_len_3 = 2 * pow(resolution_coarse_3, 2);
+  CUPDLP_INIT(x_solution_3, x_solution_len_3);
+  cupdlp_float *y_solution_3 = cupdlp_NULL;
+  long long y_solution_len_3 = pow(resolution_coarse_3, 4);
+  CUPDLP_INIT_ZERO(y_solution_3, y_solution_len_3);
+  cupdlp_float *x_init_3 = cupdlp_NULL;
+  CUPDLP_INIT(x_init_3, x_solution_len_3);
+  cupdlp_float *y_init_3 = cupdlp_NULL;
+  CUPDLP_INIT(y_init_3, y_solution_len_3);
+  construct_and_solve_Multiscale_longlong(model_3, csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree_3, coarse_degree_4, &x_solution_3, &y_solution_3, x_init_3, y_init_3);
+  // computepPrimalFeas(x_solution_3, resolution, coarse_degree_3);
+  char y_solution_3_path[100];
+  int resolution_3 = resolution / pow(2, coarse_degree_3);
+  sprintf(y_solution_3_path, "./y_solution_%d.txt", resolution_3);
+  analyseArray1D(y_solution_3, y_solution_len_3, 1e-20, y_solution_3_path);
+  cupdlp_free(y_init_3);
+  cupdlp_free(x_init_3);
+  // 第2层级
+  void *model_2 = NULL;
+  model_2 = createModel();
+  cupdlp_int resolution_coarse_2 = resolution / pow(2, coarse_degree_2);
+  cupdlp_float *x_solution_2 = cupdlp_NULL;
+  cupdlp_int x_solution_len_2 = 2 * pow(resolution_coarse_2, 2);
+  CUPDLP_INIT(x_solution_2, x_solution_len_2);
+  cupdlp_float *y_solution_2 = cupdlp_NULL;
+  long long y_solution_len_2 = pow(resolution_coarse_2, 4);
+  CUPDLP_INIT_ZERO(y_solution_2, y_solution_len_2);
+  construct_and_solve_Multiscale_longlong(model_2, csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree_2, coarse_degree_3, &x_solution_2, &y_solution_2, x_solution_3, y_solution_3);
+  // computepPrimalFeas(x_solution_2, resolution, coarse_degree_2);
+  char y_solution_2_path[100];
+  int resolution_2 = resolution / pow(2, coarse_degree_2);
+  sprintf(y_solution_2_path, "./y_solution_%d.txt", resolution_2);
+  analyseArray1D(y_solution_2, y_solution_len_2, 1e-20, y_solution_2_path);
+  cupdlp_free(y_solution_3);
+  cupdlp_free(x_solution_3);
 
-  // // // 第1层级
-  // // void *model_1 = NULL;
-  // // model_1 = createModel();
-  // // cupdlp_int resolution_coarse_1 = resolution / pow(2, coarse_degree_1);
-  // // cupdlp_float *x_solution_1 = cupdlp_NULL;
-  // // cupdlp_int x_solution_len_1 = 2 * pow(resolution_coarse_1, 2);
-  // // CUPDLP_INIT(x_solution_1, x_solution_len_1);
-  // // cupdlp_float *y_solution_1 = cupdlp_NULL;
-  // // long long y_solution_len_1 = pow(resolution_coarse_1, 4);
-  // // CUPDLP_INIT_ZERO(y_solution_1, y_solution_len_1);
-  // // construct_and_solve_Multiscale_longlong(model_1, csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree_1, coarse_degree_2, &x_solution_1, &y_solution_1, x_solution_2, y_solution_2);
-  // // // computepPrimalFeas(x_solution_1, resolution, coarse_degree_1);
-  // // char y_solution_1_path[100];
-  // // int resolution_1 = resolution / pow(2, coarse_degree_1);
-  // // sprintf(y_solution_1_path, "./y_solution_%d.txt", resolution_1);
-  // // analyseArray1D(y_solution_1, y_solution_len_1, 1e-20, y_solution_1_path);
-  // // cupdlp_free(y_solution_2);
-  // // cupdlp_free(x_solution_2);
+  // 第1层级
+  void *model_1 = NULL;
+  model_1 = createModel();
+  cupdlp_int resolution_coarse_1 = resolution / pow(2, coarse_degree_1);
+  cupdlp_float *x_solution_1 = cupdlp_NULL;
+  cupdlp_int x_solution_len_1 = 2 * pow(resolution_coarse_1, 2);
+  CUPDLP_INIT(x_solution_1, x_solution_len_1);
+  cupdlp_float *y_solution_1 = cupdlp_NULL;
+  long long y_solution_len_1 = pow(resolution_coarse_1, 4);
+  CUPDLP_INIT_ZERO(y_solution_1, y_solution_len_1);
+  construct_and_solve_Multiscale_longlong(model_1, csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree_1, coarse_degree_2, &x_solution_1, &y_solution_1, x_solution_2, y_solution_2);
+  // computepPrimalFeas(x_solution_1, resolution, coarse_degree_1);
+  char y_solution_1_path[100];
+  int resolution_1 = resolution / pow(2, coarse_degree_1);
+  sprintf(y_solution_1_path, "./y_solution_%d.txt", resolution_1);
+  analyseArray1D(y_solution_1, y_solution_len_1, 1e-20, y_solution_1_path);
+  cupdlp_free(y_solution_2);
+  cupdlp_free(x_solution_2);
 
-  // // // 第0层级
-  // // void *model_0 = NULL;
-  // // model_0 = createModel();
-  // // cupdlp_int resolution_coarse_0 = resolution / pow(2, coarse_degree_0);
-  // // cupdlp_float *x_solution_0 = cupdlp_NULL;
-  // // cupdlp_int x_solution_len_0 = 2 * pow(resolution_coarse_0, 2);
-  // // CUPDLP_INIT(x_solution_0, x_solution_len_0);
-  // // cupdlp_printf("x_solution_0初始化成功\n");
-  // // cupdlp_float *y_solution_0 = cupdlp_NULL;
-  // // long long y_solution_len_0 = pow(resolution_coarse_0, 4);
-  // // CUPDLP_INIT_ZERO(y_solution_0, y_solution_len_0);
-  // // cupdlp_printf("y_solution_0初始化成功\n");
-  // // construct_and_solve_Multiscale_longlong(model_0, csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree_0, coarse_degree_1, &x_solution_0, &y_solution_0, x_solution_1, y_solution_1);
-  // // all_multiscale_time = getTimeStamp() - all_multiscale_time;
-  // // cupdlp_printf("picType = %s, resolution = %d, 运行结束，all_multiscale_time = %fs\n", picType, resolution, all_multiscale_time);
+  // 第0层级
+  void *model_0 = NULL;
+  model_0 = createModel();
+  cupdlp_int resolution_coarse_0 = resolution / pow(2, coarse_degree_0);
+  cupdlp_float *x_solution_0 = cupdlp_NULL;
+  cupdlp_int x_solution_len_0 = 2 * pow(resolution_coarse_0, 2);
+  CUPDLP_INIT(x_solution_0, x_solution_len_0);
+  cupdlp_printf("x_solution_0初始化成功\n");
+  cupdlp_float *y_solution_0 = cupdlp_NULL;
+  long long y_solution_len_0 = pow(resolution_coarse_0, 4);
+  CUPDLP_INIT_ZERO(y_solution_0, y_solution_len_0);
+  cupdlp_printf("y_solution_0初始化成功\n");
+  construct_and_solve_Multiscale_longlong(model_0, csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree_0, coarse_degree_1, &x_solution_0, &y_solution_0, x_solution_1, y_solution_1);
+  all_multiscale_time = getTimeStamp() - all_multiscale_time;
+  cupdlp_printf("picType = %s, resolution = %d, 运行结束，all_multiscale_time = %fs\n", picType, resolution, all_multiscale_time);
 
-  // // // computepPrimalFeas(x_solution_0, resolution, coarse_degree_0);
-  // // // analyseArray1D(y_solution_0, y_solution_len_0, 1e-20, "./y_solution.txt");
-  // // cupdlp_free(y_solution_1);
-  // // cupdlp_free(x_solution_1);
-  // // cupdlp_free(y_solution_0);
-  // // cupdlp_free(x_solution_0);
+  // computepPrimalFeas(x_solution_0, resolution, coarse_degree_0);
+  // analyseArray1D(y_solution_0, y_solution_len_0, 1e-20, "./y_solution.txt");
+  cupdlp_free(y_solution_1);
+  cupdlp_free(x_solution_1);
+  cupdlp_free(y_solution_0);
+  cupdlp_free(x_solution_0);
 #pragma endregion
 
 #pragma region 测试，外部Multiscale，内部也解多次
@@ -1326,317 +1303,3 @@ exit_cleanup:
 
   return retcode;
 }
-#pragma endregion
-#pragma region 原本的mps_clp.c
-// #include "mps_lp.h"
-// #include "wrapper_clp.h"
-// // #define CUPDLP_CPU 1
-
-// /*
-//     min cTx
-//     s.t. Aeq x = b
-//          Aineq x <= bineq
-//          ub >= x >= 0
-//          colUbIdx: index of columns with upper bound (not all columns have upper
-//    bound)
-// */
-
-// // 这个特定的main函数使用两个参数：argc和argv，它们用于处理命令行参数
-// cupdlp_retcode main(int argc, char **argv)
-// {
-// #pragma region // 加载参数，构建模型
-//   cupdlp_printf("主要文件: cuPDLP-C/interface/mps_clp.c\n");
-//   cupdlp_retcode retcode = RETCODE_OK;
-
-//   char *fname = "./example/afiro.mps.gz";
-//   char *fout = "./solution.json";
-
-//   int nCols;
-//   int nRows;
-//   int nEqs;
-//   int nCols_origin;
-//   cupdlp_bool ifSaveSol = false;
-//   cupdlp_bool ifPresolve = true;
-
-//   int nnz = 0; // non-zero elements
-//   double *rhs = NULL;
-//   double *cost = NULL;
-//   cupdlp_float *lower = NULL;
-//   cupdlp_float *upper = NULL;
-
-//   // -------------------------
-//   int *csc_beg = NULL, *csc_idx = NULL;
-//   double *csc_val = NULL;
-//   double offset =
-//       0.0;                // true objVal = sig * c'x - offset, sig = 1 (min) or -1 (max)
-//   double sign_origin = 1; // 1 (min) or -1 (max)
-//   int *constraint_new_idx = NULL;
-//   cupdlp_float *x_origin = cupdlp_NULL;
-//   cupdlp_float *y_origin = cupdlp_NULL;
-
-//   void *model = NULL;
-//   void *presolvedmodel = NULL;
-//   void *presolveinfo = NULL;
-
-//   CUPDLPscaling *scaling =
-//       (CUPDLPscaling *)cupdlp_malloc(sizeof(CUPDLPscaling)); //(CUPDLPscaling *)：这部分是一个类型转换，将 cupdlp_malloc（实际上是 malloc）返回的指针从 void* 转换为 CUPDLPscaling*。在 C 中，malloc 返回一个指向 void 的指针（void*），这意味着它是一个通用指针，可以指向任何类型。将这个通用指针转换为特定类型的指针（在这个例子中是 CUPDLPscaling*）是必需的，以便正确地通过该指针访问内存。
-
-//   // claim solvers variables
-//   // prepare pointers
-//   CUPDLP_MATRIX_FORMAT src_matrix_format = CSC;
-//   CUPDLP_MATRIX_FORMAT dst_matrix_format = CSR_CSC;
-//   CUPDLPcsc *csc_cpu = cupdlp_NULL;
-//   CUPDLPproblem *prob = cupdlp_NULL;
-
-//   // load parameters
-//   for (cupdlp_int i = 0; i < argc - 1; i++)
-//   {
-//     // if (strcmp(argv[i], "-niter") == 0) {
-//     //   niters = atof(argv[i + 1]);
-//     // } else
-
-//     // strcmp(argv[i], "-fname") == 0：使用strcmp函数string compare比较当前命令行参数argv[i]与字符串"-fname"。如果两者相等（即strcmp返回0），则执行下一行代码
-//     if (strcmp(argv[i], "-fname") == 0)
-//     {
-//       fname = argv[i + 1];
-//     }
-//     else if (strcmp(argv[i], "-out") == 0)
-//     {
-//       fout = argv[i + 1];
-//     }
-//     else if (strcmp(argv[i], "-h") == 0)
-//     {
-//       print_script_usage();
-//     }
-//     else if (strcmp(argv[i], "-savesol") == 0)
-//     {
-//       ifSaveSol = atoi(argv[i + 1]);
-//     }
-//     else if (strcmp(argv[i], "-ifPre") == 0)
-//     {
-//       ifPresolve = atoi(argv[i + 1]);
-//     }
-//   }
-//   if (strcmp(argv[argc - 1], "-h") == 0)
-//   {
-//     print_script_usage();
-//   }
-
-//   // set solver parameters
-//   cupdlp_bool ifChangeIntParam[N_INT_USER_PARAM] = {false};
-//   cupdlp_int intParam[N_INT_USER_PARAM] = {0}; // intParam数组的所有10个元素将被初始化为0
-//   cupdlp_bool ifChangeFloatParam[N_FLOAT_USER_PARAM] = {false};
-//   cupdlp_float floatParam[N_FLOAT_USER_PARAM] = {0.0};
-//   CUPDLP_CALL(getUserParam(argc, argv, ifChangeIntParam, intParam,
-//                            ifChangeFloatParam, floatParam));
-//   model = createModel(); // 创建模型
-//   loadMps(model, fname); // 从文件中加载模型
-
-//   // generateModelPrimal(model, 300, 300);
-//   void *model2solve = model;
-// #pragma endregion
-// #pragma region // presolve预处理
-//   if (ifChangeIntParam[IF_PRESOLVE])
-//   {
-//     ifPresolve = intParam[IF_PRESOLVE];
-//   }
-
-//   cupdlp_float presolve_time = getTimeStamp();
-//   if (ifPresolve)
-//   {
-//     // presolveinfo = createPresolve();
-//     // presolvedmodel = presolvedModel(presolveinfo, model);
-//     // model2solve = presolvedmodel;
-//   }
-//   presolve_time = getTimeStamp() - presolve_time;
-// #pragma endregion
-
-// #pragma region // 将.mps等文件中的线性规划模型转化为标准形式，将数据导出
-//   // CUPDLP_CALL(formulateLP(model, &cost, &nCols, &nRows, &nnz, &nEqs,
-//   // &csc_beg,
-//   //                         &csc_idx, &csc_val, &rhs, &lower, &upper,
-//   //                         &offset));
-
-//   // CUPDLP_CALL(formulateLP_new(
-//   //     model, &cost, &nCols, &nRows, &nnz, &nEqs, &csc_beg, &csc_idx,
-//   //     &csc_val, &rhs, &lower, &upper, &offset, &nCols_origin,
-//   //     &constraint_new_idx));
-//   // 这里的这一堆参数就是LP的参数，这一步的目的是将一个线性规划（Linear Programming, LP）模型转换为一个新的格式，同时CUPDLP_CALL检查是否出错
-//   CUPDLP_CALL(formulateLP_new(model2solve, &cost, &nCols, &nRows, &nnz, &nEqs,
-//                               &csc_beg, &csc_idx, &csc_val, &rhs, &lower,
-//                               &upper, &offset, &sign_origin, &nCols_origin,
-//                               &constraint_new_idx));
-
-//   // 这就是论文中处理过后的标准线性规划格式
-//   /*
-//       min cTx
-//       s.t. Aeq x = b
-//            Aineq x <= bineq
-//            ub >= x >= 0
-//            colUbIdx: index of columns with upper bound (not all columns have
-//      upper bound)
-//   */
-
-//   if (retcode != RETCODE_OK)
-//   {
-//     cupdlp_printf("Error reading MPS file\n");
-//     retcode = RETCODE_FAILED;
-//     goto exit_cleanup;
-//   }
-
-//   CUPDLP_CALL(Init_Scaling(scaling, nCols, nRows, cost, rhs)); // 初始化scaling要用到的参数
-//   cupdlp_int ifScaling = 1;
-
-//   if (ifChangeIntParam[IF_SCALING])
-//   {
-//     ifScaling = intParam[IF_SCALING];
-//   }
-
-//   if (ifChangeIntParam[IF_RUIZ_SCALING])
-//   {
-//     scaling->ifRuizScaling = intParam[IF_RUIZ_SCALING];
-//   }
-
-//   if (ifChangeIntParam[IF_L2_SCALING])
-//   {
-//     scaling->ifL2Scaling = intParam[IF_L2_SCALING];
-//   }
-
-//   if (ifChangeIntParam[IF_PC_SCALING])
-//   {
-//     scaling->ifPcScaling = intParam[IF_PC_SCALING];
-//   }
-
-//   // these two handles need to be established first
-//   CUPDLPwork *w = cupdlp_NULL;
-//   ////////////////////////////////////////////
-//   // cublasCreate(&w->cublashandle);
-//   ////////////////////////////////////////////
-//   CUPDLP_INIT_ZERO(w, 1);
-
-//   // #if !(CUPDLP_CPU): 这是一个条件编译指令，用于检查宏CUPDLP_CPU是否未定义或定义为0。如果CUPDLP_CPU未定义或为0，编译器会编译和包含这个条件编译块内的代码。
-
-// #if !(CUPDLP_CPU)
-//   cupdlp_float cuda_prepare_time = getTimeStamp();
-//   CHECK_CUSPARSE(cusparseCreate(&w->cusparsehandle));
-//   CHECK_CUBLAS(cublasCreate(&w->cublashandle));
-//   cuda_prepare_time = getTimeStamp() - cuda_prepare_time;
-// #endif
-
-//   CUPDLP_CALL(problem_create(&prob));
-
-//   // currently, only supprot that input matrix is CSC, and store both CSC and
-//   // CSR
-//   CUPDLP_CALL(csc_create(&csc_cpu));
-//   csc_cpu->nRows = nRows;
-//   csc_cpu->nCols = nCols;
-//   csc_cpu->nMatElem = nnz;
-//   csc_cpu->colMatBeg = (int *)malloc((1 + nCols) * sizeof(int));
-//   csc_cpu->colMatIdx = (int *)malloc(nnz * sizeof(int));
-//   csc_cpu->colMatElem = (double *)malloc(nnz * sizeof(double));
-//   memcpy(csc_cpu->colMatBeg, csc_beg, (nCols + 1) * sizeof(int));
-//   memcpy(csc_cpu->colMatIdx, csc_idx, nnz * sizeof(int));
-//   memcpy(csc_cpu->colMatElem, csc_val, nnz * sizeof(double));
-// #if !(CUPDLP_CPU)
-//   csc_cpu->cuda_csc = NULL;
-// #endif
-// #pragma endregion
-
-// #pragma region // scaling
-//   // 进行scaling
-//   cupdlp_float scaling_time = getTimeStamp();
-//   CUPDLP_CALL(PDHG_Scale_Data_cuda(csc_cpu, ifScaling, scaling, cost, lower,
-//                                    upper, rhs));
-//   scaling_time = getTimeStamp() - scaling_time;
-
-//   cupdlp_float alloc_matrix_time = 0.0;
-//   cupdlp_float copy_vec_time = 0.0;
-
-//   // 将之前的数据分配给prob，给数据分配内存
-//   CUPDLP_CALL(problem_alloc(prob, nRows, nCols, nEqs, cost, offset, sign_origin,
-//                             csc_cpu, src_matrix_format, dst_matrix_format, rhs,
-//                             lower, upper, &alloc_matrix_time, &copy_vec_time));
-
-//   // solve
-//   // cupdlp_printf("Enter main solve loop\n");
-
-//   w->problem = prob;
-//   w->scaling = scaling;
-//   PDHG_Alloc(w); // 给w分配内存
-//   w->timers->dScalingTime = scaling_time;
-//   w->timers->dPresolveTime = presolve_time;
-//   CUPDLP_COPY_VEC(w->rowScale, scaling->rowScale, cupdlp_float, nRows);
-//   CUPDLP_COPY_VEC(w->colScale, scaling->colScale, cupdlp_float, nCols);
-
-// #if !(CUPDLP_CPU)
-//   w->timers->AllocMem_CopyMatToDeviceTime += alloc_matrix_time;
-//   w->timers->CopyVecToDeviceTime += copy_vec_time;
-//   w->timers->CudaPrepareTime = cuda_prepare_time;
-// #endif
-// #pragma endregion
-
-// #pragma region // 进行迭代求解
-//   cupdlp_printf("--------------------------------------------------\n");
-//   cupdlp_printf("enter main solve loop\n");
-//   cupdlp_printf("--------------------------------------------------\n");
-//   // CUPDLP_CALL(LP_SolvePDHG(prob, cupdlp_NULL, cupdlp_NULL, cupdlp_NULL,
-//   // cupdlp_NULL));
-//   //   CUPDLP_CALL(LP_SolvePDHG(prob, ifChangeIntParam, intParam,
-//   //                               ifChangeFloatParam, floatParam, fout));
-
-//   CUPDLP_INIT(x_origin, nCols_origin);
-//   CUPDLP_INIT(y_origin, nRows);
-//   ////////////////////////////////////////////////////////////////////////////////////////////////
-//   cupdlp_float *x_solution, *y_solution;
-
-//   CUPDLP_CALL(LP_SolvePDHG(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, x_origin, nCols_origin, y_origin, ifSaveSol, constraint_new_idx)); // 主要的求解函数
-//   ////////////////////////////////////////////////////////////////////////////////////////////////
-
-//   // print result
-//   // TODO: implement after adding IO
-// #pragma endregion
-
-// #pragma region // 释放内存
-// exit_cleanup:
-//   deleteModel(model);
-//   if (ifPresolve)
-//   {
-//     deletePresolve(presolveinfo);
-//     deleteModel(presolvedmodel);
-//   }
-
-//   if (scaling)
-//   {
-//     scaling_clear(scaling);
-//   }
-//   if (cost != NULL)
-//     cupdlp_free(cost);
-//   if (csc_beg != NULL)
-//     cupdlp_free(csc_beg);
-//   if (csc_idx != NULL)
-//     cupdlp_free(csc_idx);
-//   if (csc_val != NULL)
-//     cupdlp_free(csc_val);
-//   if (rhs != NULL)
-//     cupdlp_free(rhs);
-//   if (lower != NULL)
-//     cupdlp_free(lower);
-//   if (upper != NULL)
-//     cupdlp_free(upper);
-//   if (constraint_new_idx != NULL)
-//     cupdlp_free(constraint_new_idx);
-//   if (x_origin != NULL)
-//     cupdlp_free(x_origin);
-//   if (y_origin != NULL)
-//     cupdlp_free(y_origin);
-//   // free memory
-//   csc_clear(csc_cpu);
-//   problem_clear(prob);
-
-//   // freealldata(Aeqp, Aeqi, Aeqx, Aineqp, Aineqi, Aineqx, colUbIdx, colUbElem,
-//   //             rhs, cost, x, s, t, sx, ss, st, y, lower, upper);
-// #pragma endregion
-
-//   return retcode;
-// }
-#pragma endregion

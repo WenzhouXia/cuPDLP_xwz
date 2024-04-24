@@ -435,7 +435,7 @@ void cupdlp_init_vector(cupdlp_float *x, const cupdlp_float val,
 }
 
 #if !(CUPDLP_CPU)
-void cudplp_compute_dualOT_inf(cupdlp_float *x_data, cupdlp_int x_len)
+void cudplp_compute_dualOT_inf(cupdlp_float *x_data, cupdlp_int x_len, double *infeasibility)
 {
   // x_len = 2 * pow(resolution_now, 2)
   // vec_len = pow(resolution_now, 2)
@@ -457,6 +457,7 @@ void cudplp_compute_dualOT_inf(cupdlp_float *x_data, cupdlp_int x_len)
   inf_time = getTimeStamp() - inf_time;
   printf("cudplp_compute_dualOT_inf\n");
   printf("h_diff_norm: %.8f, h_c_norm: %f, infeasibility%.8f, 耗时%fs\n", sqrt(*h_diff_norm), sqrt(*h_c_norm), inf, inf_time);
+  *infeasibility = inf;
 exit_cleanup:
   if (retcode != RETCODE_OK)
   {

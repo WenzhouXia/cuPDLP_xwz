@@ -3917,14 +3917,14 @@ exit_cleanup:
   return RETCODE_OK;
 }
 
-void compute_dualOT_Inf_GPU(CUPDLPwork *pdhg)
+void compute_dualOT_Inf_GPU(CUPDLPwork *pdhg, double *infeasibility)
 {
   cupdlp_bool retcode = RETCODE_OK;
   CUPDLPiterates *iterates = pdhg->iterates;
   cupdlp_float *x_data = iterates->x->data;
   cupdlp_int x_len = iterates->x->len;
 #if !(CUPDLP_CPU)
-  cudplp_compute_dualOT_inf(x_data, x_len);
+  cudplp_compute_dualOT_inf(x_data, x_len, infeasibility);
 #else
   printf("GPU is not available\n");
 #endif

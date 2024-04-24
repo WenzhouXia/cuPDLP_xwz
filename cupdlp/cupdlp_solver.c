@@ -165,9 +165,11 @@ void PDHG_Compute_Dual_Feasibility(CUPDLPwork *work, double *dualResidual,
 
 void PDTEST_printCudaDenseVecGPU(const CUPDLPvec *vec)
 {
+#if !(CUPDLP_CPU)
   // 分配CPU内存
   cupdlp_float *hostData = (cupdlp_float *)malloc(vec->len * sizeof(cupdlp_float));
   // 从GPU到CPU复制数据
+
   cudaMemcpy(hostData, vec->data, vec->len * sizeof(cupdlp_float), cudaMemcpyDeviceToHost);
   cupdlp_printf("Vector length: %d\n", vec->len);
   cupdlp_printf("Vector elements:\n");
@@ -177,9 +179,11 @@ void PDTEST_printCudaDenseVecGPU(const CUPDLPvec *vec)
   }
   // 释放CPU内存
   free(hostData);
+#endif
 }
 void PDTEST_printCudaMatGPU(CUPDLPwork *work)
 {
+#if !(CUPDLP_CPU)
   CUPDLPproblem *problem = work->problem;
   CUPDLPcsc *csc_matrix = problem->data->csc_matrix;
   cupdlp_int nMatElem = csc_matrix->nMatElem;
@@ -190,10 +194,12 @@ void PDTEST_printCudaMatGPU(CUPDLPwork *work)
   {
     cupdlp_printf("MatElem[%d]: %f\n", i, hostData[i]);
   }
+#endif
 }
 
 void PDTEST_printCudafloatGPU(cupdlp_float *data, int size)
 {
+#if !(CUPDLP_CPU)
   // 在主机内存中分配空间来存储成本向量
   cupdlp_float *hostData = (cupdlp_float *)malloc(size * sizeof(cupdlp_float));
 
@@ -210,6 +216,7 @@ void PDTEST_printCudafloatGPU(cupdlp_float *data, int size)
 
   // 释放主机内存
   free(hostData);
+#endif
 }
 void PDTEST_Compute_dDualObj(CUPDLPwork *work)
 {
@@ -2285,7 +2292,7 @@ exit_cleanup:
   return retcode;
 }
 
-cupdlp_retcode LP_SolvePDHG_Multiscale(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam, cupdlp_int *intParam, cupdlp_bool *ifChangeFloatParam, cupdlp_float *floatParam, char *fp, cupdlp_bool ifSaveSol, cupdlp_int *constraint_new_idx, cupdlp_float **x_solution, cupdlp_float **y_solution, cupdlp_float *x_init, cupdlp_float *y_init)
+cupdlp_retcode LP_SolvePDHG_Multiscale(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam, cupdlp_int *intParam, cupdlp_bool *ifChangeFloatParam, cupdlp_float *floatParam, char *fp, cupdlp_bool ifSaveSol, cupdlp_int *constraint_new_idx, cupdlp_float **x_solution, cupdlp_float **y_solution, cupdlp_float *x_init, cupdlp_float *y_init, double *infeasibility)
 {
   cupdlp_retcode retcode = RETCODE_OK;
 
@@ -2308,7 +2315,7 @@ cupdlp_retcode LP_SolvePDHG_Multiscale(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIn
   CUPDLP_INIT_ZERO(x_origin, nCols_origin);
   CUPDLP_INIT_ZERO(y_origin, nRows);
 
-  compute_dualOT_Inf_GPU(pdhg);
+  compute_dualOT_Inf_GPU(pdhg, infeasibility);
   PDHG_PostSolve(pdhg, nCols_origin, constraint_new_idx, x_origin, y_origin);
 
   *x_solution = x_origin;
@@ -2325,7 +2332,51 @@ exit_cleanup:
   return retcode;
 }
 
-cupdlp_retcode LP_SolvePDHG(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam, cupdlp_int *intParam, cupdlp_bool *ifChangeFloatParam, cupdlp_float *floatParam, char *fp, cupdlp_bool ifSaveSol, cupdlp_int *constraint_new_idx, cupdlp_int resolution, cupdlp_float **x_solution, cupdlp_float **y_solution)
+// cupdlp_retcode LP_SolvePDHG(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam, cupdlp_int *intParam, cupdlp_bool *ifChangeFloatParam, cupdlp_float *floatParam, char *fp, cupdlp_bool ifSaveSol, cupdlp_int *constraint_new_idx, cupdlp_int resolution, cupdlp_float **x_solution, cupdlp_float **y_solution)
+// {
+//   cupdlp_retcode retcode = RETCODE_OK;
+
+//   PDHG_PrintHugeCUPDHG();
+
+//   CUPDLP_CALL(PDHG_SetUserParam(pdhg, ifChangeIntParam, intParam,
+//                                 ifChangeFloatParam, floatParam));
+
+//   CUPDLP_CALL(PDHG_Solve(pdhg));
+//   cupdlp_printf("fout: %s\n", fp);
+
+//   cupdlp_int nCols_origin = 2 * pow(resolution, 2);
+//   cupdlp_int nRows = pow(resolution, 4);
+//   cupdlp_float *x_origin = cupdlp_NULL;
+//   cupdlp_float *y_origin = cupdlp_NULL;
+//   CUPDLP_INIT_ZERO(x_origin, nCols_origin);
+//   CUPDLP_INIT_ZERO(y_origin, nRows);
+
+//   PDHG_PostSolve(pdhg, nCols_origin, constraint_new_idx, x_origin, y_origin);
+
+//   *x_solution = x_origin;
+//   *y_solution = y_origin;
+//   // x_solution = &x_origin;
+//   // y_solution = &y_origin;
+//   cupdlp_printf("Begin writing!\n");
+//   writeJson(fp, pdhg, x_origin, nCols_origin, y_origin, pdhg->problem->nRows, ifSaveSol);
+
+// exit_cleanup:
+//   if (retcode != RETCODE_OK)
+//   {
+//     cupdlp_printf("Error in LP_SolvePDHG\n");
+//   }
+//   PDHG_Destroy(&pdhg);
+//   return retcode;
+// }
+
+// 主要函数，包括设置参数，求解，后处理
+cupdlp_retcode LP_SolvePDHG(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam,
+                            cupdlp_int *intParam,
+                            cupdlp_bool *ifChangeFloatParam,
+                            cupdlp_float *floatParam, char *fp,
+                            cupdlp_float *x_origin, cupdlp_int nCols_origin,
+                            cupdlp_float *y_origin, cupdlp_bool ifSaveSol,
+                            cupdlp_int *constraint_new_idx)
 {
   cupdlp_retcode retcode = RETCODE_OK;
 
@@ -2335,30 +2386,18 @@ cupdlp_retcode LP_SolvePDHG(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIntParam, cup
                                 ifChangeFloatParam, floatParam));
 
   CUPDLP_CALL(PDHG_Solve(pdhg));
-  cupdlp_printf("fout: %s\n", fp);
-
-  cupdlp_int nCols_origin = 2 * pow(resolution, 2);
-  cupdlp_int nRows = pow(resolution, 4);
-  cupdlp_float *x_origin = cupdlp_NULL;
-  cupdlp_float *y_origin = cupdlp_NULL;
-  CUPDLP_INIT_ZERO(x_origin, nCols_origin);
-  CUPDLP_INIT_ZERO(y_origin, nRows);
+#pragma region // 后处理，输出
+  // 后处理，应该是把原来的scaling之类的变回去
 
   PDHG_PostSolve(pdhg, nCols_origin, constraint_new_idx, x_origin, y_origin);
 
-  *x_solution = x_origin;
-  *y_solution = y_origin;
-  // x_solution = &x_origin;
-  // y_solution = &y_origin;
-  cupdlp_printf("Begin writing!\n");
-  writeJson(fp, pdhg, x_origin, nCols_origin, y_origin, pdhg->problem->nRows, ifSaveSol);
+  writeJson(fp, pdhg, x_origin, nCols_origin, y_origin, pdhg->problem->nRows,
+            ifSaveSol);
 
 exit_cleanup:
-  if (retcode != RETCODE_OK)
-  {
-    cupdlp_printf("Error in LP_SolvePDHG\n");
-  }
   PDHG_Destroy(&pdhg);
+#pragma endregion
+
   return retcode;
 }
 
