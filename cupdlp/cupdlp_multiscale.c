@@ -3355,7 +3355,7 @@ void directly_construct_and_solve_Multiscale_longlong(const char *csvpath_1, con
         long long *keep_fine_redundancy_len = cupdlp_NULL;
         CUPDLP_INIT(keep_fine_redundancy_len, 1);
         double count_check_time = getTimeStamp();
-        countZero_and_checkConstraint_Keep_redundancy_Wrapper(&keep_fine_redundancy, keep_fine_redundancy_len, y_solution_last, y_solution_last_len, x_init, resolution_now, resolution_last, 1e-20, 0.0);
+        countZero_and_checkConstraint_Keep_redundancy_Wrapper(&keep_fine_redundancy, keep_fine_redundancy_len, y_solution_last, y_solution_last_len, x_init, resolution_now, resolution_last, 1e-20);
         count_check_time = getTimeStamp() - count_check_time;
         cupdlp_printf("countZero_and_checkConstraint_Keep_redundancy_Wrapper耗时：%.3f\n", count_check_time);
         // qsort
@@ -5400,10 +5400,10 @@ void MultiScaleOT_cuPDLP(const char *csvpath_1, const char *csvpath_2, int resol
         }
         int resolution_now = resolution / pow(2, coarse_degree);
         int x_len = 2 * pow(resolution_now, 2);
-        int y_len = pow(resolution_now, 4);
-
+        long long y_len = pow(resolution_now, 4);
         cupdlp_float *x_solution_now = cupdlp_NULL;
         cupdlp_float *y_solution_now = cupdlp_NULL;
+
         CUPDLP_INIT_ZERO(x_solution_now, x_len);
         CUPDLP_INIT_ZERO(y_solution_now, y_len);
         cupdlp_float *x_init = cupdlp_NULL;
@@ -5423,7 +5423,7 @@ void MultiScaleOT_cuPDLP(const char *csvpath_1, const char *csvpath_2, int resol
         }
         double *infeasibility = cupdlp_NULL;
         CUPDLP_INIT(infeasibility, 1);
-        int inner_iter_max = 2;
+        int inner_iter_max = 0;
         if (coarse_degree == 0)
         {
             inner_iter_max = 10;
@@ -5433,21 +5433,19 @@ void MultiScaleOT_cuPDLP(const char *csvpath_1, const char *csvpath_2, int resol
         {
             directly_construct_and_solve_Multiscale_longlong(csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree, coarse_degree_last, &x_solution_now, &y_solution_now, x_init, y_init, infeasibility);
             printf("num_scale_idx: %d, inner_iter: %d, infeasibility: %.3e\n", num_scale_idx, inner_iter_idx, *infeasibility);
-            printf("-------------------------------------\n");
-            printf("-------------------------------------\n");
             if (*infeasibility <= inf_thr[num_scale_idx])
             {
-                printf("infeasibility < inf_thr, 进入下一层级\n");
+                printf("infeasibility < inf_thr, 进入下一层级\n=====================================\n");
                 break;
             }
             else if (inner_iter_idx == inner_iter_max)
             {
-                printf("inner_iter_idx == inner_iter_max, 进入下一层级\n");
+                printf("inner_iter_idx == inner_iter_max, 进入下一层级\n=====================================\n");
                 break;
             }
             else
             {
-                printf("infeasibility > inf_thr, 继续迭代\n")
+                printf("infeasibility > inf_thr, 继续迭代\n=====================================\n");
             }
             // 释放内存
             free(x_init);
@@ -5457,7 +5455,9 @@ void MultiScaleOT_cuPDLP(const char *csvpath_1, const char *csvpath_2, int resol
             y_init = y_solution_now;
             // 给solution分配新的内存
             CUPDLP_INIT_ZERO(x_solution_now, x_len);
+            printf("num_scale_idx: %d, inner_iter_idx: %d, x_solution_now分配成功\n", num_scale_idx, inner_iter_idx);
             CUPDLP_INIT_ZERO(y_solution_now, y_len);
+            printf("num_scale_idx: %d, inner_iter_idx: %d, y_solution_now分配成功\n", num_scale_idx, inner_iter_idx);
             coarse_degree_last = coarse_degree;
             inner_iter_idx += 1;
         }
@@ -5470,13 +5470,10 @@ void MultiScaleOT_cuPDLP(const char *csvpath_1, const char *csvpath_2, int resol
         // 让solution_now=NULL
         x_solution_now = cupdlp_NULL;
         y_solution_now = cupdlp_NULL;
+        printf("=====================================\n=====================================\n");
     }
     cupdlp_free(x_solution_last);
     cupdlp_free(y_solution_last);
-    printf("-------------------------------------\n");
-    printf("-------------------------------------\n");
-    printf("-------------------------------------\n");
-    printf("-------------------------------------\n");
 
 exit_cleanup:
 {

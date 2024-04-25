@@ -746,6 +746,7 @@ cupdlp_retcode main(int argc, char **argv)
 #pragma endregion
 
 #pragma region MultiScaleOT_cuPDLP
+  double all_multiscale_time = getTimeStamp();
   int num_scale = 3;
   double *inf_thrs = cupdlp_NULL;
   CUPDLP_INIT(inf_thrs, num_scale + 1);
@@ -756,6 +757,8 @@ cupdlp_retcode main(int argc, char **argv)
   }
   MultiScaleOT_cuPDLP(csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, num_scale, inf_thrs);
   cupdlp_free(inf_thrs);
+  all_multiscale_time = getTimeStamp() - all_multiscale_time;
+  cupdlp_printf("picType = %s, resolution = %d, 运行结束，all_multiscale_time = %fs\n", picType, resolution, all_multiscale_time);
 #pragma endregion
 
 #pragma region 自动Multiscale with Recover
