@@ -1806,7 +1806,7 @@ printf("countZero_Keep_Wrapper omp parallel开始\n");
   printf("countZero_Keep_Wrapper结束\n");
 }
 
-extern "C" void countZero_and_checkConstraint_Keep_redundancy_Wrapper(long long **keep_fine_redundancy, long long *keep_fine_redundancy_len, double *y_solution_last, int y_solution_last_len, double *x_init, int resolution_now, int resolution_last,double thr, double violate_degree){
+extern "C" void countZero_and_checkConstraint_Keep_redundancy_Wrapper(long long **keep_fine_redundancy, long long *keep_fine_redundancy_len, double *y_solution_last, long long y_solution_last_len, double *x_init, int resolution_now, int resolution_last,double thr, double violate_degree){
   std::vector<long long> keep_nonzero_constraint_vec;
   int scale = resolution_now / resolution_last;
   long long pow_resolution_now_4 = pow(resolution_now, 4);
@@ -1814,45 +1814,7 @@ extern "C" void countZero_and_checkConstraint_Keep_redundancy_Wrapper(long long 
   long long pow_resolution_last_2 = pow(resolution_last, 2);
   double scale_constant = 2.0 * pow_resolution_now_2;
   *keep_fine_redundancy_len = 0;
-  // for (long long i1 = 0; i1 < resolution_last; i1++)
-  // {
-  //   for (long long i2 = 0; i2 < resolution_last; i2++){
-  //     for (long long j1 = 0; j1 < resolution_last; j1++){
-  //       for(long long j2 = 0; j2 < resolution_last; j2++){
-  //         for(long long k1 = 0; k1 < scale; k1++){
-  //           for (long long k2 = 0; k2 < scale; k2++){
-  //             for (long long l1 = 0; l1 < scale; l1++){
-  //               for (long long l2 = 0; l2 < scale; l2++){
-  //                 long long idx_coarse = (i1 * resolution_last + j1) * pow_resolution_last_2 + i2 * resolution_last + j2;
-  //                 long long idx_i1 = i1 * scale + k1;
-  //                 long long idx_i2 = i2 * scale + k2;
-  //                 long long idx_j1 = j1 * scale + l1;
-  //                 long long idx_j2 = j2 * scale + l2;
-  //                 long long idx_1 = idx_i1 * resolution_now + idx_j1;
-  //                 long long idx_2 = idx_i2 * resolution_now + idx_j2;
-  //                 if (fabs(y_solution_last[idx_coarse]) >= thr)
-  //                 {
-  //                   long long idx_fine = idx_1 * pow_resolution_now_2 + idx_2;
-  //                   keep_nonzero_constraint_vec.push_back(idx_fine);
-  //                   *keep_fine_redundancy_len += 1;
-  //                 }
-  //                 else{
-  //                   if(x_init[idx_1] + x_init[pow_resolution_now_2 + idx_2] > (1+violate_degree) * ((idx_i1 - idx_i2) * (idx_i1 - idx_i2) + (idx_j1 - idx_j2) * (idx_j1 - idx_j2) + 1e-8) / scale_constant){
-  //                     long long idx_fine = idx_1 * pow_resolution_now_2 + idx_2;
-  //                     keep_nonzero_constraint_vec.push_back(idx_fine);
-  //                     *keep_fine_redundancy_len += 1;
-  //                   }
-  //                 }
-  //                 }
-  //               }
-  //             }
-  //           }
-  //         }
-  //       }
-  //     }
-  // }
-  // 分配内存
-  
+
   #pragma omp parallel
   {
     std::vector<long long> keep_nonzero_constraint_vec_local;

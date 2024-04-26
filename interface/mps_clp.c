@@ -747,7 +747,7 @@ cupdlp_retcode main(int argc, char **argv)
 
 #pragma region MultiScaleOT_cuPDLP
   double all_multiscale_time = getTimeStamp();
-  int num_scale = 3;
+  int num_scale = 2;
   double *inf_thrs = cupdlp_NULL;
   CUPDLP_INIT(inf_thrs, num_scale + 1);
   inf_thrs[0] = 1e-6;

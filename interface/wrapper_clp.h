@@ -83,7 +83,7 @@ extern "C"
   void Construct_dualOT_Matrix(void *matrix, int resolution);
   void countZero_and_CheckConstraint_Keep_Wrapper(long long **keep, long long *keep_nnz, double *y, double *x, int resolution_y, double thr, double violate_degree);
   void countZero_Keep_Wrapper(long long **keep, long long *keep_nnz, double *y, int resolution_y, double thr, double violate_degree);
-  void countZero_and_checkConstraint_Keep_redundancy_Wrapper(long long **keep_fine_redundancy, long long *keep_fine_redundancy_len, double *y_solution_last, int y_solution_last_len, double *x_init, int resolution_now, int resolution_last, double thr, double violate_degree);
+  void countZero_and_checkConstraint_Keep_redundancy_Wrapper(long long **keep_fine_redundancy, long long *keep_fine_redundancy_len, double *y_solution_last, long long y_solution_last_len, double *x_init, int resolution_now, int resolution_last, double thr, double violate_degree);
 #ifdef __cplusplus
 }
 #endif
