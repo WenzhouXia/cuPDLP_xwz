@@ -2758,6 +2758,25 @@ void saveArray1D_to_csv(cupdlp_float *a, int a_len, const char *filename)
 
     fclose(file);
 }
+#include <stdio.h> // 引入标准输入输出头文件
+
+void savelonglong1D_to_csv(long long *a, long long a_len, const char *filename)
+{
+    FILE *file = fopen(filename, "w");
+    if (file == NULL)
+    {
+        printf("无法创建文件\n");
+        return;
+    }
+
+    for (int i = 0; i < a_len; i++)
+    {
+        fprintf(file, "%lld\n", a[i]); // 使用 %lld 来格式化长整型
+    }
+    printf("保存完毕, 文件名：%s\n", filename); // 更正函数名
+
+    fclose(file);
+}
 
 void analyseArray1D(cupdlp_float *a, long long a_len, cupdlp_float thr, const char *filename)
 {
@@ -3358,7 +3377,7 @@ void directly_construct_and_solve_Multiscale_longlong(const char *csvpath_1, con
         remove_redundancy_time = getTimeStamp() - remove_redundancy_time;
         char *save_filename[100];
         sprintf(save_filename, "./keep_fine_redundancy_%d_%d.txt", coarse_degree, inner_iter_idx);
-        saveArray1D_to_csv(keep_fine_redundancy, keep_len, save_filename);
+        savelonglong1D_to_csv(keep_fine_redundancy, keep_len, save_filename);
         cupdlp_printf("remove_redundancy耗时：%.3f\n", remove_redundancy_time);
         // keep to keep_coord
         double keep2keep_coord_time = getTimeStamp();
@@ -3580,7 +3599,7 @@ exit_cleanup:
 }
 }
 
-void directly_construct_and_solve_Multiscale_addSpt_longlong(const char *csvpath_1, const char *csvpath_2, cupdlp_int resolution, cupdlp_bool *ifChangeIntParam, cupdlp_bool *ifChangeFloatParam, cupdlp_int *intParam, cupdlp_float *floatParam, cupdlp_bool ifSaveSol, cupdlp_int coarse_degree, cupdlp_int coarse_degree_last, cupdlp_float **x_solution, cupdlp_float **y_solution, cupdlp_float *x_solution_last, cupdlp_float *y_solution_last, double *infeasibility, long long **keep_add)
+void directly_construct_and_solve_Multiscale_addSpt_longlong(const char *csvpath_1, const char *csvpath_2, cupdlp_int resolution, cupdlp_bool *ifChangeIntParam, cupdlp_bool *ifChangeFloatParam, cupdlp_int *intParam, cupdlp_float *floatParam, cupdlp_bool ifSaveSol, cupdlp_int coarse_degree, cupdlp_int coarse_degree_last, cupdlp_float **x_solution, cupdlp_float **y_solution, cupdlp_float *x_solution_last, cupdlp_float *y_solution_last, double *infeasibility, int inner_iter_idx, long long **keep_add, long long *keep_add_len)
 {
     cupdlp_printf("directly_construct_and_solve_Multiscale_longlong\n");
     cupdlp_bool retcode = RETCODE_OK;
@@ -3604,13 +3623,13 @@ void directly_construct_and_solve_Multiscale_addSpt_longlong(const char *csvpath
 
         // countZero and checkConstraint keep
         long long *keep_fine_redundancy = cupdlp_NULL;
-        long long *keep_fine_redundancy_len = cupdlp_NULL;
+        long long *keep_fine_redundancy_len = cupdlp_NULL; // keep_fine_redundancy未去重前的长度
         CUPDLP_INIT(keep_fine_redundancy_len, 1);
         double count_check_time = getTimeStamp();
-        double violate_degree = 0.001;
+        double violate_degree = 0.0;
         if (coarse_degree == 0)
         {
-            violate_degree = 0.001;
+            violate_degree = 0.0;
         }
         printf("coarse_degree: %d, violate_degree: %.5f\n", coarse_degree, violate_degree);
 
@@ -3624,14 +3643,47 @@ void directly_construct_and_solve_Multiscale_addSpt_longlong(const char *csvpath
         cupdlp_printf("qsort耗时：%.3f\n", qsort_time);
         // remove redundancy
         double remove_redundancy_time = getTimeStamp();
-        long long keep_len = remove_redundancy_longlong(keep_fine_redundancy, keep_fine_redundancy_len);
+        long long keep_len = remove_redundancy_longlong(keep_fine_redundancy, keep_fine_redundancy_len); // keep_len是keep_fine_redundancy去重后的长度
+        printf("keep_fine_redundancy去重后的长度为：%lld\n", keep_len);
         remove_redundancy_time = getTimeStamp() - remove_redundancy_time;
         cupdlp_printf("remove_redundancy耗时：%.3f\n", remove_redundancy_time);
+        if (inner_iter_idx == 1)
+        {
+            *keep_add_len = keep_len;
+            printf("coarse_degree = %d, inner_iter_idx = %d, keep_add_len: %lld\n", coarse_degree, inner_iter_idx, *keep_add_len);
+            CUPDLP_INIT(*keep_add, keep_len);
+            for (long long i = 0; i < keep_len; i++)
+            {
+                (*keep_add)[i] = keep_fine_redundancy[i];
+            }
+        }
+        else if (inner_iter_idx > 1)
+        {
+            long long *keep_temp = realloc(*keep_add, (*keep_add_len + keep_len) * sizeof(long long));
+            *keep_add = keep_temp;
+            memcpy(*keep_add + *keep_add_len, keep_fine_redundancy, keep_len * sizeof(long long));
+            *keep_add_len += keep_len;
+            qsort(*keep_add, *keep_add_len, sizeof(long long), compare_longlong);
+            long long keep_add_len_temp = remove_redundancy_longlong(*keep_add, keep_add_len);
+            *keep_add_len = keep_add_len_temp;
+            printf("coarse_degree = %d, inner_iter_idx = %d, keep_add_len: %lld\n", coarse_degree, inner_iter_idx, *keep_add_len);
+        }
+
         // keep to keep_coord
+        cupdlp_printf("keep to keep_coord开始\n");
         double keep2keep_coord_time = getTimeStamp();
         Coord *keep_coord = cupdlp_NULL;
-        CUPDLP_INIT(keep_coord, keep_len);
-        keep2keep_coord(keep_coord, keep_fine_redundancy, keep_len, resolution_now, resolution_last);
+
+        if (inner_iter_idx == 0)
+        {
+            CUPDLP_INIT(keep_coord, keep_len);
+            keep2keep_coord(keep_coord, keep_fine_redundancy, keep_len, resolution_now, resolution_last);
+        }
+        else
+        {
+            CUPDLP_INIT(keep_coord, *keep_add_len);
+            keep2keep_coord(keep_coord, *keep_add, *keep_add_len, resolution_now, resolution_last);
+        }
         keep2keep_coord_time = getTimeStamp() - keep2keep_coord_time;
         cupdlp_printf("keep2keep_coord耗时：%.3f\n", keep2keep_coord_time);
 
@@ -3760,49 +3812,6 @@ void directly_construct_and_solve_Multiscale_addSpt_longlong(const char *csvpath
         int pow_resolution_now_2 = pow(resolution_now, 2);
         *keep_nnz = pow(resolution_now, 4);
         printf("resolution: %d, resolution_now: %d, *keep_nnz: %lld\n", resolution, resolution_now, *keep_nnz);
-        // CUPDLP_INIT(keep_idx, *keep_nnz);
-        // CUPDLP_INIT(keep_a_idx, *keep_nnz);
-        // CUPDLP_INIT(keep_b_idx, *keep_nnz);
-        // CUPDLP_INIT(keep_ai_idx, *keep_nnz);
-        // CUPDLP_INIT(keep_aj_idx, *keep_nnz);
-        // CUPDLP_INIT(keep_bi_idx, *keep_nnz);
-        // CUPDLP_INIT(keep_bj_idx, *keep_nnz);
-        // for (long long i = 0; i < *keep_nnz; i++)
-        // {
-        //     keep_idx[i] = i;
-        // }
-        // for (int i = 0; i < *keep_nnz; i++)
-        // {
-        //     keep_a_idx[i] = keep_idx[i] / pow_resolution_2;
-        // }
-        // for (int i = 0; i < *keep_nnz; i++)
-        // {
-        //     keep_b_idx[i] = keep_idx[i] % pow_resolution_2;
-        // }
-        // for (int i = 0; i < *keep_nnz; i++)
-        // {
-        //     keep_ai_idx[i] = keep_a_idx[i] / resolution;
-        // }
-        // for (int i = 0; i < *keep_nnz; i++)
-        // {
-        //     keep_aj_idx[i] = keep_a_idx[i] % resolution;
-        // }
-        // for (int i = 0; i < *keep_nnz; i++)
-        // {
-        //     keep_bi_idx[i] = keep_b_idx[i] / resolution;
-        // }
-        // for (int i = 0; i < *keep_nnz; i++)
-        // {
-        //     keep_bj_idx[i] = keep_b_idx[i] % resolution;
-        // }
-        // printf("dualOT_formulateLP_directly begin!\n");
-        // dualOT_formulateLP_directly(w, a, b, resolution, coarse_degree, keep_idx, keep_nnz, keep_a_idx, keep_b_idx, keep_ai_idx, keep_aj_idx, keep_bi_idx, keep_bi_idx, ifChangeIntParam, intParam, &constraint_new_idx);
-        // generate_coarse_dualOT_model_from_csv(model, csvpath_1, csvpath_2, resolution, coarse_degree);
-        // cupdlp_int *constraint_new_idx = NULL;
-        // printf("开始构建CUPDLPwork...\n");
-        // createCUPDLPwork_clear(w, model, ifChangeIntParam, intParam, &constraint_new_idx);
-        // construct_time = getTimeStamp() - construct_time;
-        // cupdlp_printf("构建CUPDLPwork耗时：%.3f\n", construct_time);
         // 直接用初始值
         Coord *keep_coord = cupdlp_NULL;
         CUPDLP_INIT(keep_coord, *keep_nnz);
@@ -5343,16 +5352,27 @@ int compare_longlong(long long *a, long long *b)
 }
 long long remove_redundancy_longlong(long long *keep_redundancy, long long *keep_redundancy_len)
 {
+    cupdlp_bool retcode = RETCODE_OK;
     long long keep_len = 1;
     for (long long i = 1; i < *keep_redundancy_len; i++)
     {
         if (keep_redundancy[i] != keep_redundancy[i - 1])
         {
             keep_redundancy[keep_len] = keep_redundancy[i];
+            keep_len += 1;
         }
-        keep_len += 1;
     }
-    printf("remove_redundancy_longlong, keep_len: %lld\n", keep_len);
+    // long long *keep_temp = cupdlp_NULL;
+    // CUPDLP_INIT(keep_temp, keep_len);
+    // memcpy(keep_temp, keep_redundancy, keep_len * sizeof(long long));
+    // printf("remove_redundancy_longlong, keep_len: %lld\n", keep_len);
+exit_cleanup:
+{
+    if (retcode != RETCODE_OK)
+    {
+        cupdlp_printf("remove_redundancy_longlong, exit_cleanup\n");
+    }
+}
     return keep_len;
 }
 
@@ -5682,15 +5702,17 @@ void MultiScaleOT_cuPDLP(const char *csvpath_1, const char *csvpath_2, int resol
         }
         double *infeasibility = cupdlp_NULL;
         CUPDLP_INIT(infeasibility, 1);
-        int inner_iter_max = 1;
+        int inner_iter_max = 20;
         if (coarse_degree == 0)
         {
-            inner_iter_max = 10;
+            inner_iter_max = 20;
         }
         int inner_iter_idx = 0;
+        long long *keep_add = cupdlp_NULL;
+        long long keep_add_len = 0;
         while (1)
         {
-            directly_construct_and_solve_Multiscale_longlong(csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree, coarse_degree_last, &x_solution_now, &y_solution_now, x_init, y_init, infeasibility, inner_iter_idx);
+            directly_construct_and_solve_Multiscale_addSpt_longlong(csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree, coarse_degree_last, &x_solution_now, &y_solution_now, x_init, y_init, infeasibility, inner_iter_idx, &keep_add, &keep_add_len);
             printf("num_scale_idx: %d, inner_iter: %d, infeasibility: %.3e\n", num_scale_idx, inner_iter_idx, *infeasibility);
             if (*infeasibility <= inf_thr[num_scale_idx])
             {
