@@ -327,3 +327,63 @@ extern "C" void compute_dualOT_inf_cuda(cupdlp_float *h_c_norm, cupdlp_float *h_
     cudaFree(d_c_norm);
     cudaFree(d_diff_norm);
 }
+
+extern "C" void countZero_and_checkConstraint_cuda(long long **h_keep_fine_redundancy, long long *keep_fine_redundancy_len, const double *h_x, const double *h_y, long long x_len, long long y_len, int resolution_now, int resolution_last, double thr, double violate_degree){
+  int grid_size = 0;
+  if (resolution_last < 16)
+  {
+    grid_size = 1;
+  }
+  else
+  {
+    grid_size = resolution_last / 16;
+  }
+  int block_size = 16;
+  int blocks_x = grid_size;
+  int blocks_y = grid_size;
+  dim3 blocks(blocks_x, blocks_y);
+  dim3 threads(block_size, block_size);
+  int num_threads = block_size * block_size * grid_size * grid_size;
+  // printf("num_threads: %d\n", num_threads);
+  
+  long long *keep_local_len_array = NULL;
+  cudaMalloc(&keep_local_len_array, num_threads * sizeof(long long));
+  double *d_x = NULL;
+  double *d_y = NULL;
+  cudaMalloc(&d_x, x_len * sizeof(double));
+  cudaMalloc(&d_y, y_len * sizeof(double));
+  cudaMemcpy(d_x, h_x, x_len * sizeof(double), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_y, h_y, y_len * sizeof(double), cudaMemcpyHostToDevice);
+  // printf("countZero_and_ckeckConstraint_before_cudaMalloc_kernal开始\n");
+  countZero_and_ckeckConstraint_before_cudaMalloc_kernal<<<blocks, threads>>>(keep_local_len_array, d_x, d_y, resolution_now, resolution_last, thr, violate_degree);
+  // printf("countZero_and_ckeckConstraint_before_cudaMalloc_kernal结束\n");
+  long long *h_keep_local_len_array = (long long *)malloc(num_threads * sizeof(long long));
+  cudaMemcpy(h_keep_local_len_array, keep_local_len_array, num_threads * sizeof(long long), cudaMemcpyDeviceToHost);
+  long long *h_keep_len_UpToNow = (long long *)malloc(num_threads * sizeof(long long));
+  h_keep_len_UpToNow[0] = 0;
+  for (int i = 1; i < num_threads; i++){
+    h_keep_len_UpToNow[i] = h_keep_len_UpToNow[i - 1] + h_keep_local_len_array[i - 1];
+  }
+  long long *keep_len_UpToNow = NULL;
+  cudaMalloc(&keep_len_UpToNow, num_threads * sizeof(long long));
+  cudaMemcpy(keep_len_UpToNow, h_keep_len_UpToNow, num_threads * sizeof(long long), cudaMemcpyHostToDevice);
+  // printf("keep_len_UpToNow计算完毕\n");
+  *keep_fine_redundancy_len = h_keep_len_UpToNow[num_threads - 1] + h_keep_local_len_array[num_threads - 1];
+  long long *d_keep_fine_reduandancy = NULL;
+  cudaMalloc(&d_keep_fine_reduandancy, *keep_fine_redundancy_len * sizeof(long long));
+  // printf("countZero_and_ckeckConstraint_kernal开始\n");
+  countZero_and_checkConstraint_kernal<<<blocks, threads>>>(d_keep_fine_reduandancy, keep_len_UpToNow, d_x, d_y, resolution_now, resolution_last, thr, violate_degree);
+
+  *h_keep_fine_redundancy = (long long *)malloc(*keep_fine_redundancy_len * sizeof(long long));
+  cudaMemcpy(*h_keep_fine_redundancy, d_keep_fine_reduandancy, *keep_fine_redundancy_len * sizeof(long long), cudaMemcpyDeviceToHost);
+
+  cudaFree(keep_local_len_array);
+  cudaFree(keep_len_UpToNow);
+  cudaFree(d_keep_fine_reduandancy);
+  cudaFree(d_x);
+  cudaFree(d_y);
+  free(h_keep_local_len_array);
+  free(h_keep_len_UpToNow);
+
+  
+}

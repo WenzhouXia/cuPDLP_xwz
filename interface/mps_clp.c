@@ -84,7 +84,7 @@ cupdlp_retcode main(int argc, char **argv)
   }
 #pragma endregion
 
-  char basePath[] = "/home/xiawenzhou/Documents/XiaWenzhou/OptimalTransport/OT_instances/DOTmark/Data";
+  char basePath[] = "../example/Data";
   char *type = picType;
   int resolution = resolution_input;
   int fileNumber_1 = 1001;
@@ -747,15 +747,14 @@ cupdlp_retcode main(int argc, char **argv)
 
 #pragma region MultiScaleOT_cuPDLP
   double all_multiscale_time = getTimeStamp();
-  int num_scale = 2;
+  int num_scale = 1;
   double *inf_thrs = cupdlp_NULL;
   CUPDLP_INIT(inf_thrs, num_scale + 1);
   inf_thrs[0] = 1e-6;
   for (int i = 1; i <= num_scale; i++)
   {
-    inf_thrs[i] = 1e-8;
+    inf_thrs[i] = 1e-6;
   }
-  inf_thrs[2] = 1e-6;
   MultiScaleOT_cuPDLP(csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, num_scale, inf_thrs);
   cupdlp_free(inf_thrs);
   all_multiscale_time = getTimeStamp() - all_multiscale_time;

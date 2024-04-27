@@ -189,6 +189,6 @@ __global__ void naive_sub_kernal(cupdlp_float *z, const cupdlp_float *x,
 
 __device__ double atomicAddDouble(double *address, double val);
 __global__ void compute_dualOT_inf_kernal(const double *x, int vec_len, int n_coarse, double scale_const, double *d_c_norm, double *d_diff_norm);
-// __global__ void compute_dualOT_inf_kernal(const double *x_solution, int vec_len, int n_coarse, double scale_const, double *block_c_norm, double *block_diff_norm);
-// __global__ void reduceFinal_kernal(double *block_results, double *final_result, int num_blocks);
+__global__ void countZero_and_ckeckConstraint_before_cudaMalloc_kernal(long long *keep_local_len_array, const double *x, const double *y, int resolution_now, int resolution_last, double thr, double violate_degree);
+__global__ void countZero_and_checkConstraint_kernal(long long *keep_fine_redundancy, long long *keep_len_UpToNow, const double *x, const double *y, int resolution_now, int resolution_last, double thr, double violate_degree);
 #endif

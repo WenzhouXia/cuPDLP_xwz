@@ -223,87 +223,117 @@ __global__ void compute_dualOT_inf_kernal(const double *x, int vec_len, int n_co
   }
   atomicAddDouble(d_c_norm, c_norm);
   atomicAddDouble(d_diff_norm, diff_norm);
-  // int i = blockIdx.x * blockDim.x + threadIdx.x;
-  // int j = blockIdx.y * blockDim.y + threadIdx.y;
-
-  // if (i < vec_len && j < vec_len)
-  // {
-  //   int idx1 = i / n_coarse;
-  //   int idx2 = i % n_coarse;
-  //   int idx3 = j / n_coarse;
-  //   int idx4 = j % n_coarse;
-
-  //   double c = ((idx1 - idx3) * (idx1 - idx3) + (idx2 - idx4) * (idx2 - idx4)) / scale_const;
-  //   double temp = (x[i] + x[vec_len + j]) - c;
-  //   temp = temp > 0 ? temp : 0; // 使用条件运算符替代 fmax
-
-  //   atomicAddDouble(d_c_norm, c * c);
-  //   atomicAddDouble(d_diff_norm, temp * temp);
-  //   }
 }
 
-// __global__ void compute_dualOT_inf_kernal(const double *x_solution, int vec_len, int n_coarse, double scale_const, double *block_c_norm, double *block_diff_norm) {
-//     extern __shared__ double shared_data[];
-//     int i = blockIdx.x * blockDim.x + threadIdx.x;
-//     int j = blockIdx.y * blockDim.y + threadIdx.y;
-//     int local_tid = threadIdx.x + blockDim.x * threadIdx.y;
-//     int block_tid = threadIdx.x;
 
-//     // Initialize shared memory
-//     shared_data[local_tid] = 0;
-//     shared_data[blockDim.x * blockDim.y + local_tid] = 0;
-//     __syncthreads();
+__global__ void countZero_and_ckeckConstraint_before_cudaMalloc_kernal(long long *keep_local_len_array,  const double *x, const double *y, int resolution_now, int resolution_last, double thr, double violate_degree){
+  // 总共有gridDim.x * gridDim.y个block，每个block有blockDim.x * blockDim.y个线程
+  // 希望这些线程处理resolution_last^4个循环，那么每个线程就要处理resolution_last^4/(gridDim.x * gridDim.y * blockDim.x * blockDim.y)个循环
+  // 记int x_num = (resolution_last * resolution_last) / (gridDim.x * blockDim.x), y_num同理定义
+  //  x方向上的第thread_idx_x = blockIdx.x * blockDim.x + threadIdx.x个线程，y方向上的第blockIdx.y * blockDim.y + threadIdx.y个线程，负责计算的数据索引为：
+  // i = thread_idx_x * x_num; i < (thread_idx_x + 1) * x_num
+  // j同理
+  int vec_len_last = resolution_last * resolution_last;
+  int thread_idx_x = blockIdx.x * blockDim.x + threadIdx.x;
+  int thread_idx_y = blockIdx.y * blockDim.y + threadIdx.y;
+  int x_num = vec_len_last / (gridDim.x * blockDim.x);
+  int y_num = vec_len_last / (gridDim.y * blockDim.y);
+  int scale = resolution_now / resolution_last;
+  long long pow_resolution_last_2 = resolution_last * resolution_last;
+  long long pow_resolution_now_2 = resolution_now * resolution_now;
+  double scale_constant = 2.0 * pow_resolution_now_2;
+  long long keep_local_len = 0;
+  // i和j的取值范围是[0, resolution_last * resolution_last)
+  for (int i = thread_idx_x * x_num; i < (thread_idx_x + 1) * x_num; i++){
+    for (int j = thread_idx_y * y_num; j < (thread_idx_y + 1) * y_num; j++){
+      for (int k1 = 0; k1 < scale; k1++){
+        for (int k2 = 0; k2 < scale; k2++){
+          for (int l1 = 0; l1 < scale; l1++){
+            for (int l2 = 0; l2 < scale; l2++){
+              long long i1 = i / resolution_last;
+              long long i2 = i % resolution_last;
+              long long j1 = j / resolution_last;
+              long long j2 = j % resolution_last;
+              long long idx_coarse = (i1 * resolution_last + j1) * pow_resolution_last_2 + (i2 * resolution_last + j2);
+              long long idx_i1 = i1 * scale + k1;
+              long long idx_i2 = i2 * scale + k2;
+              long long idx_j1 = j1 * scale + l1;
+              long long idx_j2 = j2 * scale + l2;
+              long long idx_1 = idx_i1 * resolution_now + idx_j1;
+              long long idx_2 = idx_i2 * resolution_now + idx_j2;
+              if (fabs(y[idx_coarse]) >=thr){
+                keep_local_len++;
+              }
+              else{
+                if (x[idx_1] + x[pow_resolution_now_2 + idx_2] > (1 + violate_degree) * ((idx_i1 - idx_i2) * (idx_i1 - idx_i2) + (idx_j1 - idx_j2) * (idx_j1 - idx_j2)) / scale_constant){
+                  keep_local_len++;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  int thread_idx = thread_idx_x * gridDim.y * blockDim.y + thread_idx_y;
+  keep_local_len_array[thread_idx] = keep_local_len;
+}
 
-//     if (i < vec_len && j < vec_len) {
-//         int idx1 = i / n_coarse;
-//         int idx2 = i % n_coarse;
-//         int idx3 = j / n_coarse;
-//         int idx4 = j % n_coarse;
-        
-//         double c = ((idx1 - idx3) * (idx1 - idx3) + (idx2 - idx4) * (idx2 - idx4)) / scale_const;
-//         // double temp = fmax((x_solution[i] + x_solution[vec_len + j]) - c, 0);
-//         double temp = (x_solution[i] + x_solution[vec_len + j]) - c;
-//         temp = temp > 0 ? temp : 0;  // 使用条件运算符替代 fmax
-//         // Local reduction in shared memory
-//         shared_data[local_tid] += c * c;
-//         shared_data[blockDim.x * blockDim.y + local_tid] += temp * temp;
-//     }
-//     __syncthreads();
 
-//     // Reduction within the block
-//     int num_threads = blockDim.x * blockDim.y;
-//     while (num_threads > 1) {
-//         int half_point = (num_threads + 1) / 2;
-//         if (local_tid < half_point && (local_tid + half_point) < num_threads) {
-//             shared_data[local_tid] += shared_data[local_tid + half_point];
-//             shared_data[blockDim.x * blockDim.y + local_tid] += shared_data[blockDim.x * blockDim.y + local_tid + half_point];
-//         }
-//         __syncthreads();
-//         num_threads = half_point;
-//     }
-
-//     // Write result for this block to global memory
-//     if (block_tid == 0) {
-//         block_c_norm[blockIdx.x + gridDim.x * blockIdx.y] = shared_data[0];
-//         block_diff_norm[blockIdx.x + gridDim.x * blockIdx.y] = shared_data[blockDim.x * blockDim.y];
-//     }
-// }
-
-// __global__ void reduceFinal_kernal(double *block_results, double *final_result, int num_blocks) {
-//     extern __shared__ double shared_data[];
-//     int tid = threadIdx.x;
-
-//     shared_data[tid] = (tid < num_blocks) ? block_results[tid] : 0;
-//     __syncthreads();
-
-//     for (int s = blockDim.x / 2; s > 0; s >>= 1) {
-//         if (tid < s) {
-//             shared_data[tid] += shared_data[tid + s];
-//         }
-//         __syncthreads();
-//     }
-
-//     if (tid == 0) {
-//         *final_result = shared_data[0];
-//     }
-// }
+__global__ void countZero_and_checkConstraint_kernal(long long *keep_fine_redundancy, long long *keep_len_UpToNow, const double *x, const double *y, int resolution_now, int resolution_last, double thr, double violate_degree){
+  // 总共有gridDim.x * gridDim.y个block，每个block有blockDim.x * blockDim.y个线程
+  // resolution_now，是当前处理的图片的分辨率
+  // 总共要完成resolution_now^4个数据的判定，相当于每个块的每个线程负责resolution_now^4/(gridDim.x * gridDim.y * blockDim.x * blockDim.y)个数据
+  // 记int x_num = (resolution_last * resolution_last) / (gridDim.x * blockDim.x), y_num同理定义
+  //  x方向上的第thread_idx_x = blockIdx.x * blockDim.x + threadIdx.x个线程，y方向上的第blockIdx.y * blockDim.y + threadIdx.y个线程，负责计算的数据索引为：
+  // i = thread_idx_x * x_num; i < (thread_idx_x + 1) * x_num
+  // j同理
+  int vec_len = resolution_last * resolution_last;
+  int thread_idx_x = blockIdx.x * blockDim.x + threadIdx.x;
+  int thread_idx_y = blockIdx.y * blockDim.y + threadIdx.y;
+  int x_num = vec_len / (gridDim.x * blockDim.x);
+  int y_num = vec_len / (gridDim.y * blockDim.y);
+  int scale = resolution_now / resolution_last;
+  long long pow_resolution_last_2 = resolution_last * resolution_last;
+  long long pow_resolution_now_2 = resolution_now * resolution_now;
+  double scale_constant = 2.0 * pow_resolution_now_2;
+  long long keep_part_len = 0;
+  int thread_idx = thread_idx_x * gridDim.y * blockDim.y + thread_idx_y;
+  long long begin = keep_len_UpToNow[thread_idx];
+  long long count = 0;
+  for (int i = thread_idx_x * x_num; i < (thread_idx_x + 1) * x_num; i++){
+    for (int j = thread_idx_y * y_num; j < (thread_idx_y + 1) * y_num; j++){
+      for (int k1 = 0; k1 < scale; k1++){
+        for (int k2 = 0; k2 < scale; k2++){
+          for (int l1 = 0; l1 < scale; l1++){
+            for (int l2 = 0; l2 < scale; l2++){
+              long long i1 = i / resolution_last;
+              long long i2 = i % resolution_last;
+              long long j1 = j / resolution_last;
+              long long j2 = j % resolution_last;
+              long long idx_coarse = (i1 * resolution_last + j1) * pow_resolution_last_2 + (i2 * resolution_last + j2);
+              long long idx_i1 = i1 * scale + k1;
+              long long idx_i2 = i2 * scale + k2;
+              long long idx_j1 = j1 * scale + l1;
+              long long idx_j2 = j2 * scale + l2;
+              long long idx_1 = idx_i1 * resolution_now + idx_j1;
+              long long idx_2 = idx_i2 * resolution_now + idx_j2;
+              if (fabs(y[idx_coarse]) >=thr){
+                long long idx_fine = idx_1 * pow_resolution_now_2 + idx_2;
+                keep_fine_redundancy[count + begin] = idx_fine;
+                count++;
+              }
+              else{
+                if (x[idx_1] + x[pow_resolution_now_2 + idx_2] > (1 + violate_degree) * ((idx_i1 - idx_i2) * (idx_i1 - idx_i2) + (idx_j1 - idx_j2) * (idx_j1 - idx_j2)) / scale_constant){
+                  long long idx_fine = idx_1 * pow_resolution_now_2 + idx_2;
+                  keep_fine_redundancy[count + begin] = idx_fine;
+                  count++;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

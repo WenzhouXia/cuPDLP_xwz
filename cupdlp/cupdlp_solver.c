@@ -1144,7 +1144,7 @@ cupdlp_retcode PDHG_Solve_Multiscale(CUPDLPwork *pdhg, cupdlp_float *x_init, cup
     dCheckTimetemp = getTimeStamp();
     PDHG_Compute_SolvingTime(pdhg);
 #if CUPDLP_DUMP_ITERATES_STATS & CUPDLP_DEBUG
-    PDHG_Dump_Stats(pdhg);
+    // PDHG_Dump_Stats(pdhg);
 #endif
     int bool_checking = (timers->nIter < 10) ||
                         (timers->nIter == (settings->nIterLim - 1)) ||

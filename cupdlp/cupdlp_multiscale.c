@@ -3356,13 +3356,12 @@ void directly_construct_and_solve_Multiscale_longlong(const char *csvpath_1, con
         long long *keep_fine_redundancy_len = cupdlp_NULL;
         CUPDLP_INIT(keep_fine_redundancy_len, 1);
         double count_check_time = getTimeStamp();
-        double violate_degree = 0.001;
+        double violate_degree = 0.0;
         if (coarse_degree == 0)
         {
-            violate_degree = 0.001;
+            violate_degree = 0.0;
         }
         printf("coarse_degree: %d, violate_degree: %.5f\n", coarse_degree, violate_degree);
-
         countZero_and_checkConstraint_Keep_redundancy_Wrapper(&keep_fine_redundancy, keep_fine_redundancy_len, y_solution_last, y_solution_last_len, x_init, resolution_now, resolution_last, 1e-20, violate_degree);
         count_check_time = getTimeStamp() - count_check_time;
         cupdlp_printf("countZero_and_checkConstraint_Keep_redundancy_Wrapper耗时：%.3f\n", count_check_time);
@@ -3376,8 +3375,8 @@ void directly_construct_and_solve_Multiscale_longlong(const char *csvpath_1, con
         long long keep_len = remove_redundancy_longlong(keep_fine_redundancy, keep_fine_redundancy_len);
         remove_redundancy_time = getTimeStamp() - remove_redundancy_time;
         char *save_filename[100];
-        sprintf(save_filename, "./keep_fine_redundancy_%d_%d.txt", coarse_degree, inner_iter_idx);
-        savelonglong1D_to_csv(keep_fine_redundancy, keep_len, save_filename);
+        // sprintf(save_filename, "./keep_fine_redundancy_%d_%d.txt", coarse_degree, inner_iter_idx);
+        // savelonglong1D_to_csv(keep_fine_redundancy, keep_len, save_filename);
         cupdlp_printf("remove_redundancy耗时：%.3f\n", remove_redundancy_time);
         // keep to keep_coord
         double keep2keep_coord_time = getTimeStamp();
@@ -3632,8 +3631,12 @@ void directly_construct_and_solve_Multiscale_addSpt_longlong(const char *csvpath
             violate_degree = 0.0;
         }
         printf("coarse_degree: %d, violate_degree: %.5f\n", coarse_degree, violate_degree);
-
+#if !(CUPDLP_CPU)
+        countZero_and_checkConstraint_GPU(&keep_fine_redundancy, keep_fine_redundancy_len, x_init, y_solution_last, x_init_len, y_solution_last_len, resolution_now, resolution_last, 1e-20, violate_degree);
+#else
         countZero_and_checkConstraint_Keep_redundancy_Wrapper(&keep_fine_redundancy, keep_fine_redundancy_len, y_solution_last, y_solution_last_len, x_init, resolution_now, resolution_last, 1e-20, violate_degree);
+#endif
+        // countZero_and_checkConstraint_Keep_redundancy_Wrapper(&keep_fine_redundancy, keep_fine_redundancy_len, y_solution_last, y_solution_last_len, x_init, resolution_now, resolution_last, 1e-20, violate_degree);
         count_check_time = getTimeStamp() - count_check_time;
         cupdlp_printf("countZero_and_checkConstraint_Keep_redundancy_Wrapper耗时：%.3f\n", count_check_time);
         // qsort
@@ -3643,7 +3646,7 @@ void directly_construct_and_solve_Multiscale_addSpt_longlong(const char *csvpath
         cupdlp_printf("qsort耗时：%.3f\n", qsort_time);
         // remove redundancy
         double remove_redundancy_time = getTimeStamp();
-        long long keep_len = remove_redundancy_longlong(keep_fine_redundancy, keep_fine_redundancy_len); // keep_len是keep_fine_redundancy去重后的长度
+        long long keep_len = remove_redundancy_longlong(keep_fine_redundancy, keep_fine_redundancy_len); // keep_len是keep_fine_redundancy去重后的长度\
         printf("keep_fine_redundancy去重后的长度为：%lld\n", keep_len);
         remove_redundancy_time = getTimeStamp() - remove_redundancy_time;
         cupdlp_printf("remove_redundancy耗时：%.3f\n", remove_redundancy_time);
@@ -3690,15 +3693,25 @@ void directly_construct_and_solve_Multiscale_addSpt_longlong(const char *csvpath
         // generate y_init_delete
         double generate_y_init_delete_time = getTimeStamp();
         cupdlp_float *y_init_delete = cupdlp_NULL;
-        CUPDLP_INIT(y_init_delete, keep_len);
-        fine_dualOT_dual_delete_byKeepCoord_parallel(y_init_delete, y_solution_last, keep_coord, &keep_len, resolution_now, resolution_last);
+        cupdlp_float *y_solution_delete = cupdlp_NULL;
+        if (inner_iter_idx == 0)
+        {
+            CUPDLP_INIT(y_init_delete, keep_len);
+            CUPDLP_INIT_ZERO(y_solution_delete, keep_len);
+            fine_dualOT_dual_delete_byKeepCoord_parallel(y_init_delete, y_solution_last, keep_coord, &keep_len, resolution_now, resolution_last);
+            // 创建y_solution_delete，用于暂时储存delete过后的解
+        }
+        else
+        {
+            CUPDLP_INIT(y_init_delete, *keep_add_len);
+            CUPDLP_INIT_ZERO(y_solution_delete, *keep_add_len);
+            fine_dualOT_dual_delete_byKeepCoord_parallel(y_init_delete, y_solution_last, keep_coord, keep_add_len, resolution_now, resolution_last);
+            // 创建y_solution_delete，用于暂时储存delete过后的解
+        }
         generate_y_init_delete_time = getTimeStamp() - generate_y_init_delete_time;
         cupdlp_printf("fine_dualOT_dual_delete_byKeepCoord_parallel耗时：%.3f\n", generate_y_init_delete_time);
         prepare_time = getTimeStamp() - prepare_time;
         cupdlp_float construct_time = getTimeStamp();
-        // 创建y_solution_delete，用于暂时储存delete过后的解
-        cupdlp_float *y_solution_delete = cupdlp_NULL;
-        CUPDLP_INIT_ZERO(y_solution_delete, keep_len);
 
         cupdlp_printf("从csv开始读取数据\n");
         cupdlp_int a_len = resolution * resolution;
@@ -3716,16 +3729,18 @@ void directly_construct_and_solve_Multiscale_addSpt_longlong(const char *csvpath
         cupdlp_float dualOT_formulateLP_directly_time = getTimeStamp();
         CUPDLPwork *w = cupdlp_NULL;
         CUPDLP_INIT_ZERO(w, 1);
-        dualOT_formulateLP_directly_KeepCoord(w, a, b, resolution, coarse_degree, keep_coord, &keep_len, ifChangeIntParam, intParam, &constraint_new_idx);
+        if (inner_iter_idx == 0)
+        {
+            dualOT_formulateLP_directly_KeepCoord(w, a, b, resolution, coarse_degree, keep_coord, &keep_len, ifChangeIntParam, intParam, &constraint_new_idx);
+        }
+        else
+        {
+            dualOT_formulateLP_directly_KeepCoord(w, a, b, resolution, coarse_degree, keep_coord, keep_add_len, ifChangeIntParam, intParam, &constraint_new_idx);
+        }
+        // dualOT_formulateLP_directly_KeepCoord(w, a, b, resolution, coarse_degree, keep_coord, &keep_len, ifChangeIntParam, intParam, &constraint_new_idx);
         dualOT_formulateLP_directly_time = getTimeStamp() - dualOT_formulateLP_directly_time;
         cupdlp_printf("dualOT_formulateLP_directly结束, 耗时%f\n", dualOT_formulateLP_directly_time);
 
-        // ///////////////////////////////////////////////////
-        // // w->problem->data->matrix_format = CSR;
-        // ///////////////////////////////////////////////////
-
-        // // 检查w
-        // printCUPDLPwork(w);
         construct_time = getTimeStamp() - construct_time;
 
         // 求解
@@ -3753,7 +3768,15 @@ void directly_construct_and_solve_Multiscale_addSpt_longlong(const char *csvpath
             // 求解完后，把y_delete_solution恢复到y_solution中
             cupdlp_float recover_time = getTimeStamp();
             // recoverArray1DElements_byKeepIdx_longlong_parallel(*y_solution, y_solution_delete, y_init_len, keep_nnz, keep_idx);
-            recoverArray1DElements_byKeepCoord_longlong_parallel(*y_solution, y_solution_delete, y_init_len, &keep_len, keep_coord);
+            if (inner_iter_idx == 0)
+            {
+                recoverArray1DElements_byKeepCoord_longlong_parallel(*y_solution, y_solution_delete, y_init_len, &keep_len, keep_coord);
+            }
+            else
+            {
+                recoverArray1DElements_byKeepCoord_longlong_parallel(*y_solution, y_solution_delete, y_init_len, keep_add_len, keep_coord);
+            }
+            // recoverArray1DElements_byKeepCoord_longlong_parallel(*y_solution, y_solution_delete, y_init_len, &keep_len, keep_coord);
             recover_time = getTimeStamp() - recover_time;
             cupdlp_printf("recoverArray1DElements_byKeepIdx_longlong_parallel耗时：%.3f\n", recover_time);
         }
@@ -3767,9 +3790,6 @@ void directly_construct_and_solve_Multiscale_addSpt_longlong(const char *csvpath
         cupdlp_free(w);
         // // PDHG_Destroy(w);
         cupdlp_free(x_init);
-        // cupdlp_free(y_init);
-        // cupdlp_free(keep_nnz);
-        // cupdlp_free(keep_idx);
         cupdlp_free(keep_fine_redundancy);
         cupdlp_free(keep_fine_redundancy_len);
         cupdlp_free(y_init_delete);
@@ -5740,6 +5760,8 @@ void MultiScaleOT_cuPDLP(const char *csvpath_1, const char *csvpath_2, int resol
             coarse_degree_last = coarse_degree;
             inner_iter_idx += 1;
         }
+        cupdlp_free(keep_add);
+        cupdlp_free(infeasibility);
         // 释放内存，让init=NULL
         cupdlp_free(x_init);
         cupdlp_free(y_init);

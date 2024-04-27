@@ -1842,7 +1842,7 @@ extern "C" void countZero_and_checkConstraint_Keep_redundancy_Wrapper(long long 
                       local_count++;
                     }
                     else{
-                      if(x_init[idx_1] + x_init[pow_resolution_now_2 + idx_2] > (1+violate_degree) * ((idx_i1 - idx_i2) * (idx_i1 - idx_i2) + (idx_j1 - idx_j2) * (idx_j1 - idx_j2) + 1e-8) / scale_constant){
+                      if(x_init[idx_1] + x_init[pow_resolution_now_2 + idx_2] > (1+violate_degree) * ((idx_i1 - idx_i2) * (idx_i1 - idx_i2) + (idx_j1 - idx_j2) * (idx_j1 - idx_j2)) / scale_constant){
                         long long idx_fine = idx_1 * pow_resolution_now_2 + idx_2;
                         keep_nonzero_constraint_vec_local.push_back(idx_fine);
                         local_count++;                        

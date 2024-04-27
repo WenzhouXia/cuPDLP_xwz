@@ -673,8 +673,8 @@ cupdlp_retcode PDHG_Update_Iterate_Adaptive_Step_Size(CUPDLPwork *pdhg)
 
     cupdlp_float dPrimalStepUpdate = dStepSizeUpdate / sqrt(stepsize->dBeta);
     cupdlp_float dDualStepUpdate = dStepSizeUpdate * sqrt(stepsize->dBeta);
-    cupdlp_printf("dPrimalStepUpdate: %f\n", dPrimalStepUpdate);
-    cupdlp_printf("dDualStepUpdate: %f\n", dDualStepUpdate);
+    // cupdlp_printf("dPrimalStepUpdate: %f\n", dPrimalStepUpdate);
+    // cupdlp_printf("dDualStepUpdate: %f\n", dDualStepUpdate);
 #pragma region Update
     dComputeUpdatetemp = getTimeStamp();
     // cupdlp_printf("x");
@@ -746,10 +746,10 @@ cupdlp_retcode PDHG_Update_Iterate_Adaptive_Step_Size(CUPDLPwork *pdhg)
     {
       dStepSizeLimit = INFINITY;
     }
-    cupdlp_printf("dMovement: %f\n", dMovement);
-    cupdlp_printf("dInteraction: %f\n", dInteraction);
-    cupdlp_printf("StepSizeLimit: %f\n", dStepSizeLimit);
-    cupdlp_printf("StepSizeUpdate: %f\n", dStepSizeUpdate);
+    // cupdlp_printf("dMovement: %f\n", dMovement);
+    // cupdlp_printf("dInteraction: %f\n", dInteraction);
+    // cupdlp_printf("StepSizeLimit: %f\n", dStepSizeLimit);
+    // cupdlp_printf("StepSizeUpdate: %f\n", dStepSizeUpdate);
     if (dStepSizeUpdate <= dStepSizeLimit)
     {
       isDone = true;
@@ -757,7 +757,7 @@ cupdlp_retcode PDHG_Update_Iterate_Adaptive_Step_Size(CUPDLPwork *pdhg)
     }
     else
     {
-      cupdlp_printf("dStepSizeUpdate大于dStepSizeLimit\n");
+      // cupdlp_printf("dStepSizeUpdate大于dStepSizeLimit\n");
       CUPDLP_CHECK_TIMEOUT(pdhg);
     }
 
@@ -3934,4 +3934,13 @@ exit_cleanup:
   {
     printf("Error in compute_dualOT_Inf_GPU\n");
   }
+}
+
+void countZero_and_checkConstraint_GPU(long long **h_keep_fine_redundancy, long long *keep_fine_redundancy_len, const double *h_x, const double *h_y, long long x_len, long long y_len, int resolution_now, int resolution_last, double thr, double violate_degree)
+{
+#if !(CUPDLP_CPU)
+  countZero_and_checkConstraint_cuda(h_keep_fine_redundancy, keep_fine_redundancy_len, h_x, h_y, x_len, y_len, resolution_now, resolution_last, thr, violate_degree);
+#else
+  printf("GPU is not available\n");
+#endif
 }
