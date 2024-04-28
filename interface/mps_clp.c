@@ -747,7 +747,7 @@ cupdlp_retcode main(int argc, char **argv)
 
 #pragma region MultiScaleOT_cuPDLP
   double all_multiscale_time = getTimeStamp();
-  int num_scale = 1;
+  int num_scale = 3;
   double *inf_thrs = cupdlp_NULL;
   CUPDLP_INIT(inf_thrs, num_scale + 1);
   inf_thrs[0] = 1e-6;
@@ -755,7 +755,7 @@ cupdlp_retcode main(int argc, char **argv)
   {
     inf_thrs[i] = 1e-6;
   }
-  MultiScaleOT_cuPDLP(csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, num_scale, inf_thrs);
+  MultiScaleOT_cuPDLP_keepLast(csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, num_scale, inf_thrs);
   cupdlp_free(inf_thrs);
   all_multiscale_time = getTimeStamp() - all_multiscale_time;
   cupdlp_printf("picType = %s, resolution = %d, 运行结束，all_multiscale_time = %fs\n", picType, resolution, all_multiscale_time);

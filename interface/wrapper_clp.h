@@ -84,6 +84,8 @@ extern "C"
   void countZero_and_CheckConstraint_Keep_Wrapper(long long **keep, long long *keep_nnz, double *y, double *x, int resolution_y, double thr, double violate_degree);
   void countZero_Keep_Wrapper(long long **keep, long long *keep_nnz, double *y, int resolution_y, double thr, double violate_degree);
   void countZero_and_checkConstraint_Keep_redundancy_Wrapper(long long **keep_fine_redundancy, long long *keep_fine_redundancy_len, double *y_solution_last, long long y_solution_last_len, double *x_init, int resolution_now, int resolution_last, double thr, double violate_degree);
+  void countZero_Keep_redundancy_Wrapper(long long **keep_countZero, long long *keep_countZero_len, double *y_solution_last, long long y_solution_last_len, int resolution_now, int resolution_last, double thr);
+  void countZero_Keep_redundancy_keepLast_Wrapper(long long **keep_countZero, long long *keep_countZero_len, double *y_solution_last, long long y_solution_last_len, long long *keep_last, long long keep_last_len, int resolution_now, int resolution_last, double thr);
 #ifdef __cplusplus
 }
 #endif

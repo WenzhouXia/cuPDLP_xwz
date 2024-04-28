@@ -233,7 +233,7 @@ __global__ void countZero_and_ckeckConstraint_before_cudaMalloc_kernal(long long
   //  x方向上的第thread_idx_x = blockIdx.x * blockDim.x + threadIdx.x个线程，y方向上的第blockIdx.y * blockDim.y + threadIdx.y个线程，负责计算的数据索引为：
   // i = thread_idx_x * x_num; i < (thread_idx_x + 1) * x_num
   // j同理
-  int vec_len_last = resolution_last * resolution_last;
+  long long vec_len_last = resolution_last * resolution_last;
   int thread_idx_x = blockIdx.x * blockDim.x + threadIdx.x;
   int thread_idx_y = blockIdx.y * blockDim.y + threadIdx.y;
   int x_num = vec_len_last / (gridDim.x * blockDim.x);
@@ -329,6 +329,107 @@ __global__ void countZero_and_checkConstraint_kernal(long long *keep_fine_redund
                   keep_fine_redundancy[count + begin] = idx_fine;
                   count++;
                 }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
+__global__ void ckeckConstraint_before_cudaMalloc_kernal(long long *keep_local_len_array,  const double *x, int resolution_now, int resolution_last, double thr, double violate_degree){
+  // 总共有gridDim.x * gridDim.y个block，每个block有blockDim.x * blockDim.y个线程
+  // 希望这些线程处理resolution_last^4个循环，那么每个线程就要处理resolution_last^4/(gridDim.x * gridDim.y * blockDim.x * blockDim.y)个循环
+  // 记int x_num = (resolution_last * resolution_last) / (gridDim.x * blockDim.x), y_num同理定义
+  //  x方向上的第thread_idx_x = blockIdx.x * blockDim.x + threadIdx.x个线程，y方向上的第blockIdx.y * blockDim.y + threadIdx.y个线程，负责计算的数据索引为：
+  // i = thread_idx_x * x_num; i < (thread_idx_x + 1) * x_num
+  // j同理
+  long long vec_len_last = resolution_last * resolution_last;
+  int thread_idx_x = blockIdx.x * blockDim.x + threadIdx.x;
+  int thread_idx_y = blockIdx.y * blockDim.y + threadIdx.y;
+  int x_num = vec_len_last / (gridDim.x * blockDim.x);
+  int y_num = vec_len_last / (gridDim.y * blockDim.y);
+  int scale = resolution_now / resolution_last;
+  long long pow_resolution_last_2 = resolution_last * resolution_last;
+  long long pow_resolution_now_2 = resolution_now * resolution_now;
+  double scale_constant = 2.0 * pow_resolution_now_2;
+  long long keep_local_len = 0;
+  // i和j的取值范围是[0, resolution_last * resolution_last)
+  for (int i = thread_idx_x * x_num; i < (thread_idx_x + 1) * x_num; i++){
+    for (int j = thread_idx_y * y_num; j < (thread_idx_y + 1) * y_num; j++){
+      for (int k1 = 0; k1 < scale; k1++){
+        for (int k2 = 0; k2 < scale; k2++){
+          for (int l1 = 0; l1 < scale; l1++){
+            for (int l2 = 0; l2 < scale; l2++){
+              long long i1 = i / resolution_last;
+              long long i2 = i % resolution_last;
+              long long j1 = j / resolution_last;
+              long long j2 = j % resolution_last;
+              long long idx_coarse = (i1 * resolution_last + j1) * pow_resolution_last_2 + (i2 * resolution_last + j2);
+              long long idx_i1 = i1 * scale + k1;
+              long long idx_i2 = i2 * scale + k2;
+              long long idx_j1 = j1 * scale + l1;
+              long long idx_j2 = j2 * scale + l2;
+              long long idx_1 = idx_i1 * resolution_now + idx_j1;
+              long long idx_2 = idx_i2 * resolution_now + idx_j2;
+
+              if (x[idx_1] + x[pow_resolution_now_2 + idx_2] > (1 + violate_degree) * ((idx_i1 - idx_i2) * (idx_i1 - idx_i2) + (idx_j1 - idx_j2) * (idx_j1 - idx_j2)) / scale_constant){
+                keep_local_len++;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  int thread_idx = thread_idx_x * gridDim.y * blockDim.y + thread_idx_y;
+  keep_local_len_array[thread_idx] = keep_local_len;
+}
+
+__global__ void checkConstraint_kernal(long long *keep_fine_redundancy, long long *keep_len_UpToNow, const double *x,int resolution_now, int resolution_last, double thr, double violate_degree){
+  // 总共有gridDim.x * gridDim.y个block，每个block有blockDim.x * blockDim.y个线程
+  // resolution_now，是当前处理的图片的分辨率
+  // 总共要完成resolution_now^4个数据的判定，相当于每个块的每个线程负责resolution_now^4/(gridDim.x * gridDim.y * blockDim.x * blockDim.y)个数据
+  // 记int x_num = (resolution_last * resolution_last) / (gridDim.x * blockDim.x), y_num同理定义
+  //  x方向上的第thread_idx_x = blockIdx.x * blockDim.x + threadIdx.x个线程，y方向上的第blockIdx.y * blockDim.y + threadIdx.y个线程，负责计算的数据索引为：
+  // i = thread_idx_x * x_num; i < (thread_idx_x + 1) * x_num
+  // j同理
+  int vec_len = resolution_last * resolution_last;
+  int thread_idx_x = blockIdx.x * blockDim.x + threadIdx.x;
+  int thread_idx_y = blockIdx.y * blockDim.y + threadIdx.y;
+  int x_num = vec_len / (gridDim.x * blockDim.x);
+  int y_num = vec_len / (gridDim.y * blockDim.y);
+  int scale = resolution_now / resolution_last;
+  long long pow_resolution_last_2 = resolution_last * resolution_last;
+  long long pow_resolution_now_2 = resolution_now * resolution_now;
+  double scale_constant = 2.0 * pow_resolution_now_2;
+  long long keep_part_len = 0;
+  int thread_idx = thread_idx_x * gridDim.y * blockDim.y + thread_idx_y;
+  long long begin = keep_len_UpToNow[thread_idx];
+  long long count = 0;
+  for (int i = thread_idx_x * x_num; i < (thread_idx_x + 1) * x_num; i++){
+    for (int j = thread_idx_y * y_num; j < (thread_idx_y + 1) * y_num; j++){
+      for (int k1 = 0; k1 < scale; k1++){
+        for (int k2 = 0; k2 < scale; k2++){
+          for (int l1 = 0; l1 < scale; l1++){
+            for (int l2 = 0; l2 < scale; l2++){
+              long long i1 = i / resolution_last;
+              long long i2 = i % resolution_last;
+              long long j1 = j / resolution_last;
+              long long j2 = j % resolution_last;
+              long long idx_coarse = (i1 * resolution_last + j1) * pow_resolution_last_2 + (i2 * resolution_last + j2);
+              long long idx_i1 = i1 * scale + k1;
+              long long idx_i2 = i2 * scale + k2;
+              long long idx_j1 = j1 * scale + l1;
+              long long idx_j2 = j2 * scale + l2;
+              long long idx_1 = idx_i1 * resolution_now + idx_j1;
+              long long idx_2 = idx_i2 * resolution_now + idx_j2;
+                if (x[idx_1] + x[pow_resolution_now_2 + idx_2] > (1 + violate_degree) * ((idx_i1 - idx_i2) * (idx_i1 - idx_i2) + (idx_j1 - idx_j2) * (idx_j1 - idx_j2)) / scale_constant){
+                  long long idx_fine = idx_1 * pow_resolution_now_2 + idx_2;
+                  keep_fine_redundancy[count + begin] = idx_fine;
+                  count++;
               }
             }
           }

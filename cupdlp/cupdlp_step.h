@@ -72,4 +72,5 @@ void compute_dualOT_Inf_GPU(CUPDLPwork *pdhg, double *infeasibility);
 void PDHG_primalGradientStep(CUPDLPwork *work, cupdlp_float dPrimalStepSize);
 void PDHG_dualGradientStep(CUPDLPwork *work, cupdlp_float dDualStepSize);
 void countZero_and_checkConstraint_GPU(long long **h_keep_fine_redundancy, long long *keep_fine_redundancy_len, const double *h_x, const double *h_y, long long x_len, long long y_len, int resolution_now, int resolution_last, double thr, double violate_degree);
+void checkConstraint_GPU(long long **h_keep_checkConstraint, long long *keep_checkConstraint_len, const double *h_x, long long x_len, int resolution_now, int resolution_last, double thr, double violate_degree);
 #endif // CUPDLP_CUPDLP_STEP_H

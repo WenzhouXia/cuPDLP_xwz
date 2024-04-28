@@ -119,5 +119,6 @@ extern "C" void cupdlp_sub_cuda(cupdlp_float *z, const cupdlp_float *x,
                                 const cupdlp_float *y, const cupdlp_int len);
 extern "C" void compute_dualOT_inf_cuda(cupdlp_float *h_c_norm, cupdlp_float *h_diff_norm, cupdlp_float *x, int vec_len, int n_coarse, double scale_const);
 extern "C" void countZero_and_checkConstraint_cuda(long long **h_keep_fine_redundancy, long long *keep_fine_redundancy_len, const double *h_x, const double *h_y, long long x_len, long long y_len, int resolution_now, int resolution_last, double thr, double violate_degree);
+extern "C" void checkConstraint_cuda(long long **h_keep_fine_redundancy, long long *keep_fine_redundancy_len, const double *h_x, long long x_len, int resolution_now, int resolution_last, double thr, double violate_degree);
 #endif
 #endif
