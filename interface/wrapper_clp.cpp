@@ -1931,7 +1931,20 @@ extern "C" void countZero_Keep_redundancy_Wrapper(long long **keep_countZero, lo
   printf("countZero_Keep_redundancy_Wrapper, keep_countZero_len: %lld\n", *keep_countZero_len);
 }
 
-extern "C" void countZero_Keep_redundancy_keepLast_Wrapper(long long **keep_countZero, long long *keep_countZero_len, double *y_solution_last, long long y_solution_last_len, long long *keep_last, long long keep_last_len, int resolution_now, int resolution_last, double thr){
+
+// long long find_index_within_y_solution_last_Wrapper(long long *keep, long long size, long long value)
+// {
+//     for (long long i = 0; i < size; i++)
+//     {
+//         if (keep[i] == value)
+//         {
+//             return i; // 找到值，返回位置索引
+//         }
+//     }
+//     return -1; // 如果没有找到，返回-1
+// }
+
+extern "C" void countZero_Keep_redundancy_Ykeep_withoutRecover_Wrapper(long long **keep_countZero, long long *keep_countZero_len, double *y_solution_last, long long y_solution_last_len, long long *y_solution_last_keep, int resolution_now, int resolution_last,double thr){
   std::vector<long long> keep_nonzero_constraint_vec;
   int scale = resolution_now / resolution_last;
   long long pow_resolution_now_4 = pow(resolution_now, 4);
@@ -1939,48 +1952,73 @@ extern "C" void countZero_Keep_redundancy_keepLast_Wrapper(long long **keep_coun
   long long pow_resolution_last_2 = pow(resolution_last, 2);
   double scale_constant = 2.0 * pow_resolution_now_2;
   *keep_countZero_len = 0;
-  long long count = 0;
-  printf("countZero_Keep_redundancy_keepLast_Wrapper，开始循环\n");
-  printf("keep_last_len: %lld\n", keep_last_len);
-  for (long long i = 0; i < y_solution_last_len; i++)
+#pragma omp parallel
   {
-    long long idx_coarse = keep_last[i];
-    long long idx1_coarse = idx_coarse / pow_resolution_last_2;
-    long long idx2_coarse = idx_coarse % pow_resolution_last_2;
-    long long i1 = idx1_coarse / resolution_last;
-    long long j1 = idx1_coarse % resolution_last;
-    long long i2 = idx2_coarse / resolution_last;
-    long long j2 = idx2_coarse % resolution_last;
-    for(long long k1 = 0; k1 < scale; k1++){
-      for (long long k2 = 0; k2 < scale; k2++){
-        for (long long l1 = 0; l1 < scale; l1++){
-          for (long long l2 = 0; l2 < scale; l2++){
-            long long idx_i1 = i1 * scale + k1;
-            long long idx_i2 = i2 * scale + k2;
-            long long idx_j1 = j1 * scale + l1;
-            long long idx_j2 = j2 * scale + l2;
-            long long idx_1 = idx_i1 * resolution_now + idx_j1;
-            long long idx_2 = idx_i2 * resolution_now + idx_j2;
-            if (fabs(y_solution_last[idx_coarse]) >= thr)
-            {
-              long long idx_fine = idx_1 * pow_resolution_now_2 + idx_2;
-              keep_nonzero_constraint_vec.push_back(idx_fine);
-              count++;
-              printf("countZero_Keep_redundancy_keepLast_Wrapper，idx_fine: %lld, count: %lld\n", idx_fine, count);
+    std::vector<long long> keep_nonzero_constraint_vec_local;
+    long long local_count = 0;  // 定义局部变量来跟踪每个线程的计数
+    #pragma omp for nowait
+    for (long long y_idx = 0; y_idx < y_solution_last_len; y_idx++){
+      // printf("idx_coarse: %lld\n", y_solution_last_keep[y_idx]);
+      // y_solution_last_keep[y_idx]是第y_idx个非零元素在recover后的索引
+      long long idx_coarse = y_solution_last_keep[y_idx];
+      long long idx1_coarse = idx_coarse / pow_resolution_last_2;
+      long long idx2_coarse = idx_coarse % pow_resolution_last_2;
+      long long i1 = idx1_coarse / resolution_last;
+      long long j1 = idx1_coarse % resolution_last;
+      long long i2 = idx2_coarse / resolution_last;
+      long long j2 = idx2_coarse % resolution_last;
+      for(long long k1 = 0; k1 < scale; k1++){
+        for (long long k2 = 0; k2 < scale; k2++){
+          for (long long l1 = 0; l1 < scale; l1++){
+            for (long long l2 = 0; l2 < scale; l2++){
+              long long idx_i1 = i1 * scale + k1;
+              long long idx_i2 = i2 * scale + k2;
+              long long idx_j1 = j1 * scale + l1;
+              long long idx_j2 = j2 * scale + l2;
+              long long idx_1 = idx_i1 * resolution_now + idx_j1;
+              long long idx_2 = idx_i2 * resolution_now + idx_j2;
+              if (fabs(y_solution_last[y_idx]) >= thr)
+              {
+                long long idx_fine = idx_1 * pow_resolution_now_2 + idx_2;
+                keep_nonzero_constraint_vec_local.push_back(idx_fine);
+                local_count++;
+                // printf("idx_fine: %lld\n", idx_fine);
+              }
             }
           }
         }
       }
     }
+    // 合并局部向量到全局向量
+    #pragma omp critical
+    {
+      keep_nonzero_constraint_vec.insert(keep_nonzero_constraint_vec.end(), keep_nonzero_constraint_vec_local.begin(), keep_nonzero_constraint_vec_local.end());
+      *keep_countZero_len += local_count;  // 使用原子操作或临界区来更新全局长度
+    }
   }
-  *keep_countZero_len = count;
-  printf("countZero_Keep_redundancy_keepLast_Wrapper，循环结束\n");
-// #pragma omp parallel
-// {
-//   std::vector<long long> keep_nonzero_constraint_vec_local;
-//   long long local_count = 0;  // 定义局部变量来跟踪每个线程的计数
-//   #pragma omp for nowait
-//   for (long long i = 0; i < keep_last_len; i++){
+
+  *keep_countZero = (long long *)malloc(sizeof(long long) * *keep_countZero_len);
+  #pragma omp parallel for
+  for (long long i = 0; i < *keep_countZero_len; i++){
+    (*keep_countZero)[i] = keep_nonzero_constraint_vec[i];
+  }
+  printf("countZero_Keep_redundancy_Wrapper, keep_countZero_len: %lld\n", *keep_countZero_len);
+}
+
+
+// extern "C" void countZero_Keep_redundancy_keepLast_Wrapper(long long **keep_countZero, long long *keep_countZero_len, double *y_solution_last, long long y_solution_last_len, long long *keep_last, long long keep_last_len, int resolution_now, int resolution_last, double thr){
+//   std::vector<long long> keep_nonzero_constraint_vec;
+//   int scale = resolution_now / resolution_last;
+//   long long pow_resolution_now_4 = pow(resolution_now, 4);
+//   long long pow_resolution_now_2 = pow(resolution_now, 2);
+//   long long pow_resolution_last_2 = pow(resolution_last, 2);
+//   double scale_constant = 2.0 * pow_resolution_now_2;
+//   *keep_countZero_len = 0;
+//   long long count = 0;
+//   printf("countZero_Keep_redundancy_keepLast_Wrapper，开始循环\n");
+//   printf("keep_last_len: %lld\n", keep_last_len);
+//   for (long long i = 0; i < y_solution_last_len; i++)
+//   {
 //     long long idx_coarse = keep_last[i];
 //     long long idx1_coarse = idx_coarse / pow_resolution_last_2;
 //     long long idx2_coarse = idx_coarse % pow_resolution_last_2;
@@ -2001,27 +2039,64 @@ extern "C" void countZero_Keep_redundancy_keepLast_Wrapper(long long **keep_coun
 //             if (fabs(y_solution_last[idx_coarse]) >= thr)
 //             {
 //               long long idx_fine = idx_1 * pow_resolution_now_2 + idx_2;
-//               keep_nonzero_constraint_vec_local.push_back(idx_fine);
-//               local_count++;
+//               keep_nonzero_constraint_vec.push_back(idx_fine);
+//               count++;
+//               printf("countZero_Keep_redundancy_keepLast_Wrapper，idx_fine: %lld, count: %lld\n", idx_fine, count);
 //             }
 //           }
 //         }
 //       }
 //     }
 //   }
-//   // 合并局部向量到全局向量
-//   #pragma omp critical
-//     {
-//       keep_nonzero_constraint_vec.insert(keep_nonzero_constraint_vec.end(), keep_nonzero_constraint_vec_local.begin(), keep_nonzero_constraint_vec_local.end());
-//       *keep_countZero_len += local_count;  // 使用原子操作或临界区来更新全局长度
-//     }
+//   *keep_countZero_len = count;
+//   printf("countZero_Keep_redundancy_keepLast_Wrapper，循环结束\n");
+// // #pragma omp parallel
+// // {
+// //   std::vector<long long> keep_nonzero_constraint_vec_local;
+// //   long long local_count = 0;  // 定义局部变量来跟踪每个线程的计数
+// //   #pragma omp for nowait
+// //   for (long long i = 0; i < keep_last_len; i++){
+// //     long long idx_coarse = keep_last[i];
+// //     long long idx1_coarse = idx_coarse / pow_resolution_last_2;
+// //     long long idx2_coarse = idx_coarse % pow_resolution_last_2;
+// //     long long i1 = idx1_coarse / resolution_last;
+// //     long long j1 = idx1_coarse % resolution_last;
+// //     long long i2 = idx2_coarse / resolution_last;
+// //     long long j2 = idx2_coarse % resolution_last;
+// //     for(long long k1 = 0; k1 < scale; k1++){
+// //       for (long long k2 = 0; k2 < scale; k2++){
+// //         for (long long l1 = 0; l1 < scale; l1++){
+// //           for (long long l2 = 0; l2 < scale; l2++){
+// //             long long idx_i1 = i1 * scale + k1;
+// //             long long idx_i2 = i2 * scale + k2;
+// //             long long idx_j1 = j1 * scale + l1;
+// //             long long idx_j2 = j2 * scale + l2;
+// //             long long idx_1 = idx_i1 * resolution_now + idx_j1;
+// //             long long idx_2 = idx_i2 * resolution_now + idx_j2;
+// //             if (fabs(y_solution_last[idx_coarse]) >= thr)
+// //             {
+// //               long long idx_fine = idx_1 * pow_resolution_now_2 + idx_2;
+// //               keep_nonzero_constraint_vec_local.push_back(idx_fine);
+// //               local_count++;
+// //             }
+// //           }
+// //         }
+// //       }
+// //     }
+// //   }
+// //   // 合并局部向量到全局向量
+// //   #pragma omp critical
+// //     {
+// //       keep_nonzero_constraint_vec.insert(keep_nonzero_constraint_vec.end(), keep_nonzero_constraint_vec_local.begin(), keep_nonzero_constraint_vec_local.end());
+// //       *keep_countZero_len += local_count;  // 使用原子操作或临界区来更新全局长度
+// //     }
+// // }
+// *keep_countZero = (long long *)malloc(sizeof(long long) * *keep_countZero_len);
+//   #pragma omp parallel for
+//   for (long long i = 0; i < *keep_countZero_len; i++){
+//     (*keep_countZero)[i] = keep_nonzero_constraint_vec[i];
+//   }
+//   printf("countZero_Keep_redundancy_keepLast_Wrapper, keep_countZero_len: %lld\n", *keep_countZero_len);
 // }
-*keep_countZero = (long long *)malloc(sizeof(long long) * *keep_countZero_len);
-  #pragma omp parallel for
-  for (long long i = 0; i < *keep_countZero_len; i++){
-    (*keep_countZero)[i] = keep_nonzero_constraint_vec[i];
-  }
-  printf("countZero_Keep_redundancy_keepLast_Wrapper, keep_countZero_len: %lld\n", *keep_countZero_len);
-}
 
 

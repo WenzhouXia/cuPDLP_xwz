@@ -132,6 +132,9 @@ void fine_dualOT_primal(cupdlp_float *x_init, cupdlp_float *x_coarse_solution, c
 void fine_dualOT_dual(cupdlp_float *y_init, cupdlp_float *y_coarse_solution, long long y_len, long long y_coarse_len, cupdlp_int resolution, cupdlp_int coarse_degree);
 void fine_dualOT_dual_parallel(cupdlp_float *y_init, cupdlp_float *y_coarse_solution, long long y_len, long long y_coarse_len, cupdlp_int resolution, cupdlp_int coarse_degree);
 void fine_dualOT_dual_delete_byKeepCoord_parallel(cupdlp_float *y_init_delete, cupdlp_float *y_solution_last, Coord *keep_coord, long long *keep_nnz, int resolution_now, int resolution_last);
+long long find_index_within_y_solution_last(long long *keep, long long size, long long value);
+long long binary_search(long long *arr, long long l, long long r, long long x);
+void fine_dualOT_dual_delete_byKeepCoord_withoutRevocer_parallel(cupdlp_float *y_init_delete, Ykeep y_solution_last, Coord *keep_coord, long long keep_coord_len, int resolution_now, int resolution_last);
 cupdlp_float *fine_and_delete_dualOT_dual_longlong(long long *len_after_delete, cupdlp_bool *keep, long long *keep_idx, cupdlp_float *y_coarse_solution, cupdlp_int resolution, cupdlp_int coarse_degree_now, cupdlp_int coarse_degree_last, cupdlp_float thr);
 int countArray1D_Smaller_than_threshold(cupdlp_float *a, int a_len, cupdlp_float thr);
 long long countArray1D_Smaller_than_threshold_longlong(cupdlp_float *a, long long a_len, cupdlp_float thr);
@@ -194,9 +197,9 @@ void keep2keep_coord(Coord *keep_coord, long long *keep, long long keep_len, int
 void modificationArray1D(int **a);
 void MultiScaleOT_cuPDLP(const char *csvpath_1, const char *csvpath_2, int resolution, cupdlp_bool *ifChangeIntParam, cupdlp_bool *ifChangeFloatParam, cupdlp_int *intParam, cupdlp_float *floatParam, cupdlp_bool ifSaveSol, int num_scale, double *inf_thr);
 void MultiScaleOT_cuPDLP_Ykeep(const char *csvpath_1, const char *csvpath_2, int resolution, cupdlp_bool *ifChangeIntParam, cupdlp_bool *ifChangeFloatParam, cupdlp_int *intParam, cupdlp_float *floatParam, cupdlp_bool ifSaveSol, int num_scale, double *inf_thr);
-void MultiScaleOT_cuPDLP_keepLast(const char *csvpath_1, const char *csvpath_2, int resolution, cupdlp_bool *ifChangeIntParam, cupdlp_bool *ifChangeFloatParam, cupdlp_int *intParam, cupdlp_float *floatParam, cupdlp_bool ifSaveSol, int num_scale, double *inf_thr);
 void Longlongvec_free(Longlongvec **vec);
 void Doublevec_free(Doublevec **vec);
 void Coord_free(Coord **coord);
 void Ykeep_free(Ykeep **ykeep);
+void Doublevec_init_zero(Doublevec **vec, long long vec_len);
 #endif // CUPDLP_CUPDLP_MULTISCALE_H

@@ -2057,6 +2057,7 @@ void writeJson(const char *fout, CUPDLPwork *work, cupdlp_float *x,
   // timers
   fprintf(fptr, "%d, ", work->timers->nIter);
   fprintf(fptr, "%.2fs\n", work->timers->dSolvingTime);
+  fprintf(fptr, "\"dPrimalObj\":%.10f,", work->resobj->dPrimalObj);
   fprintf(fptr, "\"nIter\":%d,", work->timers->nIter);
   fprintf(fptr, "\"nAtyCalls\":%d,", work->timers->nAtyCalls);
   fprintf(fptr, "\"nAxCalls\":%d,", work->timers->nAxCalls);

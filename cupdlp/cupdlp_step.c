@@ -3949,6 +3949,7 @@ void checkConstraint_GPU(long long **h_keep_checkConstraint, long long *keep_che
 {
 #if !(CUPDLP_CPU)
   checkConstraint_cuda(h_keep_checkConstraint, keep_checkConstraint_len, h_x, x_len, resolution_now, resolution_last, thr, violate_degree);
+  printf("checkConstraint_GPU finished!\n");
 #else
   printf("GPU is not available\n");
 #endif
