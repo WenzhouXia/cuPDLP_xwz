@@ -23,6 +23,10 @@ cupdlp_retcode main(int argc, char **argv)
   cupdlp_bool ifPresolve = false;
   cupdlp_int ifPDTEST = 0;
   cupdlp_int bestID = 1;
+  int picID1 = 1001;
+  int picID2 = 1002;
+  double eps = 1e-6;
+  int num_scale = 3;
 
   for (cupdlp_int i = 0; i < argc - 1; i++)
   {
@@ -65,6 +69,22 @@ cupdlp_retcode main(int argc, char **argv)
     {
       resolution_input = atoi(argv[i + 1]);
     }
+    else if (strcmp(argv[i], "-picID1") == 0)
+    {
+      picID1 = atoi(argv[i + 1]);
+    }
+    else if (strcmp(argv[i], "-picID2") == 0)
+    {
+      picID2 = atoi(argv[i + 1]);
+    }
+    else if (strcmp(argv[i], "-eps") == 0)
+    {
+      eps = atof(argv[i + 1]);
+    }
+    else if (strcmp(argv[i], "-num_scale") == 0)
+    {
+      num_scale = atoi(argv[i + 1]);
+    }
   }
   if (strcmp(argv[argc - 1], "-h") == 0)
   {
@@ -87,13 +107,14 @@ cupdlp_retcode main(int argc, char **argv)
   char basePath[] = "../example/Data";
   char *type = picType;
   int resolution = resolution_input;
-  int fileNumber_1 = 1001;
-  int fileNumber_2 = 1002;
+  int fileNumber_1 = picID1;
+  int fileNumber_2 = picID2;
   char csvpath_1[256];
   char csvpath_2[256];
   sprintf(csvpath_1, "%s/%s/data%d_%d.csv", basePath, type, resolution, fileNumber_1);
   sprintf(csvpath_2, "%s/%s/data%d_%d.csv", basePath, type, resolution, fileNumber_2);
-
+  printf("csvpath_1 = %s\n", csvpath_1);
+  printf("csvpath_2 = %s\n", csvpath_2);
   ///////////////////////////////////////////////////////////////////////////
 #pragma region 创建CUPDLPwork，但是被我注释掉了
 
@@ -747,15 +768,94 @@ cupdlp_retcode main(int argc, char **argv)
 
 #pragma region MultiScaleOT_cuPDLP
   double all_multiscale_time = getTimeStamp();
-  int num_scale = 4;
   double *inf_thrs = cupdlp_NULL;
   CUPDLP_INIT(inf_thrs, num_scale + 1);
-  inf_thrs[0] = 1e-6;
+  double *stopThrs = cupdlp_NULL;
+  CUPDLP_INIT(stopThrs, num_scale + 1);
+  printf("eps = %.3e\n", eps);
+  inf_thrs[0] = eps;
   for (int i = 1; i <= num_scale; i++)
   {
-    inf_thrs[i] = 1e-6;
+    inf_thrs[i] = eps;
   }
-  MultiScaleOT_cuPDLP_Ykeep(csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, num_scale, inf_thrs);
+  stopThrs[0] = eps / 2;
+  for (int i = 1; i <= num_scale; i++)
+  {
+    stopThrs[i] = eps;
+  }
+  if (num_scale == 2)
+  {
+    inf_thrs[0] = eps;
+    inf_thrs[1] = eps / 10;
+    inf_thrs[2] = eps / 100;
+    stopThrs[0] = eps;
+    stopThrs[1] = eps / 10;
+    stopThrs[2] = eps / 100;
+  }
+
+  if (num_scale == 4)
+  {
+    inf_thrs[0] = eps;
+    inf_thrs[1] = eps;
+    inf_thrs[2] = eps / 10;
+    inf_thrs[3] = eps / 100;
+    inf_thrs[4] = eps / 100;
+    stopThrs[0] = eps;
+    stopThrs[1] = eps;
+    stopThrs[2] = eps / 10;
+    stopThrs[3] = eps / 100;
+    stopThrs[4] = eps / 100;
+    // inf_thrs[0] = 1e-6;
+    // stopThrs[0] = 5e-7;
+    // for (int num_scale_idx = 1; num_scale_idx <= num_scale; num_scale_idx++)
+    // {
+    //   inf_thrs[num_scale_idx] = inf_thrs[num_scale_idx - 1] / 3;
+    //   stopThrs[num_scale_idx] = stopThrs[num_scale_idx - 1] / 3;
+    // }
+  }
+  switch (num_scale)
+  {
+  case 2:
+    // inf_thrs[0] = eps;
+    // inf_thrs[1] = eps / 10;
+    // inf_thrs[2] = eps / 100;
+    // stopThrs[0] = eps;
+    // stopThrs[1] = eps / 10;
+    // stopThrs[2] = eps / 100;
+    inf_thrs[0] = eps;
+    inf_thrs[1] = eps;
+    inf_thrs[2] = eps;
+    stopThrs[0] = eps;
+    stopThrs[1] = eps;
+    stopThrs[2] = eps;
+    break;
+  case 3:
+    inf_thrs[0] = eps;
+    inf_thrs[1] = eps;
+    inf_thrs[2] = eps / 10;
+    inf_thrs[3] = eps / 100;
+    stopThrs[0] = eps;
+    stopThrs[1] = eps;
+    stopThrs[2] = eps / 10;
+    stopThrs[3] = eps / 100;
+    break;
+  case 4:
+    inf_thrs[0] = eps;
+    inf_thrs[1] = eps;
+    inf_thrs[2] = eps / 10;
+    inf_thrs[3] = eps / 100;
+    inf_thrs[4] = eps / 100;
+    stopThrs[0] = eps;
+    stopThrs[1] = eps;
+    stopThrs[2] = eps / 10;
+    stopThrs[3] = eps / 100;
+    stopThrs[4] = eps / 100;
+    break;
+  default:
+    printf("num_scale = %d, 暂时不支持这个num_scale\n", num_scale);
+    break;
+  }
+  MultiScaleOT_cuPDLP_Ykeep(csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, num_scale, inf_thrs, stopThrs);
   cupdlp_free(inf_thrs);
   all_multiscale_time = getTimeStamp() - all_multiscale_time;
   cupdlp_printf("picType = %s, resolution = %d, 运行结束，all_multiscale_time = %fs\n", picType, resolution, all_multiscale_time);

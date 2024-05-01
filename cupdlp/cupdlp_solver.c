@@ -2314,14 +2314,17 @@ cupdlp_retcode LP_SolvePDHG_Multiscale(CUPDLPwork *pdhg, cupdlp_bool *ifChangeIn
   cupdlp_float *y_origin = cupdlp_NULL;
   CUPDLP_INIT_ZERO(x_origin, nCols_origin);
   CUPDLP_INIT_ZERO(y_origin, nRows);
-
+#if !(CUPDLP_CPU)
   compute_dualOT_Inf_GPU(pdhg, infeasibility);
+#endif
+
   PDHG_PostSolve(pdhg, nCols_origin, constraint_new_idx, x_origin, y_origin);
 
   *x_solution = x_origin;
   *y_solution = y_origin;
   cupdlp_printf("Begin writing!\n");
   cupdlp_printf("约束矩阵尺寸为nRows：%d, nCols：%d\n", pdhg->problem->nRows, pdhg->problem->nCols);
+  cupdlp_printf("约束矩阵尺寸为nRows：%.2e, nCols：%.2e\n", (double)pdhg->problem->nRows, (double)pdhg->problem->nCols);
   writeJson(fp, pdhg, x_origin, nCols_origin, y_origin, pdhg->problem->nRows, ifSaveSol);
 exit_cleanup:
   if (retcode != RETCODE_OK)

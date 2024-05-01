@@ -75,7 +75,7 @@ typedef struct
 {
     Doublevec *y;
     Longlongvec *keep;
-    Coord *keep_coord;
+    // Coord *keep_coord;
 } Ykeep;
 
 void CUPDLP_multiscale_testprint();
@@ -166,14 +166,15 @@ void construct_and_solve_Multiscale_longlong(void *model, const char *csvpath_1,
 
 void directly_construct_and_solve_Multiscale_longlong(const char *csvpath_1, const char *csvpath_2, cupdlp_int resolution, cupdlp_bool *ifChangeIntParam, cupdlp_bool *ifChangeFloatParam, cupdlp_int *intParam, cupdlp_float *floatParam, cupdlp_bool ifSaveSol, cupdlp_int coarse_degree, cupdlp_int coarse_degree_last, cupdlp_float **x_solution, cupdlp_float **y_solution, cupdlp_float *x_solution_last, cupdlp_float *y_solution_last, double *infeasibility, int inner_iter_idx);
 void directly_construct_and_solve_Multiscale_addSpt_longlong(const char *csvpath_1, const char *csvpath_2, cupdlp_int resolution, cupdlp_bool *ifChangeIntParam, cupdlp_bool *ifChangeFloatParam, cupdlp_int *intParam, cupdlp_float *floatParam, cupdlp_bool ifSaveSol, cupdlp_int coarse_degree, cupdlp_int coarse_degree_last, cupdlp_float **x_solution, cupdlp_float **y_solution, cupdlp_float *x_solution_last, cupdlp_float *y_solution_last, double *infeasibility, int inner_iter_idx, long long **keep_add, long long *keep_add_len);
-void directly_construct_and_solve_Multiscale_addSpt_Ykeep_longlong(const char *csvpath_1, const char *csvpath_2, cupdlp_int resolution, cupdlp_bool *ifChangeIntParam, cupdlp_bool *ifChangeFloatParam, cupdlp_int *intParam, cupdlp_float *floatParam, cupdlp_bool ifSaveSol, cupdlp_int coarse_degree, cupdlp_int coarse_degree_last, Doublevec *x_solution, Ykeep *y_solution, Doublevec x_solution_last, Ykeep y_solution_last, double *infeasibility, int inner_iter_idx, Longlongvec *keep_add);
+void directly_construct_and_solve_Multiscale_addSpt_Ykeep_longlong(const char *csvpath_1, const char *csvpath_2, cupdlp_int resolution, cupdlp_bool *ifChangeIntParam, cupdlp_bool *ifChangeFloatParam, cupdlp_int *intParam, cupdlp_float *floatParam, cupdlp_bool ifSaveSol, cupdlp_int coarse_degree, cupdlp_int coarse_degree_last, Doublevec *x_solution, Ykeep *y_solution, Doublevec x_solution_last, Ykeep y_solution_last, double *infeasibility, int inner_iter_idx, Longlongvec *keep_add, double stopThr);
+void directly_construct_and_solve_Multiscale_addSpt_Ykeep_longlong_addInner0(const char *csvpath_1, const char *csvpath_2, cupdlp_int resolution, cupdlp_bool *ifChangeIntParam, cupdlp_bool *ifChangeFloatParam, cupdlp_int *intParam, cupdlp_float *floatParam, cupdlp_bool ifSaveSol, cupdlp_int coarse_degree, cupdlp_int coarse_degree_last, Doublevec *x_solution, Ykeep *y_solution, Doublevec x_solution_last, Ykeep y_solution_last, double *infeasibility, int inner_iter_idx, Longlongvec *keep_add, double stopThr);
 void directly_construct_and_solve_Multiscale_addSpt_keepLast_longlong(const char *csvpath_1, const char *csvpath_2, cupdlp_int resolution, cupdlp_bool *ifChangeIntParam, cupdlp_bool *ifChangeFloatParam, cupdlp_int *intParam, cupdlp_float *floatParam, cupdlp_bool ifSaveSol, cupdlp_int coarse_degree, cupdlp_int coarse_degree_last, cupdlp_float **x_solution, cupdlp_float **y_solution, long long **keep_now, long long *keep_now_len, cupdlp_float *x_solution_last, cupdlp_float *y_solution_last, long long *keep_last, long long keep_last_len, double *infeasibility, int inner_iter_idx, long long **keep_add, long long *keep_add_len);
 void construct_and_solve_Multiscale_longlong_pdbalance(void *model, const char *csvpath_1, const char *csvpath_2, cupdlp_int resolution, cupdlp_bool *ifChangeIntParam, cupdlp_bool *ifChangeFloatParam, cupdlp_int *intParam, cupdlp_float *floatParam, cupdlp_bool ifSaveSol, cupdlp_int coarse_degree, cupdlp_int coarse_degree_last, cupdlp_float **x_solution, cupdlp_float **y_solution, cupdlp_float *x_solution_last, cupdlp_float *y_solution_last);
 // void construct_and_solve_Multiscale_by_keep_longlong(void *model, const char *csvpath_1, const char *csvpath_2, cupdlp_int resolution, cupdlp_bool *ifChangeIntParam, cupdlp_bool *ifChangeFloatParam, cupdlp_int *intParam, cupdlp_float *floatParam, cupdlp_bool ifSaveSol, cupdlp_int coarse_degree, cupdlp_int coarse_degree_last, cupdlp_float **x_solution, cupdlp_float **y_solution, cupdlp_float *x_solution_last, cupdlp_float *y_solution_last);
 // void construct_and_solve_Multiscale_withoutRecover(void *model, const char *csvpath_1, const char *csvpath_2, cupdlp_int resolution, cupdlp_bool *ifChangeIntParam, cupdlp_bool *ifChangeFloatParam, cupdlp_int *intParam, cupdlp_float *floatParam, cupdlp_bool ifSaveSol, cupdlp_int coarse_degree, cupdlp_int coarse_degree_last, cupdlp_float **x_solution, cupdlp_float **y_solution, cupdlp_float *x_solution_last, cupdlp_float *y_solution_last);
 void construct_and_solve_Multiscale_test(void *model, const char *csvpath_1, const char *csvpath_2, cupdlp_int resolution, cupdlp_int coarse_degree);
 int parallelTest(int N, int num_threads);
-void computepPrimalFeas(cupdlp_float *x_solution, cupdlp_int resolution, cupdlp_int coarse_degree);
+double computepPrimalFeas(cupdlp_float *x_solution, cupdlp_int resolution, cupdlp_int coarse_degree);
 void compute_q_2norm(cupdlp_float *q_2norm, cupdlp_float *a, cupdlp_float *b, cupdlp_int vec_len);
 void pdbalance_dualOT_primal_forward(cupdlp_float *x_init_balance, cupdlp_float *x_init, cupdlp_int x_len, cupdlp_float *balance_weight);
 void pdbalance_dualOT_primal_backward(cupdlp_float *x_solution, cupdlp_float *x_solution_balance, cupdlp_int x_len, cupdlp_float *balance_weight);
@@ -196,7 +197,7 @@ void keep2keep_coord(Coord *keep_coord, long long *keep, long long keep_len, int
 // void fine_nonzero(Coord **keep_coord, long long *keep_coasre, int nnz_coarse, int resolution_now, int coarse_degree_diff);
 void modificationArray1D(int **a);
 void MultiScaleOT_cuPDLP(const char *csvpath_1, const char *csvpath_2, int resolution, cupdlp_bool *ifChangeIntParam, cupdlp_bool *ifChangeFloatParam, cupdlp_int *intParam, cupdlp_float *floatParam, cupdlp_bool ifSaveSol, int num_scale, double *inf_thr);
-void MultiScaleOT_cuPDLP_Ykeep(const char *csvpath_1, const char *csvpath_2, int resolution, cupdlp_bool *ifChangeIntParam, cupdlp_bool *ifChangeFloatParam, cupdlp_int *intParam, cupdlp_float *floatParam, cupdlp_bool ifSaveSol, int num_scale, double *inf_thr);
+void MultiScaleOT_cuPDLP_Ykeep(const char *csvpath_1, const char *csvpath_2, int resolution, cupdlp_bool *ifChangeIntParam, cupdlp_bool *ifChangeFloatParam, cupdlp_int *intParam, cupdlp_float *floatParam, cupdlp_bool ifSaveSol, int num_scale, double *inf_thr, double *stopThrs);
 void Longlongvec_free(Longlongvec **vec);
 void Doublevec_free(Doublevec **vec);
 void Coord_free(Coord **coord);

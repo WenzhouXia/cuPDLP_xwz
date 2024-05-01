@@ -375,7 +375,7 @@ __global__ void ckeckConstraint_before_cudaMalloc_kernal(long long *keep_local_l
               long long idx_1 = idx_i1 * resolution_now + idx_j1;
               long long idx_2 = idx_i2 * resolution_now + idx_j2;
 
-              if (x[idx_1] + x[pow_resolution_now_2 + idx_2] > (1 + violate_degree) * ((idx_i1 - idx_i2) * (idx_i1 - idx_i2) + (idx_j1 - idx_j2) * (idx_j1 - idx_j2)) / scale_constant){
+              if (x[idx_1] + x[pow_resolution_now_2 + idx_2] > (1 + violate_degree) * ((idx_i1 - idx_i2) * (idx_i1 - idx_i2) + (idx_j1 - idx_j2) * (idx_j1 - idx_j2)+1e-8) / scale_constant){
                 keep_local_len++;
               }
             }
@@ -426,7 +426,7 @@ __global__ void checkConstraint_kernal(long long *keep_fine_redundancy, long lon
               long long idx_j2 = j2 * scale + l2;
               long long idx_1 = idx_i1 * resolution_now + idx_j1;
               long long idx_2 = idx_i2 * resolution_now + idx_j2;
-                if (x[idx_1] + x[pow_resolution_now_2 + idx_2] > (1 + violate_degree) * ((idx_i1 - idx_i2) * (idx_i1 - idx_i2) + (idx_j1 - idx_j2) * (idx_j1 - idx_j2)) / scale_constant){
+                if (x[idx_1] + x[pow_resolution_now_2 + idx_2] > (1 + violate_degree) * ((idx_i1 - idx_i2) * (idx_i1 - idx_i2) + (idx_j1 - idx_j2) * (idx_j1 - idx_j2) + 1e-8) / scale_constant){
                   long long idx_fine = idx_1 * pow_resolution_now_2 + idx_2;
                   keep_fine_redundancy[count + begin] = idx_fine;
                   count++;
