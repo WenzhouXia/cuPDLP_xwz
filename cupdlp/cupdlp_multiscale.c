@@ -4273,7 +4273,7 @@ exit_cleanup:
 }
 }
 
-void directly_construct_and_solve_Multiscale_addSpt_Ykeep_longlong_addInner0(const char *csvpath_1, const char *csvpath_2, cupdlp_int resolution, cupdlp_bool *ifChangeIntParam, cupdlp_bool *ifChangeFloatParam, cupdlp_int *intParam, cupdlp_float *floatParam, cupdlp_bool ifSaveSol, cupdlp_int coarse_degree, cupdlp_int coarse_degree_last, Doublevec *x_solution, Ykeep *y_solution, Doublevec x_solution_last, Ykeep y_solution_last, double *infeasibility, int inner_iter_idx, Longlongvec *keep_add, double stopThr)
+void directly_construct_and_solve_Multiscale_addSpt_Ykeep_longlong_addInner0(const char *csvpath_1, const char *csvpath_2, cupdlp_int resolution, cupdlp_bool *ifChangeIntParam, cupdlp_bool *ifChangeFloatParam, cupdlp_int *intParam, cupdlp_float *floatParam, cupdlp_bool ifSaveSol, cupdlp_int coarse_degree, cupdlp_int coarse_degree_last, Doublevec *x_solution, Ykeep *y_solution, Doublevec x_solution_last, Ykeep y_solution_last, double *infeasibility, int inner_iter_idx, Longlongvec *keep_add, double stopThr, bool *exit)
 {
     cupdlp_printf("directly_construct_and_solve_Multiscale_longlong\n");
     cupdlp_bool retcode = RETCODE_OK;
@@ -4309,9 +4309,20 @@ void directly_construct_and_solve_Multiscale_addSpt_Ykeep_longlong_addInner0(con
 #if !(CUPDLP_CPU)
         // check Constraint
         checkConstraint_GPU(&(keep_checkConstraint->data), &(keep_checkConstraint->data_len), x_init->data, x_init->data_len, resolution_now, resolution_last, 1e-20, violate_degree);
-
+        if (keep_checkConstraint->data_len >= 1e8 && coarse_degree_last != -1)
+        {
+            printf("暂时暂定为不收敛！keep_checkConstraint_len: %lld\n", keep_checkConstraint->data_len);
+            *exit = true;
+            goto exit_cleanup;
+        }
         // countZero
         countZero_Keep_redundancy_Ykeep_withoutRecover_Wrapper(&(keep_countZero->data), &(keep_countZero->data_len), y_solution_last.y->data, y_solution_last.y->data_len, y_solution_last.keep->data, resolution_now, resolution_last, 1e-20);
+        if (keep_countZero->data_len >= 1e8 && coarse_degree_last != -1)
+        {
+            printf("暂时暂定为不收敛！keep_checkConstraint_len: %lld\n", keep_checkConstraint->data_len);
+            *exit = true;
+            goto exit_cleanup;
+        }
         printf("keep_checkConstraint_len: %lld, keep_countZero_len: %lld\n", keep_checkConstraint->data_len, keep_countZero->data_len);
         printf("keep_checkConstraint_len: %.2e, keep_countZero_len: %.2e\n", (double)keep_checkConstraint->data_len, (double)keep_countZero->data_len);
         Longlongvec *keep_fine_redundancy = cupdlp_NULL;
@@ -4444,13 +4455,19 @@ void directly_construct_and_solve_Multiscale_addSpt_Ykeep_longlong_addInner0(con
         cupdlp_printf("开始求解\n");
         sprintf(fout, "./solution_Resolution%d_CoarseDegree%d.txt", resolution, coarse_degree);
         cupdlp_float solve_time = getTimeStamp();
-        if (resolution_now == resolution)
-        {
-            floatParam[D_PRIMAL_TOL] = stopThr;
-            floatParam[D_DUAL_TOL] = stopThr;
-            floatParam[D_GAP_TOL] = stopThr;
-            floatParam[D_FEAS_TOL] = stopThr;
-        }
+        // if (resolution_now == resolution)
+        // {
+        //     floatParam[D_PRIMAL_TOL] = stopThr;
+        //     floatParam[D_DUAL_TOL] = stopThr;
+        //     floatParam[D_GAP_TOL] = stopThr;
+        //     floatParam[D_FEAS_TOL] = stopThr;
+        // }
+
+        floatParam[D_PRIMAL_TOL] = stopThr;
+        floatParam[D_DUAL_TOL] = stopThr;
+        floatParam[D_GAP_TOL] = stopThr;
+        floatParam[D_FEAS_TOL] = stopThr;
+
         CUPDLP_CALL(LP_SolvePDHG_Multiscale(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, ifSaveSol, constraint_new_idx, &(x_solution->data), &(y_solution->y->data), x_init->data, y_init_delete, infeasibility));
         solve_time = getTimeStamp() - solve_time;
         cupdlp_printf("利用稀疏性构造模型求解完毕, 耗时：%.3f\n", solve_time);
@@ -4525,6 +4542,10 @@ void directly_construct_and_solve_Multiscale_addSpt_Ykeep_longlong_addInner0(con
         char fout[256];
         sprintf(fout, "./solution_Resolution%d_CoarseDegree%d.txt", resolution, coarse_degree);
         cupdlp_bool whether_first_fine = true; // 默认使用cuPDLP自带的初始步长和权重
+        floatParam[D_PRIMAL_TOL] = stopThr;
+        floatParam[D_DUAL_TOL] = stopThr;
+        floatParam[D_GAP_TOL] = stopThr;
+        floatParam[D_FEAS_TOL] = stopThr;
         // 传入的x_solution和y_solution是二级指针，所以不用再写成&x_solution, &y_solution
         CUPDLP_CALL(LP_SolvePDHG_Multiscale(w, ifChangeIntParam, intParam, ifChangeFloatParam, floatParam, fout, ifSaveSol, constraint_new_idx, &(x_solution->data), &(y_solution->y->data), x_init, y_init, infeasibility));
         printf("directly_construct_and_solve_Multiscale_longlong Finished!\n");
@@ -5578,6 +5599,95 @@ int parallelTest(int N, int num_threads)
     printf("Time taken with %d threads: %f seconds, sum = %d\n", num_threads, time, sum);
 }
 
+void parallelTest2(int resolution_now, int num_threads)
+{
+    long long vec_len = resolution_now * resolution_now; // 向量长度
+    double scale_const = 2.0 * vec_len;                  // 缩放常数
+    long long pow_vec_2 = vec_len * vec_len;
+    double *x_solution = malloc(2 * vec_len * sizeof(double));
+    if (x_solution == NULL)
+    {
+        fprintf(stderr, "Memory allocation failed!\n");
+        return EXIT_FAILURE;
+    }
+    // 初始化x_solution数组
+    for (int i = 0; i < 2 * vec_len; i++)
+    {
+        x_solution[i] = 1.0; // 可以根据需要更改初始化
+    }
+
+    // 变量初始化
+    double c_norm = 0.0, diff_norm = 0.0;
+    double start_time, end_time;
+
+    c_norm = 0.0;
+    diff_norm = 0.0;
+
+    start_time = omp_get_wtime(); // 开始计时
+
+#pragma omp parallel for num_threads(num_threads) reduction(+ : c_norm, diff_norm)
+    for (long long idx = 0; idx < pow_vec_2; idx++)
+    {
+        int i = idx / vec_len;
+        int j = idx % vec_len;
+        int i1 = i / resolution_now;
+        int j1 = i % resolution_now;
+        int i2 = j / resolution_now;
+        int j2 = j % resolution_now;
+        double c_temp = ((i1 - i2) * (i1 - i2) + (j1 - j2) * (j1 - j2)) / scale_const;
+        c_norm += c_temp * c_temp;
+        double temp = fmax(x_solution[i] + x_solution[vec_len + j] - c_temp, 0);
+        diff_norm += temp * temp;
+    }
+
+    end_time = omp_get_wtime(); // 结束计时
+
+    printf("Threads: %d, Time Taken: %f s, c_norm: %f, diff_norm: %f\n",
+           num_threads, end_time - start_time, c_norm, diff_norm);
+
+    // 释放内存
+    free(x_solution);
+}
+
+void parallelTest3(double *x_solution, int resolution_now, int num_threads)
+{
+    long long vec_len = resolution_now * resolution_now; // 向量长度
+    double scale_const = 2.0 * vec_len;                  // 缩放常数
+    long long pow_vec_2 = vec_len * vec_len;
+
+    // 变量初始化
+    double c_norm = 0.0, diff_norm = 0.0;
+    double start_time, end_time;
+
+    c_norm = 0.0;
+    diff_norm = 0.0;
+
+    start_time = omp_get_wtime(); // 开始计时
+
+#pragma omp parallel for num_threads(num_threads) reduction(+ : c_norm, diff_norm)
+    for (long long idx = 0; idx < pow_vec_2; idx++)
+    {
+        int i = idx / vec_len;
+        int j = idx % vec_len;
+        int i1 = i / resolution_now;
+        int j1 = i % resolution_now;
+        int i2 = j / resolution_now;
+        int j2 = j % resolution_now;
+        double c_temp = ((i1 - i2) * (i1 - i2) + (j1 - j2) * (j1 - j2)) / scale_const;
+        c_norm += c_temp * c_temp;
+        double temp = fmax(x_solution[i] + x_solution[vec_len + j] - c_temp, 0);
+        diff_norm += temp * temp;
+    }
+
+    end_time = omp_get_wtime(); // 结束计时
+
+    printf("Threads: %d, Time Taken: %f s, c_norm: %f, diff_norm: %f\n",
+           num_threads, end_time - start_time, c_norm, diff_norm);
+
+    // 释放内存
+    // free(x_solution);
+}
+
 double computepPrimalFeas(cupdlp_float *x_solution, cupdlp_int resolution, cupdlp_int coarse_degree)
 {
     cupdlp_bool retcode = RETCODE_OK;
@@ -5593,10 +5703,9 @@ double computepPrimalFeas(cupdlp_float *x_solution, cupdlp_int resolution, cupdl
     // generate_c_coarse_directly_parallel(c, coarse_degree, resolution, resolution);
     cupdlp_float diff_norm = 0.0;
     cupdlp_float c_norm = 0.0;
-    cupdlp_float temp = 0.0;
+    long long pow_vec_2 = vec_len * vec_len;
     printf("开始计算误差\n");
-    omp_set_dynamic(1);
-#pragma omp parallel for reduction(+ : c_norm, diff_norm)
+#pragma omp parallel for reduction(+ : c_norm, diff_norm) num_threads(8)
     for (long long i = 0; i < vec_len; i++)
     {
         long long idx = 0;
@@ -5611,11 +5720,28 @@ double computepPrimalFeas(cupdlp_float *x_solution, cupdlp_int resolution, cupdl
             // c_norm += c[idx] * c[idx];
             // temp = fmax((x_solution[i] + x_solution[vec_len + j]) - c[idx], 0);
             c_norm += c_temp * c_temp;
-            temp = fmax(x_solution[i] + x_solution[vec_len + j] - c_temp, 0);
+            double temp = fmax(x_solution[i] + x_solution[vec_len + j] - c_temp, 0);
             diff_norm += temp * temp;
         }
     }
-    omp_set_dynamic(0);
+    // #pragma omp parallel for num_threads(8) reduction(+ : c_norm, diff_norm)
+    //     for (long long idx = 0; idx < pow_vec_2; idx++)
+    //     {
+    //         if (idx == 0)
+    //         {
+    //             printf("Number of threads in this region: %d\n", omp_get_num_threads());
+    //         }
+    //         int i = idx / vec_len;
+    //         int j = idx % vec_len;
+    //         int i1 = i / resolution_now;
+    //         int j1 = i % resolution_now;
+    //         int i2 = j / resolution_now;
+    //         int j2 = j % resolution_now;
+    //         double c_temp = ((i1 - i2) * (i1 - i2) + (j1 - j2) * (j1 - j2)) / scale_const;
+    //         c_norm += c_temp * c_temp;
+    //         double temp = fmax(x_solution[i] + x_solution[vec_len + j] - c_temp, 0);
+    //         diff_norm += temp * temp;
+    //     }
     diff_norm = sqrt(diff_norm);
     c_norm = sqrt(c_norm);
     cupdlp_float dual_gap = diff_norm / (1 + c_norm);
@@ -5623,6 +5749,55 @@ double computepPrimalFeas(cupdlp_float *x_solution, cupdlp_int resolution, cupdl
     cupdlp_printf("误差如下，diff_norm: %.8f, c_norm: %f, dual_gap: %.8f\n", diff_norm, c_norm, dual_gap);
     computepPrimalFeas_time = getTimeStamp() - computepPrimalFeas_time;
     cupdlp_printf("computepPrimalFeas耗时：%.3f\n", computepPrimalFeas_time);
+exit_cleanup:
+{
+    if (retcode != RETCODE_OK)
+    {
+        cupdlp_printf("computeDualGap, exit_cleanup\n");
+    }
+    // cupdlp_free(c);
+}
+    return dual_gap;
+}
+
+double computeInf(cupdlp_float *x_solution, cupdlp_int resolution, cupdlp_int coarse_degree, int num_threads)
+{
+    cupdlp_bool retcode = RETCODE_OK;
+    cupdlp_float time = getTimeStamp();
+    // 计算norm(ATx-c)/(1+norm(q))
+    int resolution_now = resolution / pow(2, coarse_degree);
+    long long vec_len = resolution_now * resolution_now; // 向量长度
+    double scale_const = 2.0 * vec_len;
+    // cupdlp_float *c = cupdlp_NULL;
+    // CUPDLP_INIT_ZERO(c, c_len);
+    // cupdlp_printf("开始生成c, c_len: %lld\n", c_len);
+    // generate_c_coarse_directly_parallel(c, coarse_degree, resolution, resolution);
+    cupdlp_float diff_norm = 0.0;
+    cupdlp_float c_norm = 0.0;
+    cupdlp_float temp = 0.0;
+    long long pow_vec_2 = vec_len * vec_len;
+    printf("开始计算误差\n");
+#pragma omp parallel for num_threads(num_threads) reduction(+ : c_norm, diff_norm)
+    for (long long idx = 0; idx < pow_vec_2; idx++)
+    {
+        int i = idx / vec_len;
+        int j = idx % vec_len;
+        int i1 = i / resolution_now;
+        int j1 = i % resolution_now;
+        int i2 = j / resolution_now;
+        int j2 = j % resolution_now;
+        double c_temp = ((i1 - i2) * (i1 - i2) + (j1 - j2) * (j1 - j2)) / scale_const;
+        c_norm += c_temp * c_temp;
+        double temp = fmax(x_solution[i] + x_solution[vec_len + j] - c_temp, 0);
+        diff_norm += temp * temp;
+    }
+    diff_norm = sqrt(diff_norm);
+    c_norm = sqrt(c_norm);
+    cupdlp_float dual_gap = diff_norm / (1 + c_norm);
+    printf("vec_len: %lld, resolution_now: %d, scale_const: %f\n", vec_len, resolution_now, scale_const);
+    cupdlp_printf("误差如下，diff_norm: %.8f, c_norm: %f, dual_gap: %.8f\n", diff_norm, c_norm, dual_gap);
+    time = getTimeStamp() - time;
+    cupdlp_printf("computeInf%.3f\n", time);
 exit_cleanup:
 {
     if (retcode != RETCODE_OK)
@@ -6786,7 +6961,7 @@ exit_cleanup:
 }
 }
 
-void MultiScaleOT_cuPDLP_Ykeep(const char *csvpath_1, const char *csvpath_2, int resolution, cupdlp_bool *ifChangeIntParam, cupdlp_bool *ifChangeFloatParam, cupdlp_int *intParam, cupdlp_float *floatParam, cupdlp_bool ifSaveSol, int num_scale, double *inf_thr, double *stopThrs)
+void MultiScaleOT_cuPDLP_Ykeep(const char *csvpath_1, const char *csvpath_2, int resolution, cupdlp_bool *ifChangeIntParam, cupdlp_bool *ifChangeFloatParam, cupdlp_int *intParam, cupdlp_float *floatParam, cupdlp_bool ifSaveSol, int num_scale, double *inf_thr, double *stopThrs, bool *exit_flag)
 {
     cupdlp_bool retcode = RETCODE_OK;
     Doublevec *x_solution_last = cupdlp_NULL;
@@ -6856,15 +7031,19 @@ void MultiScaleOT_cuPDLP_Ykeep(const char *csvpath_1, const char *csvpath_2, int
         {
             printf("num_scale_idx: %d, inner_iter_idx: %d\n", num_scale_idx, inner_iter_idx);
 #if !(CUPDLP_CPU)
-            directly_construct_and_solve_Multiscale_addSpt_Ykeep_longlong_addInner0(csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree, coarse_degree_last, x_solution_now, y_solution_now, *x_init, *y_init, &infeasibility, inner_iter_idx, keep_add, stopThr);
+            directly_construct_and_solve_Multiscale_addSpt_Ykeep_longlong_addInner0(csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree, coarse_degree_last, x_solution_now, y_solution_now, *x_init, *y_init, &infeasibility, inner_iter_idx, keep_add, stopThr, exit_flag);
 #else
-            directly_construct_and_solve_Multiscale_addSpt_Ykeep_longlong_addInner0(csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree, coarse_degree_last, x_solution_now, y_solution_now, *x_init, *y_init, &infeasibility, inner_iter_idx, keep_add, stopThr);
+            directly_construct_and_solve_Multiscale_addSpt_Ykeep_longlong_addInner0(csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, coarse_degree, coarse_degree_last, x_solution_now, y_solution_now, *x_init, *y_init, &infeasibility, inner_iter_idx, keep_add, stopThr, exit_flag);
 #endif
 #if (CUPDLP_CPU)
             infeasibility = computepPrimalFeas(x_solution_now->data, resolution, coarse_degree);
 #endif
             printf("num_scale_idx: %d, inner_iter: %d, infeasibility: %.3e, inf_Thr: %.3e\n", num_scale_idx, inner_iter_idx, infeasibility, inf_thr[num_scale_idx]);
-
+            if (*exit_flag)
+            {
+                printf("暂时判定为不收敛，退出\n");
+                goto exit_cleanup;
+            }
             if (infeasibility <= inf_thr[num_scale_idx])
             {
                 printf("num_scale_idx: %d, inner_iter_idx: %d, infeasibility <= inf_thr, 进入下一层级\n=====================================\n", num_scale_idx, inner_iter_idx);

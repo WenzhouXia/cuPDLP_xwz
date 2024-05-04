@@ -329,8 +329,26 @@ cupdlp_retcode main(int argc, char **argv)
   // //   end_time = omp_get_wtime(); // 结束计时
   // //   printf("Sum: %d\n", sum);
   // //   printf("Time taken with %d threads: %f seconds\n", num_threads, end_time - start_time);
+  // parallelTest(N, 2);
   // parallelTest(N, 4);
   // parallelTest(N, 8);
+  // long long x_len = 256 * 256;
+  // x_len *= 2;
+
+  // double *x_solution_test3 = malloc(x_len * sizeof(double));
+  // // 初始化x_solution数组
+  // for (int i = 0; i < x_len; i++)
+  // {
+  //   x_solution_test3[i] = 1.0; // 可以根据需要更改初始化
+  // }
+  // // parallelTest2(256, 1);
+  // // parallelTest2(256, 2);
+  // // parallelTest2(256, 4);
+  // // parallelTest2(256, 8);
+  // // parallelTest2(256, 16);
+  // parallelTest3(x_solution_test3, 256, 32);
+  // computeInf(x_solution_test3, 256, 0, 32);
+  // parallelTest3(x_solution_test3, 256, 8);
 #pragma endregion
 #pragma region 测试fine_dualOT_dual_parallel, 直接拿出来测
 //   cupdlp_int coarse_degree_last = 1;
@@ -773,48 +791,57 @@ cupdlp_retcode main(int argc, char **argv)
   double *stopThrs = cupdlp_NULL;
   CUPDLP_INIT(stopThrs, num_scale + 1);
   printf("eps = %.3e\n", eps);
-  inf_thrs[0] = eps;
-  for (int i = 1; i <= num_scale; i++)
-  {
-    inf_thrs[i] = eps;
-  }
-  stopThrs[0] = eps / 2;
-  for (int i = 1; i <= num_scale; i++)
-  {
-    stopThrs[i] = eps;
-  }
-  if (num_scale == 2)
-  {
-    inf_thrs[0] = eps;
-    inf_thrs[1] = eps / 10;
-    inf_thrs[2] = eps / 100;
-    stopThrs[0] = eps;
-    stopThrs[1] = eps / 10;
-    stopThrs[2] = eps / 100;
-  }
-
-  if (num_scale == 4)
-  {
-    inf_thrs[0] = eps;
-    inf_thrs[1] = eps;
-    inf_thrs[2] = eps / 10;
-    inf_thrs[3] = eps / 100;
-    inf_thrs[4] = eps / 100;
-    stopThrs[0] = eps;
-    stopThrs[1] = eps;
-    stopThrs[2] = eps / 10;
-    stopThrs[3] = eps / 100;
-    stopThrs[4] = eps / 100;
-    // inf_thrs[0] = 1e-6;
-    // stopThrs[0] = 5e-7;
-    // for (int num_scale_idx = 1; num_scale_idx <= num_scale; num_scale_idx++)
-    // {
-    //   inf_thrs[num_scale_idx] = inf_thrs[num_scale_idx - 1] / 3;
-    //   stopThrs[num_scale_idx] = stopThrs[num_scale_idx - 1] / 3;
-    // }
-  }
+  // inf_thrs[0] = eps;
+  // for (int i = 1; i <= num_scale; i++)
+  // {
+  //   inf_thrs[i] = eps;
+  // }
+  // stopThrs[0] = eps / 2;
+  // for (int i = 1; i <= num_scale; i++)
+  // {
+  //   stopThrs[i] = eps;
+  // }
+  // if (num_scale == 2)
+  // {
+  //   inf_thrs[0] = eps;
+  //   inf_thrs[1] = eps / 10;
+  //   inf_thrs[2] = eps / 100;
+  //   stopThrs[0] = eps;
+  //   stopThrs[1] = eps / 10;
+  //   stopThrs[2] = eps / 100;
+  // }
+  // if (num_scale == 4)
+  // {
+  //   inf_thrs[0] = eps;
+  //   inf_thrs[1] = eps;
+  //   inf_thrs[2] = eps / 10;
+  //   inf_thrs[3] = eps / 100;
+  //   inf_thrs[4] = eps / 100;
+  //   stopThrs[0] = eps;
+  //   stopThrs[1] = eps;
+  //   stopThrs[2] = eps / 10;
+  //   stopThrs[3] = eps / 100;
+  //   stopThrs[4] = eps / 100;
+  //   // inf_thrs[0] = 1e-6;
+  //   // stopThrs[0] = 5e-7;
+  //   // for (int num_scale_idx = 1; num_scale_idx <= num_scale; num_scale_idx++)
+  //   // {
+  //   //   inf_thrs[num_scale_idx] = inf_thrs[num_scale_idx - 1] / 3;
+  //   //   stopThrs[num_scale_idx] = stopThrs[num_scale_idx - 1] / 3;
+  //   // }
+  // }
   switch (num_scale)
   {
+  case 0:
+    inf_thrs[0] = eps;
+    stopThrs[0] = eps;
+    break;
+  case 1:
+    inf_thrs[0] = eps;
+    inf_thrs[1] = eps;
+    stopThrs[0] = eps;
+    stopThrs[1] = eps;
+    break;
   case 2:
     // inf_thrs[0] = eps;
     // inf_thrs[1] = eps / 10;
@@ -855,10 +882,147 @@ cupdlp_retcode main(int argc, char **argv)
     printf("num_scale = %d, 暂时不支持这个num_scale\n", num_scale);
     break;
   }
-  MultiScaleOT_cuPDLP_Ykeep(csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, num_scale, inf_thrs, stopThrs);
+  if (eps == 1e-5)
+  {
+    double eps_temp = eps;
+    eps *= 0.1;
+    switch (num_scale)
+    {
+    case 0:
+      inf_thrs[0] = eps;
+      stopThrs[0] = eps;
+      break;
+    case 1:
+      inf_thrs[0] = eps;
+      inf_thrs[1] = eps;
+      stopThrs[0] = eps;
+      stopThrs[1] = eps;
+      break;
+    case 2:
+      // inf_thrs[0] = eps;
+      // inf_thrs[1] = eps / 10;
+      // inf_thrs[2] = eps / 100;
+      // stopThrs[0] = eps;
+      // stopThrs[1] = eps / 10;
+      // stopThrs[2] = eps / 100;
+      inf_thrs[0] = eps;
+      inf_thrs[1] = eps;
+      inf_thrs[2] = eps;
+      stopThrs[0] = eps;
+      stopThrs[1] = eps;
+      stopThrs[2] = eps;
+      break;
+    case 3:
+      inf_thrs[0] = eps;
+      inf_thrs[1] = eps;
+      inf_thrs[2] = eps / 10;
+      inf_thrs[3] = eps / 100;
+      stopThrs[0] = eps;
+      stopThrs[1] = eps;
+      stopThrs[2] = eps / 10;
+      stopThrs[3] = eps / 100;
+      break;
+    case 4:
+      inf_thrs[0] = eps;
+      inf_thrs[1] = eps;
+      inf_thrs[2] = eps / 10;
+      inf_thrs[3] = eps / 100;
+      inf_thrs[4] = eps / 100;
+      stopThrs[0] = eps;
+      stopThrs[1] = eps;
+      stopThrs[2] = eps / 10;
+      stopThrs[3] = eps / 100;
+      stopThrs[4] = eps / 100;
+      break;
+    default:
+      printf("num_scale = %d, 暂时不支持这个num_scale\n", num_scale);
+      break;
+    }
+    eps = eps_temp;
+    stopThrs[0] = eps;
+    inf_thrs[0] = eps;
+  }
+  if (eps == 1e-4)
+  {
+    double eps_temp = eps;
+    eps *= 0.1;
+    switch (num_scale)
+    {
+    case 0:
+      inf_thrs[0] = eps;
+      stopThrs[0] = eps;
+      break;
+    case 1:
+      inf_thrs[0] = eps;
+      inf_thrs[1] = eps;
+      stopThrs[0] = eps;
+      stopThrs[1] = eps;
+      break;
+    case 2:
+      // inf_thrs[0] = eps;
+      // inf_thrs[1] = eps / 10;
+      // inf_thrs[2] = eps / 100;
+      // stopThrs[0] = eps;
+      // stopThrs[1] = eps / 10;
+      // stopThrs[2] = eps / 100;
+      inf_thrs[0] = eps;
+      inf_thrs[1] = eps;
+      inf_thrs[2] = eps;
+      stopThrs[0] = eps;
+      stopThrs[1] = eps;
+      stopThrs[2] = eps;
+      break;
+    case 3:
+      inf_thrs[0] = eps;
+      inf_thrs[1] = eps;
+      inf_thrs[2] = eps / 10;
+      inf_thrs[3] = eps / 100;
+      stopThrs[0] = eps;
+      stopThrs[1] = eps;
+      stopThrs[2] = eps / 10;
+      stopThrs[3] = eps / 100;
+      break;
+    case 4:
+      inf_thrs[0] = eps;
+      inf_thrs[1] = eps;
+      inf_thrs[2] = eps / 10;
+      inf_thrs[3] = eps / 100;
+      inf_thrs[4] = eps / 100;
+      stopThrs[0] = eps;
+      stopThrs[1] = eps;
+      stopThrs[2] = eps / 10;
+      stopThrs[3] = eps / 100;
+      stopThrs[4] = eps / 100;
+      break;
+    default:
+      printf("num_scale = %d, 暂时不支持这个num_scale\n", num_scale);
+      break;
+    }
+    eps = eps_temp;
+    inf_thrs[0] = eps;
+  }
+  bool exit_flag = false;
+  for (int i = 0; i <= num_scale; i++)
+  {
+    printf("stopThrs[%d] = %.3e\n", i, stopThrs[i]);
+  }
+  for (int i = 0; i <= num_scale; i++)
+  {
+    printf("inf_thrs[%d] = %.3e\n", i, inf_thrs[i]);
+  }
+  MultiScaleOT_cuPDLP_Ykeep(csvpath_1, csvpath_2, resolution, ifChangeIntParam, ifChangeFloatParam, intParam, floatParam, ifSaveSol, num_scale, inf_thrs, stopThrs, &exit_flag);
+
   cupdlp_free(inf_thrs);
   all_multiscale_time = getTimeStamp() - all_multiscale_time;
-  cupdlp_printf("picType = %s, resolution = %d, 运行结束，all_multiscale_time = %fs\n", picType, resolution, all_multiscale_time);
+  if (exit_flag)
+  {
+    cupdlp_printf("MultiScaleOT_cuPDLP_Ykeep运行结束，暂时判定为不收敛\n");
+  }
+  else
+  {
+    cupdlp_printf("picType = %s, resolution = %d, 运行结束，all_multiscale_time = %fs\n", picType, resolution, all_multiscale_time);
+  }
+
 #pragma endregion
 
 #pragma region 自动Multiscale with Recover

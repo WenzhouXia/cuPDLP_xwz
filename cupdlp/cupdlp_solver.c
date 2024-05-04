@@ -1194,6 +1194,13 @@ cupdlp_retcode PDHG_Solve_Multiscale(CUPDLPwork *pdhg, cupdlp_float *x_init, cup
         resobj->termCode = OPTIMAL;
         break;
       }
+      /////////////////////////////////////////////////////////
+      if (pdhg->resobj->dRelObjGapAverage >= 0.9)
+      {
+        printf("dRelObjGapAverage太大了, 暂时判定为不收敛！\n");
+        break;
+      }
+      /////////////////////////////////////////////////////////
 
       if (timers->dSolvingTime > settings->dTimeLim)
       {

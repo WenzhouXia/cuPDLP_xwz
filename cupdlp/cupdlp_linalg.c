@@ -1,6 +1,6 @@
 
 #include "cupdlp_linalg.h"
-
+#include <omp.h>
 /**
  * The function `ScatterCol` performs a scatter operation on a specific
  * column of a matrix.
@@ -28,92 +28,124 @@ void ScatterRow(CUPDLPwork *w, cupdlp_int iRow, cupdlp_float multiplier,
                 cupdlp_float *target)
 {
   CUPDLPcsr *matrix = w->problem->data->csr_matrix;
-
   for (cupdlp_int p = matrix->rowMatBeg[iRow]; p < matrix->rowMatBeg[iRow + 1];
        ++p)
     target[matrix->rowMatIdx[p]] += matrix->rowMatElem[p] * multiplier;
 }
 
+// void AxCPU(CUPDLPwork *w, cupdlp_float *ax, const cupdlp_float *x)
+// {
+//   // #if PDHG_USE_TIMERS
+//   //     ++w->timers->nAxCalls;
+//   //     cupdlp_float dStartTime = getTimeStamp();
+//   // #endif
+
+//   CUPDLPproblem *lp = w->problem;
+
+//   /* no indentity currently
+
+//   FILL_ZERO(ax, lp->data->nRows);
+
+//   // [A I]*x
+//   for (cupdlp_int iSeq = ncols, iRow = 0; iSeq < lp->nSeq; ++iSeq, ++iRow)
+//   {
+//       if ((pdhg->lower[iSeq] > -INFINITY) && (pdhg->upper[iSeq] < INFINITY))
+//       {
+//           ax[iRow] = scaling->rowScale ? scaling->rowScale[iRow] * x[iSeq] :
+//   x[iSeq];
+//       }
+//       else
+//       {
+//           ax[iRow] = 0.0;
+//       }
+//   }
+//   */
+
+//   memset(ax, 0, sizeof(cupdlp_float) * lp->data->nRows);
+//   // #pragma omp parallel for num_threads(1)
+//   for (cupdlp_int iCol = 0; iCol < lp->data->nCols; ++iCol)
+//   {
+//     ScatterCol(w, iCol, x[iCol], ax);
+//   }
+
+//   // #if PDHG_USE_TIMERS
+//   //     w->timers->dAxTime += getTimeStamp() - dStartTime;
+//   // #endif
+// }
+
 void AxCPU(CUPDLPwork *w, cupdlp_float *ax, const cupdlp_float *x)
 {
-  // #if PDHG_USE_TIMERS
-  //     ++w->timers->nAxCalls;
-  //     cupdlp_float dStartTime = getTimeStamp();
-  // #endif
-
   CUPDLPproblem *lp = w->problem;
-
-  /* no indentity currently
-
-  FILL_ZERO(ax, lp->data->nRows);
-
-  // [A I]*x
-  for (cupdlp_int iSeq = ncols, iRow = 0; iSeq < lp->nSeq; ++iSeq, ++iRow)
-  {
-      if ((pdhg->lower[iSeq] > -INFINITY) && (pdhg->upper[iSeq] < INFINITY))
-      {
-          ax[iRow] = scaling->rowScale ? scaling->rowScale[iRow] * x[iSeq] :
-  x[iSeq];
-      }
-      else
-      {
-          ax[iRow] = 0.0;
-      }
-  }
-  */
-
   memset(ax, 0, sizeof(cupdlp_float) * lp->data->nRows);
+  CUPDLPcsc *matrix = lp->data->csc_matrix;
 
-  for (cupdlp_int iCol = 0; iCol < lp->data->nCols; ++iCol)
+#pragma omp parallel for
+  for (cupdlp_int iCol = 0; iCol < matrix->nCols; ++iCol)
   {
-    ScatterCol(w, iCol, x[iCol], ax);
+    for (cupdlp_int p = matrix->colMatBeg[iCol]; p < matrix->colMatBeg[iCol + 1]; ++p)
+    {
+#pragma omp atomic
+      ax[matrix->colMatIdx[p]] += matrix->colMatElem[p] * x[iCol];
+    }
   }
-
-  // #if PDHG_USE_TIMERS
-  //     w->timers->dAxTime += getTimeStamp() - dStartTime;
-  // #endif
 }
+// void ATyCPU(CUPDLPwork *w, cupdlp_float *aty, const cupdlp_float *y)
+// {
+//   // #if PDHG_USE_TIMERS
+//   //     ++w->timers->nAtyCalls;
+//   //     cupdlp_float dStartTime = getTimeStamp();
+//   // #endif
+
+//   CUPDLPproblem *lp = w->problem;
+
+//   /* no indentity currently
+//   FILL_ZERO(aty, lp->nSeq);
+
+//   // [A I]'*y
+//   for (cupdlp_int iSeq = ncols, iRow = 0; iSeq < lp->nSeq; ++iSeq, ++iRow)
+//   {
+//       ScatterRow(pdhg, iRow, y[iRow], aty);
+
+//       if ((pdhg->lower[iSeq] > -INFINITY) && (pdhg->upper[iSeq] < INFINITY))
+//       {
+//           aty[iSeq] = (scaling->rowScale ? scaling->rowScale[iRow] * y[iRow] :
+//   y[iRow]);
+//       }
+//       else
+//       {
+//           aty[iSeq] = 0.0;
+//       }
+//   }
+//   */
+
+//   memset(aty, 0, sizeof(cupdlp_float) * lp->data->nCols);
+//   // #pragma omp parallel for num_threads(1)
+//   for (cupdlp_int iRow = 0; iRow < lp->data->nRows; ++iRow)
+//   {
+//     ScatterRow(w, iRow, y[iRow], aty);
+//   }
+
+//   // #if PDHG_USE_TIMERS
+//   //     w->timers->dAtyTime += getTimeStamp() - dStartTime;
+//   // #endif
+// }
 
 void ATyCPU(CUPDLPwork *w, cupdlp_float *aty, const cupdlp_float *y)
 {
-  // #if PDHG_USE_TIMERS
-  //     ++w->timers->nAtyCalls;
-  //     cupdlp_float dStartTime = getTimeStamp();
-  // #endif
-
   CUPDLPproblem *lp = w->problem;
-
-  /* no indentity currently
-  FILL_ZERO(aty, lp->nSeq);
-
-  // [A I]'*y
-  for (cupdlp_int iSeq = ncols, iRow = 0; iSeq < lp->nSeq; ++iSeq, ++iRow)
-  {
-      ScatterRow(pdhg, iRow, y[iRow], aty);
-
-      if ((pdhg->lower[iSeq] > -INFINITY) && (pdhg->upper[iSeq] < INFINITY))
-      {
-          aty[iSeq] = (scaling->rowScale ? scaling->rowScale[iRow] * y[iRow] :
-  y[iRow]);
-      }
-      else
-      {
-          aty[iSeq] = 0.0;
-      }
-  }
-  */
-
   memset(aty, 0, sizeof(cupdlp_float) * lp->data->nCols);
-  for (cupdlp_int iRow = 0; iRow < lp->data->nRows; ++iRow)
+  CUPDLPcsr *matrix = lp->data->csr_matrix;
+
+#pragma omp parallel for
+  for (cupdlp_int iRow = 0; iRow < matrix->nRows; ++iRow)
   {
-    ScatterRow(w, iRow, y[iRow], aty);
+    for (cupdlp_int p = matrix->rowMatBeg[iRow]; p < matrix->rowMatBeg[iRow + 1]; ++p)
+    {
+#pragma omp atomic
+      aty[matrix->rowMatIdx[p]] += matrix->rowMatElem[p] * y[iRow];
+    }
   }
-
-  // #if PDHG_USE_TIMERS
-  //     w->timers->dAtyTime += getTimeStamp() - dStartTime;
-  // #endif
 }
-
 double nrm2(cupdlp_int n, const double *x, cupdlp_int incx)
 {
 #ifdef USE_MY_BLAS
@@ -221,9 +253,9 @@ void cupdlp_projLowerBound(cupdlp_float *x, const cupdlp_float *lb,
 }
 
 /* xout = min(x, ub), ub is vector */
-void cupdlp_projUpperBound(cupdlp_float *x, const cupdlp_float *ub,
-                           const cupdlp_int len)
+void cupdlp_projUpperBound(cupdlp_float *x, const cupdlp_float *ub, const cupdlp_int len)
 {
+#pragma omp parallel for
   for (int i = 0; i < len; i++)
   {
     x[i] = x[i] < ub[i] ? x[i] : ub[i];
@@ -231,9 +263,9 @@ void cupdlp_projUpperBound(cupdlp_float *x, const cupdlp_float *ub,
 }
 
 /* xout = max(x, lb), lb is number */
-void cupdlp_projSameLowerBound(cupdlp_float *x, const cupdlp_float lb,
-                               const cupdlp_int len)
+void cupdlp_projSameLowerBound(cupdlp_float *x, const cupdlp_float lb, const cupdlp_int len)
 {
+#pragma omp parallel for
   for (int i = 0; i < len; i++)
   {
     x[i] = x[i] > lb ? x[i] : lb;
@@ -329,14 +361,13 @@ cupdlp_float diffDotDiff(cupdlp_float *x1, cupdlp_float *x2, cupdlp_float *y1,
 
 /*------------------------ new added --------------------*/
 
-double dot(cupdlp_int n, cupdlp_float *x, cupdlp_int incx, cupdlp_float *y,
-           cupdlp_int incy)
+double dot(cupdlp_int n, cupdlp_float *x, cupdlp_int incx, cupdlp_float *y, cupdlp_int incy)
 {
 #ifdef USE_MY_BLAS
   assert(incx == 1 && incy == 1);
 
   double dres = 0.0;
-
+#pragma omp parallel for reduction(+ : dres)
   for (int i = 0; i < n; ++i)
   {
     dres += x[i] * y[i];
@@ -359,16 +390,14 @@ double Dotprod_Neumaier(cupdlp_float *x, cupdlp_float *y, cupdlp_int n)
 }
 
 /* x = x + weight * y */
-void AddToVector(cupdlp_float *x, const cupdlp_float weight,
-                 const cupdlp_float *y, const cupdlp_int n)
+void AddToVector(cupdlp_float *x, const cupdlp_float weight, const cupdlp_float *y, const cupdlp_int n)
 {
 #ifdef USE_MY_BLAS
-
+#pragma omp parallel for
   for (int i = 0; i < n; ++i)
   {
     x[i] += weight * y[i];
   }
-
 #else
   return ddot(n, x, incx, y, incy);
 #endif
